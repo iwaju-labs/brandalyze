@@ -1,0 +1,4 @@
+# Basic dependencies for AI core functionality
+openai
+qdrant-client
+numpy
