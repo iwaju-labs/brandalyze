@@ -39,7 +39,7 @@ Build the first working version of **Brandalyze** that:
 
 **Frontend (Next.js)**
 - Initialize with `create-next-app@latest --typescript`
-- Install TailwindCSS, shadcn/ui, and NextAuth scaffolding
+- Install TailwindCSS, shadcn/ui, and Clerk scaffolding
 - Create base pages: `/`, `/upload`, `/analyze`
 
 **Backend (Django)**

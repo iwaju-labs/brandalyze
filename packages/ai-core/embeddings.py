@@ -1,4 +1,16 @@
 """Embedding generation and vector storage"""
+import openai
+import os
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def extaract_embedding(text: str):
+    """extract OpenAI embeddings and return them"""
+    response = openai.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return response.data[0].embedding
 
 def generate_embedding(text: str):
     """Generate embedding for text using OpenAI"""
