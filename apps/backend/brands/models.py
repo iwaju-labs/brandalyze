@@ -1,8 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Brand(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='brands')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='brands')
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 

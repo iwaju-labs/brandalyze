@@ -6,7 +6,6 @@ from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from .models import Brand, BrandSample
 from .serializers import BrandSerializer, BrandSampleSerializer
-# from packages.ai_core.embeddings import extract_embedding
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -43,7 +42,7 @@ class BrandViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Brand.objects.filter(owner=self.request.user)
+        return Brand.objects.filter(user=self.request.user)
     
 class BrandSampleViewSet(viewsets.ModelViewSet):
     queryset = BrandSample.objects.all()
@@ -54,7 +53,7 @@ class BrandSampleViewSet(viewsets.ModelViewSet):
         brand_id = request.data.get('brand_id')
         text = request.data.get('text')
 
-        brand = Brand.objects.get(id=brand_id, owner=request.user)
+        brand = Brand.objects.get(id=brand_id, user=request.user)
         # embedding = extract_embedding(text)  # TODO: Implement this later
 
         sample = BrandSample.objects.create(

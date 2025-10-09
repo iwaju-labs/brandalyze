@@ -1,0 +1,10 @@
+setup.py
+./ai_core/__init__.py
+./ai_core/analysis.py
+./ai_core/embeddings.py
+ai_core/__init__.py
+ai_core.egg-info/PKG-INFO
+ai_core.egg-info/SOURCES.txt
+ai_core.egg-info/dependency_links.txt
+ai_core.egg-info/requires.txt
+ai_core.egg-info/top_level.txt

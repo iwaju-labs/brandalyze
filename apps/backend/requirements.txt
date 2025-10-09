@@ -7,3 +7,9 @@ openai==1.54.4
 qdrant-client==1.12.1
 numpy==2.1.3
 scikit-learn==1.5.2
+pyjwt[crypto]
+cryptography
+requests
+
+# Local packages (editable installations)
+-e ../../packages/ai-core
