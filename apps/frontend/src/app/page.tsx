@@ -1,4 +1,3 @@
-import { Navbar } from '@/components/navigation/navbar';
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
@@ -7,16 +6,14 @@ export default async function HomePage() {
   const { userId } = await auth();
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
-      
+    <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-7xl px-4 py-16">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
             Keep Your Brand Voice{' '}
             <span className="text-blue-600">Consistent</span>
           </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-600">
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
             Analyze your content against your brand guidelines and get real-time 
             feedback on tone, style, and messaging consistency.
           </p>

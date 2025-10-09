@@ -41,6 +41,9 @@ Build the first working version of **Brandalyze** that:
 - [x] Add hover effects and animations
 - [x] Create navigation component with authentication
 - [x] Implement protected routes with authentication
+- [x] Add global navbar to all pages
+- [x] Implement dark/light mode toggle
+- [x] Add dark mode styling support
 
 ### Backend (Django)
 - [x] Initialize project `brandalyze-backend`
@@ -146,6 +149,9 @@ Build the first working version of **Brandalyze** that:
 - [x] **Toast Notifications**: User feedback system for upload success/errors
 - [x] **File Validation**: Both client and server-side file validation
 - [x] **Progress Tracking**: Visual progress bars with simulated progress updates
+- [x] **Authentication**: Complete Clerk authentication setup with protected routes
+- [x] **Global Navigation**: Navbar component available on all pages
+- [x] **Dark Mode**: Theme toggle with light/dark mode support
 
 ---
 

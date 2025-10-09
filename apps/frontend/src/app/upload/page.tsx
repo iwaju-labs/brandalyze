@@ -83,24 +83,23 @@ export default function BrandFileUploader() {
       toast.error(`Failed to upload ${file.name}`)
     }
   }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Welcome back, {user?.firstName || 'User'}!
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-muted-foreground">
             Upload your brand samples to get started with consistency analysis.
           </p>
         </div>
         
         <div className="flex flex-col justify-center items-center">
-          <p className="text-4xl">
+          <p className="text-4xl text-foreground">
             Upload Brand Style Files
           </p>
-          <p className="mb-2">
+          <p className="mb-2 text-muted-foreground">
             Any files you think best represent your brands style/voice will be helpful!
           </p>
           <FileUpload.Root>
