@@ -7,7 +7,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd apps/backend && call venv\\Scripts\\activate.bat && python manage.py runserver",
+    "dev:frontend": "cd apps/frontend && npm run dev"
   },
   "repository": {
     "type": "git",
@@ -19,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/iwaju-labs/brandalyze/issues"
   },
-  "homepage": "https://github.com/iwaju-labs/brandalyze#readme"
+  "homepage": "https://github.com/iwaju-labs/brandalyze#readme",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
