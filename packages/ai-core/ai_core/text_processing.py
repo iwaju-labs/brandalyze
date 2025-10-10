@@ -44,3 +44,22 @@ def chunk_by_paragraphs(text, max_chunk_size=1500):
         chunks.append(current_chunk.strip())
     
     return chunks
+
+def process_text(text: str, max_chunk_size=1000, strategy="sentences"):
+    """main text processing function with edge case handling"""
+    if not text or len(text.strip()) < 10:
+        return [""]
+    
+    if len(text) > 1_000_000: #1MB limit
+        text = text[:1_000_000] + "...[truncated]"
+
+    cleaned_text = clean_text(text)
+
+    # choose chunking strategy
+    if strategy == "sentences":
+        return chunk_by_sentences(cleaned_text, max_chunk_size)
+    elif strategy == "paragraphs":
+        return chunk_by_paragraphs(cleaned_text, max_chunk_size)
+    else:
+        return [cleaned_text[i:i+max_chunk_size] 
+            for i in range(0, len(cleaned_text), max_chunk_size)]
