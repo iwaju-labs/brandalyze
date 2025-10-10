@@ -17,14 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from brands.views import BrandViewSet, BrandSampleViewSet, upload_file
+from brands.views import BrandViewSet, BrandSampleViewSet, upload_file, upload_brand_document
 
 router = DefaultRouter()
-router.register(r'brands', BrandViewSet, basename='brand'),
+router.register(r'brands', BrandViewSet, basename='brand')
 router.register(r'samples', BrandSampleViewSet, basename='sample')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/upload/', upload_file, name='upload_file'),
+    path('api/upload/brand-document/', upload_brand_document, name='upload_brand_document'),
 ]
