@@ -20,6 +20,12 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Add ai-core package to Python path
+import sys
+AI_CORE_DIR = BASE_DIR.parent.parent / 'packages' / 'ai-core'
+if str(AI_CORE_DIR) not in sys.path:
+    sys.path.append(str(AI_CORE_DIR))
+
 # clerk
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
