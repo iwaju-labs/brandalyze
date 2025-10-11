@@ -8,32 +8,39 @@ def clean_text(text):
     return text.strip()
 
 def chunk_by_sentences(text, max_chunk_size=1000):
-    """split text into chunks by sentences"""
-    sentences = re.split(r'[.!?]+', text)
+    sentences = re.split(r'([.!?]+)', text)
+    
+    proper_sentences = []
+    for i in range(0, len(sentences)-1, 2):
+        sentence = sentences[i].strip()
+        punctuation = sentences[i+1] if i+1 < len(sentences) else ''
+        if sentence:
+            proper_sentences.append(sentence + punctuation)
+    
+    if not proper_sentences:
+        return [text.strip()] if text.strip() else []
+    
     chunks = []
-    current_chunk = ""
-
-    for sentence in sentences:
-        if len(current_chunk + sentence) <= max_chunk_size:
-            current_chunk += sentence + ". "
+    
+    for sentence in proper_sentences:
+        sentence = sentence.strip()
+        if len(sentence) <= max_chunk_size:
+            chunks.append(sentence)
         else:
-            if current_chunk:
-                chunks.append(current_chunk.strip())
-            current_chunk = sentence + "."
-
-    if current_chunk:
-        chunks.append(current_chunk.strip())
-
-    return chunks
+            chunks.append(sentence[:max_chunk_size])
+            remaining = sentence[max_chunk_size:]
+            if remaining.strip():
+                chunks.append(remaining.strip())
+    
+    return [chunk for chunk in chunks if chunk.strip()]
 
 def chunk_by_paragraphs(text, max_chunk_size=1500):
-    """split text into chunks by paragraph"""
     paragraphs = text.split('\n\n')
     chunks = []
     current_chunk = ""
 
     for para in paragraphs:
-        if len(current_chunk + para <= max_chunk_size):
+        if len(current_chunk + para) <= max_chunk_size:
             current_chunk += para + "\n\n"
         else:
             if current_chunk:
@@ -46,11 +53,10 @@ def chunk_by_paragraphs(text, max_chunk_size=1500):
     return chunks
 
 def process_text(text: str, max_chunk_size=1000, strategy="sentences"):
-    """main text processing function with edge case handling"""
-    if not text or len(text.strip()) < 10:
-        return [""]
+    if not text or len(text.strip()) < 3:
+        return []
     
-    if len(text) > 1_000_000: #1MB limit
+    if len(text) > 1_000_000:
         text = text[:1_000_000] + "...[truncated]"
 
     cleaned_text = clean_text(text)

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -27,12 +27,21 @@ export function ThemeProvider({
   defaultTheme = "system",
   storageKey = "brandalyze-ui-theme",
   ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage?.getItem(storageKey) as Theme) || defaultTheme
-  );
+}: Readonly<ThemeProviderProps>) {
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem(storageKey) as Theme;
+    if (stored) {
+      setTheme(stored);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");
@@ -45,18 +54,17 @@ export function ThemeProvider({
 
       root.classList.add(systemTheme);
       return;
-    }
-
-    root.classList.add(theme);
-  }, [theme]);
-
-  const value = {
+    }    root.classList.add(theme);
+  }, [theme, mounted]);
+  const value = useMemo(() => ({
     theme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
+      if (mounted) {
+        localStorage.setItem(storageKey, theme);
+      }
       setTheme(theme);
     },
-  };
+  }), [theme, mounted, storageKey]);
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

@@ -20,7 +20,7 @@ from ai_core.text_processing import process_text
 @csrf_exempt
 def upload_file(request):
     """
-    Simple file upload endpoint for testing
+    Enhanced file upload with text extraction and analysis (MVP - no database saving)
     """
     try:
         if 'file' not in request.FILES:
@@ -28,138 +28,49 @@ def upload_file(request):
         
         uploaded_file = request.FILES['file']
         
-        # Basic file validation
-        max_size = 10 * 1024 * 1024  # 10MB
-        if uploaded_file.size > max_size:
-            return error_response("File too large", code="FILE_TOO_LARGE")
-        
-        return success_response(
-            data={
-                'filename': uploaded_file.name,
-                'size': uploaded_file.size,
-                'content_type': uploaded_file.content_type
-            },
-            message="File uploaded successfully"
-        )
-    except Exception as e:
-        return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-def _validate_upload_request(request):
-    """Helper function to validate upload request"""
-    if 'file' not in request.FILES:
-        return None, error_response("No file provided", code="MISSING_FILE")
-    
-    brand_id = request.data.get('brand_id')
-    if not brand_id:
-        return None, error_response("brand_id is required", code="MISSING_BRAND_ID")
-    
-    return brand_id, None
-
-
-def _validate_brand_ownership(brand_id, user):
-    """Helper function to validate brand ownership"""
-    try:
-        brand = Brand.objects.get(id=brand_id, user=user)
-        return brand, None
-    except Brand.DoesNotExist:
-        return None, error_response(
-            "Brand not found or access denied",
-            "BRAND_ACCESS_DENIED",
-            status_code=status.HTTP_404_NOT_FOUND
-        )
-
-
-def _extract_and_process_text(uploaded_file, file_type):
-    """Helper function to extract and process text from uploaded file"""
-    try:
-        # Save file temporarily for text extraction
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_type}") as temp_file:
-            uploaded_file.seek(0)
-            temp_file.write(uploaded_file.read())
-            temp_file_path = temp_file.name
-        
-        try:
-            # Extract text using our text extraction engine
-            extracted_text = extract_text(temp_file_path, file_type)
-            
-            # Process and chunk the text
-            if extracted_text and not extracted_text.startswith('Error'):
-                text_chunks = process_text(extracted_text, max_chunk_size=1000, strategy="sentences")
-                return extracted_text, text_chunks
-            else:
-                return extracted_text, []
-                
-        finally:
-            # Clean up temp file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-                
-    except Exception as text_error:
-        return f"Text extraction failed: {str(text_error)}", []
-
-
-def _create_brand_samples(brand, extracted_text, text_chunks):
-    """Helper function to create brand samples from text chunks"""
-    created_samples = []
-    
-    if text_chunks and len(text_chunks) > 0:
-        for i, chunk in enumerate(text_chunks):
-            if chunk.strip():  # Only create samples for non-empty chunks
-                sample = BrandSample.objects.create(brand=brand, text=chunk)
-                created_samples.append({
-                    'id': sample.id,
-                    'text_preview': chunk[:100] + '...' if len(chunk) > 100 else chunk,
-                    'chunk_number': i + 1
-                })
-    elif extracted_text and not extracted_text.startswith('Error') and not extracted_text.startswith('Text'):
-        # If no chunks but we have extracted text, create a single sample
-        sample = BrandSample.objects.create(brand=brand, text=extracted_text)
-        created_samples.append({
-            'id': sample.id,
-            'text_preview': extracted_text[:100] + '...' if len(extracted_text) > 100 else extracted_text,
-            'chunk_number': 1
-        })
-    
-    return created_samples
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_exempt
-def upload_brand_document(request):
-    """
-    Upload and process brand documents with full validation and text extraction
-    """
-    try:
-        # Step 1: Validate request
-        brand_id, validation_error = _validate_upload_request(request)
-        if validation_error:
-            return validation_error
-          # Step 2: Validate brand ownership (skip user check for testing)
-        try:
-            brand = Brand.objects.get(id=brand_id)
-        except Brand.DoesNotExist:
-            
-            return error_response("Brand not found", code="BRAND_NOT_FOUND", status_code=status.HTTP_404_NOT_FOUND)
-        
-        uploaded_file = request.FILES['file']
-        
-        # Step 3: Validate file using our validation utility
+        # Validate file using comprehensive validation
         validation_result = validate_uploaded_file(uploaded_file)
         
         if not validation_result.is_valid:
             return error_response(
-                "File validation failed",
-                code="FILE_VALIDATION_FAILED",
-                status_code=status.HTTP_400_BAD_REQUEST
+                f"File validation failed: {', '.join(validation_result.errors)}",
+                code="FILE_VALIDATION_FAILED"
             )
+          # Extract and process text
+        try:
+            # Save file temporarily for text extraction
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{validation_result.file_type}") as temp_file:
+                uploaded_file.seek(0)
+                temp_file.write(uploaded_file.read())
+                temp_file_path = temp_file.name
+            
+            try:
+                # Extract text using our text extraction engine
+                extracted_text = extract_text(temp_file_path, validation_result.file_type)
+                
+                # Process and chunk the text
+                if extracted_text and not extracted_text.startswith('Error'):
+                    text_chunks = process_text(extracted_text, max_chunk_size=1000, strategy="sentences")
+                else:
+                    text_chunks = []
+                    
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+                    
+        except Exception as text_error:
+            extracted_text = f"Text extraction failed: {str(text_error)}"
+            text_chunks = []
         
-        # Step 4: Extract and process text
-        extracted_text, text_chunks = _extract_and_process_text(uploaded_file, validation_result.file_type)
-        
-        # Step 5: Create brand samples
-        created_samples = _create_brand_samples(brand, extracted_text, text_chunks)
+        # Basic content analysis (without saving to database)
+        analysis_results = {
+            'word_count': len(extracted_text.split()) if extracted_text and not extracted_text.startswith('Error') else 0,
+            'character_count': len(extracted_text) if extracted_text else 0,
+            'chunks_created': len(text_chunks) if text_chunks else 0,
+            'extraction_successful': bool(extracted_text and not extracted_text.startswith('Error')),
+            'text_preview': extracted_text[:300] + '...' if extracted_text and len(extracted_text) > 300 else extracted_text
+        }
         
         return success_response(
             data={
@@ -173,28 +84,72 @@ def upload_brand_document(request):
                     'is_valid': validation_result.is_valid,
                     'metadata': validation_result.metadata
                 },
-                'text_extraction': {
-                    'success': extracted_text and not extracted_text.startswith('Error'),
-                    'extracted_length': len(extracted_text) if extracted_text else 0,
-                    'chunks_created': len(text_chunks) if text_chunks else 0,
-                    'extraction_preview': extracted_text[:200] + '...' if extracted_text and len(extracted_text) > 200 else extracted_text    
-                },
-                'brand_samples': {
-                    'created_count': len(created_samples),
-                    'samples': created_samples
-                },
-                'brand_info': {
-                    'id': brand.id,
-                    'name': brand.name,
-                    'total_samples': brand.samples.count()
-                }
+                'analysis': analysis_results
             },
-            message="File processed successfully",
-            status_code=status.HTTP_201_CREATED
+            message=f"File analyzed successfully - {analysis_results['word_count']} words extracted"
         )
-        
     except Exception as e:
-        return error_response(f"File processing failed: {e}", code="PROCESSING_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def analyze_text(request):
+    """
+    Direct text analysis without file upload (MVP - no database saving)
+    """
+    try:
+        text = request.data.get('text', '')
+        
+        is_valid, error_message = _validate_text_input(text)
+        if not is_valid:
+            return error_response(error_message, code="INVALID_TEXT_INPUT", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        text = text.strip()
+
+        try:
+            text_chunks = process_text(text, max_chunk_size=1000, strategy="sentences")
+        except Exception as _:
+            text_chunks = []
+
+        words = text.split()
+        sentences = text.count('.') + text.count('!') + text.count('?')
+
+        analysis_results = {
+            'word_count': len(words),
+            'character_count': len(text),
+            'sentence_count': max(1, sentences),
+            'chunks_created': len(text_chunks),
+            'extraction_successful': True,
+            'text_preview': text[:300] + '...' if len(text) > 300 else text,
+            'avg_words_per_sentence': round(len(words) / max(1, sentences), 1)
+        }
+
+        return success_response(
+            data={
+                'input_info': {
+                    'input_type': 'direct_text',
+                    'length': len(text)
+                },
+                'analysis': analysis_results
+            },
+            message=f"Text analysed successfully - {analysis_results['word_count']} words, {analysis_results['sentence_count']} sentences"
+        )
+    except Exception as e:
+        return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_400_BAD_REQUEST)
+
+
+def _validate_text_input(text: str):
+    if not text or not text.strip():
+        return False, "Text cannot be empty"
+    
+    if len(text) > 50000:
+        return False, "Text exceeds maximum length of 50,000 characters"
+    
+    if len(text.strip()) < 3:
+        return False, "Text must be at least 3 characters long"
+    
+    return True, None
 
 class BrandViewSet(viewsets.ModelViewSet):
     serializer_class = BrandSerializer

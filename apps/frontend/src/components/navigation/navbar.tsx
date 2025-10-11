@@ -21,9 +21,6 @@ export const Navbar = () => {
               <Link href="/upload" className="text-muted-foreground hover:text-foreground">
                 Upload
               </Link>
-              <Link href="/analyze" className="text-muted-foreground hover:text-foreground">
-                Analyze
-              </Link>
               <UserButton />
             </>
           ) : (
