@@ -74,32 +74,32 @@ We've successfully built a comprehensive text processing system that can:
 - Display beautiful analysis results
 - Handle errors gracefully with user feedback
 
-### 🎯 Next Priority: Database Integration & Brand Management
+### 🎯 Next Priority: AI Analysis Pipeline (Stateless MVP)
 
 **IMMEDIATE NEXT STEPS:**
 
-1. **Connect Analysis to Database Storage** (Currently Stateless)
-   - Modify upload endpoints to save `BrandSample` records
-   - Add brand selection to upload interface
-   - Store analysis results for history
+1. **OpenAI Integration & Embeddings** 
+   - Set up OpenAI API with environment variables
+   - Implement text-to-embedding conversion in ai-core package
+   - Add rate limiting to control costs
 
-2. **Brand Management Dashboard**
-   - Create `/dashboard` page showing user's brands
-   - Add brand creation/editing functionality
-   - List saved brand samples per brand
+2. **Brand Comparison Analysis**
+   - Create endpoint to compare new text against brand samples
+   - Implement cosine similarity for alignment scoring
+   - Generate AI-powered feedback and suggestions
 
-3. **Analysis Pipeline Foundation**
-   - Set up OpenAI API integration
-   - Implement basic embedding generation
-   - Create comparison analysis endpoint
+3. **Enhanced Analysis UI**
+   - Add brand comparison mode to frontend
+   - Show alignment scores with visual indicators
+   - Display AI suggestions for tone improvements
 
 **Week 2 Goals Completion Status:**
 - [x] File upload with text extraction (DONE)
 - [x] Text analysis endpoints (DONE) 
 - [x] Rich UI with analysis results (DONE)
-- [ ] **NEXT: Database storage integration**
-- [ ] **NEXT: Brand management interface**
-- [ ] **NEXT: AI/embedding setup**
+- [ ] **NEXT: AI-powered brand alignment analysis**
+- [ ] **NEXT: Embedding generation and comparison**
+- [ ] **NEXT: Rate-limited OpenAI integration**
 
 ---
 
@@ -233,55 +233,55 @@ We've successfully built a comprehensive text processing system that can:
 
 ## 🚀 IMMEDIATE ACTION PLAN (Next Session)
 
-### Priority 1: Database Integration
-**Goal:** Connect the current stateless analysis to persistent storage
+### Priority 1: OpenAI Integration & Rate Limiting
+**Goal:** Set up AI analysis with cost controls
 
 **Tasks:**
-1. **Update Backend Upload Endpoints**
-   - Modify `upload_file` to save `BrandSample` records
-   - Add brand_id parameter to file uploads
-   - Enable saving extracted text to database
+1. **Environment Setup**
+   - Add OpenAI API key to backend .env
+   - Install openai package in ai-core requirements
+   - Implement rate limiting middleware
 
-2. **Add Brand Selection UI**
-   - Add brand dropdown to upload interface
-   - Create "New Brand" option in upload flow
-   - Update analysis results to show which brand was used
+2. **Embedding Generation**
+   - Create embedding functions in ai-core package
+   - Add text-to-vector conversion
+   - Implement caching to reduce API calls
 
 **Expected Time:** 2-3 hours
 
-### Priority 2: Brand Management
-**Goal:** Users can create, view, and manage their brands
+### Priority 2: Brand Comparison Logic
+**Goal:** Compare new content against brand samples statefully (in-memory)
 
 **Tasks:**
-1. **Create Brand Dashboard**
-   - New `/dashboard` page listing user's brands
-   - Show brand creation date and sample count
-   - Add edit/delete functionality
+1. **Stateless Brand Storage**
+   - Accept brand samples in analysis request
+   - Generate embeddings for brand samples on-the-fly
+   - Compare new content embedding to brand average
 
-2. **Brand Sample Management**
-   - List view of samples per brand
-   - Show text previews and upload dates
-   - Add delete sample functionality
+2. **Alignment Scoring**
+   - Cosine similarity calculation between embeddings
+   - Convert to 0-100 alignment score
+   - Generate AI feedback using GPT
 
 **Expected Time:** 3-4 hours
 
-### Priority 3: AI Analysis Foundation
-**Goal:** Basic embedding generation and comparison
+### Priority 3: Enhanced Analysis UI
+**Goal:** Show brand alignment scores and suggestions
 
 **Tasks:**
-1. **OpenAI Integration**
-   - Set up API keys and environment variables
-   - Implement text-to-embedding conversion
-   - Store embeddings in BrandSample model
+1. **Brand Comparison Interface**
+   - Add "Compare to Brand Voice" mode
+   - Upload brand samples + new content in single flow
+   - Display alignment score with visual gauge
 
-2. **Basic Comparison Logic**
-   - Create analysis endpoint comparing new text to brand average
-   - Simple cosine similarity calculation
-   - Return basic alignment score (0-100)
+2. **AI Suggestions Display**
+   - Show specific tone/style differences
+   - Provide improvement suggestions
+   - Add export functionality for feedback
 
-**Expected Time:** 4-5 hours
+**Expected Time:** 2-3 hours
 
-**TOTAL ESTIMATED TIME TO MVP:** 9-12 hours of development
+**TOTAL ESTIMATED TIME TO AI MVP:** 7-10 hours of development
 
 ---
 
