@@ -1,6 +1,7 @@
 # Basic dependencies for AI core functionality
-openai
-qdrant-client
 numpy
+openai
 pdfplumber
 python-docx
+qdrant-client
+scikit-learn
