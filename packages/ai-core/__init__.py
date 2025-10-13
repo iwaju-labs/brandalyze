@@ -1,5 +1,5 @@
 """AI Core Package for Brandalyze"""
 
-from .embeddings import generate_embedding, store_embedding
-from .analysis import analyze_brand_alignment
-from .prompts import get_analysis_prompt
+from .ai_core.embeddings import generate_embedding, store_embedding
+from .ai_core.analysis import BrandAnalyzer
+from .ai_core.prompts import get_analysis_prompt

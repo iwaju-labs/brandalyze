@@ -3,17 +3,20 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import tempfile
 import os
+from django.conf import settings
 from .models import Brand, BrandSample
 from .serializers import BrandSerializer, BrandSampleSerializer
 from .utils.utils import validate_uploaded_file
 from .utils.responses import error_response, success_response
 from ai_core.text_extraction import extract_text
 from ai_core.text_processing import process_text
+from ai_core.analysis import BrandAnalyzer
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -137,7 +140,51 @@ def analyze_text(request):
         )
     except Exception as e:
         return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def analyze_brand_alignment(request):
+    """
+    Compare new text against brand samples for alignment scoring
+    """
+    try:
+        new_text = request.data.get('new_text', '').strip()
+        brand_samples = request.data.get('brand_samples', [])
 
+        if not new_text:
+            return error_response("new_text is required", code="MISSING_NEW_TEXT", status_code=status.HTTP_400_BAD_REQUEST)
+        
+        if not brand_samples or not isinstance(brand_samples, list):
+            return error_response("brand_samples array is required", code="MISSING_BRAND_SAMPLES", status_code=status.HTTP_400_BAD_REQUEST)
+        
+        if len(brand_samples) > 5:
+            return error_response("Maximum 5 brand samples allowed", code="TOO_MANY_SAMPLES", status_code=status.HTTP_400_BAD_REQUEST)
+        
+        analyzer = BrandAnalyzer(settings.OPENAI_API_KEY)
+
+        analysis_result = analyzer.analyze_brand_alignment(
+            new_text=new_text,
+            brand_samples=brand_samples,
+            max_requests_per_hour=settings.MAX_REQUESTS_PER_HOUR
+        )
+
+        if "error" in analysis_result:
+            return error_response(analysis_result["error"], code="ANALYSIS_FAILED", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return success_response(
+            data={
+                'brand_analysis': analysis_result,
+                'input_info': {
+                    'new_text_length': len(new_text),
+                    'brand_samples_count': len(brand_samples),
+                    'analysis_type': 'brand_alignment'
+                }
+            },
+            message=f"Brand alignment analysis complete - Score: {analysis_result['alignment_score']}/100"
+        )
+    except Exception as e:
+        return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def _validate_text_input(text: str):
     if not text or not text.strip():

@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from brands.views import BrandViewSet, BrandSampleViewSet, upload_file, analyze_text
+from brands.views import BrandViewSet, BrandSampleViewSet, upload_file, analyze_text, analyze_brand_alignment
 
 router = DefaultRouter()
 router.register(r'brands', BrandViewSet, basename='brand')
@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/upload/brand-style', upload_file, name='upload_file'),
     path('api/analyze/text', analyze_text, name='analyze_text'),
+    path('api/analyze/brand-alignment', analyze_brand_alignment, name='analyze_brand_alignment')
 ]

@@ -2,7 +2,14 @@ setup.py
 ./ai_core/__init__.py
 ./ai_core/analysis.py
 ./ai_core/embeddings.py
+./ai_core/prompts.py
+./ai_core/text_extraction.py
+./ai_core/text_processing.py
 ai_core/__init__.py
+ai_core/analysis.py
+ai_core/embeddings.py
+ai_core/text_extraction.py
+ai_core/text_processing.py
 ai_core.egg-info/PKG-INFO
 ai_core.egg-info/SOURCES.txt
 ai_core.egg-info/dependency_links.txt
