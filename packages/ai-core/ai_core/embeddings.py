@@ -7,7 +7,12 @@ from functools import lru_cache
 
 class EmbeddingGenerator:
     def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
-        self.client = openai.OpenAI(api_key=api_key)
+        try:
+            self.client = openai.OpenAI(api_key=api_key)
+        except TypeError:
+            # Fallback for older OpenAI versions
+            openai.api_key = api_key
+            self.client = openai
         self.model = model
         self.request_times = []
     
@@ -21,7 +26,6 @@ class EmbeddingGenerator:
 
         self.request_times.append(current_time)
 
-
     def generate_embedding(self, text: str, max_per_hour: int = 50) -> Optional[List[float]]:
         """Generate embedding for text with rate limiting"""
         try:
@@ -31,8 +35,8 @@ class EmbeddingGenerator:
                 model=self.model,
                 input=text.strip()
             )
-
             return response.data[0].embedding
+        
         except Exception as e:
             print(f"Error generating embedding: {e}")
             return None

@@ -5,3 +5,6 @@ pdfplumber
 python-docx
 qdrant-client
 scikit-learn
+# OCR dependencies for image text extraction
+# pillow
+# pytesseract

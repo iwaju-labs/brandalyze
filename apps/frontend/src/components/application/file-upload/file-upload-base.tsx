@@ -11,10 +11,6 @@ import {
   XCircle,
 } from "@untitledui/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { Button } from "@/components/base/buttons/button";
-import { ButtonUtility } from "@/components/base/buttons/button-utility";
-import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
-import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { cx } from "@/utils/cx";
 
 /**
@@ -30,6 +26,15 @@ export const getReadableFileSize = (bytes: number) => {
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
 
   return Math.floor(bytes / Math.pow(1024, i)) + " " + suffixes[i];
+};
+
+/**
+ * Get icon styles based on file upload state
+ */
+const getFileIconStyles = (failed?: boolean, isComplete?: boolean) => {
+  if (failed) return "bg-red-100 text-red-600";
+  if (isComplete) return "bg-green-100 text-green-600";
+  return "bg-purple-100 text-purple-600";
 };
 
 interface FileUploadDropZoneProps {
@@ -200,7 +205,11 @@ export const FileUploadDropZone = ({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = Array.from(event.target.files || []);
-    console.log("Selected files:", files.length, files.map(f => f.name));
+    console.log(
+      "Selected files:",
+      files.length,
+      files.map((f) => f.name)
+    );
     processFiles(files);
   };
 
@@ -216,22 +225,35 @@ export const FileUploadDropZone = ({
         if (!isDisabled) inputRef.current?.click();
       }}
       className={cx(
-        "relative flex flex-col items-center gap-3 rounded-xl bg-primary px-6 py-4 text-tertiary ring-1 ring-secondary transition duration-100 ease-linear ring-inset cursor-pointer",
-        isDraggingOver && "ring-2 ring-brand",
-        isDisabled &&
-          "cursor-not-allowed bg-disabled_subtle ring-disabled_subtle",
+        "relative flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed px-8 py-12 text-center transition-all duration-200 ease-in-out cursor-pointer",
+        "border-border bg-background text-foreground hover:border-purple-400 hover:bg-muted/50",
+        isDraggingOver &&
+          "border-purple-500 bg-purple-100 ring-4 ring-purple-200 dark:bg-purple-900/50 dark:ring-purple-700/40",
+        isDisabled && "cursor-not-allowed bg-muted border-muted opacity-60",
+        isInvalid &&
+          "border-red-300 bg-red-50 dark:border-red-400 dark:bg-red-950/30",
         className
       )}
       role="button"
       tabIndex={0}
       aria-disabled={isDisabled}
     >
-      <FeaturedIcon color="gray" theme="modern" size="md">
-        <UploadCloud02 className="size-5" />
-      </FeaturedIcon>
+      {/* Upload Icon */}
+      <div
+        className={cx(
+          "flex items-center justify-center w-16 h-16 rounded-full transition-colors duration-200",
+          isDraggingOver
+            ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200"
+            : "bg-muted text-muted-foreground",
+          isDisabled && "bg-muted text-muted-foreground opacity-60"
+        )}
+      >
+        <UploadCloud02 className="w-8 h-8" />
+      </div>
 
-      <div className="flex flex-col gap-1 text-center">
-        <div className="flex justify-center gap-1 text-center">
+      {/* Main Content */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {/* Hidden file input */}
           <input
             ref={inputRef}
@@ -243,27 +265,53 @@ export const FileUploadDropZone = ({
             multiple={allowsMultiple}
             onChange={handleInputFileChange}
           />
-          <Button
-            color="link-color"
-            size="md"
-            isDisabled={isDisabled}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              if (!isDisabled) inputRef.current?.click();
-            }}
-          >
-            Click to upload <span className="md:hidden">and attach files</span>
-          </Button>
-          <span className="text-sm max-md:hidden">or drag and drop</span>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-lg">
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (!isDisabled) inputRef.current?.click();
+              }}
+              className={cx(
+                "font-semibold text-purple-700 hover:text-purple-900 transition-colors duration-200 underline underline-offset-2 dark:text-purple-300 dark:hover:text-purple-200",
+                isDisabled &&
+                  "text-muted-foreground hover:text-muted-foreground cursor-not-allowed"
+              )}
+            >
+              Click to upload
+            </button>
+            <span className="text-muted-foreground">
+              or drag and drop files here
+            </span>
+          </div>
+
+          {/* Drag state message */}
+          {isDraggingOver && (
+            <div className="text-purple-700 font-medium animate-pulse dark:text-purple-300">
+              Drop your files here
+            </div>
+          )}
         </div>
+
+        {/* File type hint */}
         <p
           className={cx(
-            "text-xs transition duration-100 ease-linear",
-            isInvalid && "text-error-primary"
+            "text-sm text-muted-foreground transition-colors duration-200",
+            isInvalid && "text-red-600 font-medium dark:text-red-400",
+            isDraggingOver && "text-purple-700 dark:text-purple-200"
           )}
         >
-          {hint || "SVG, PNG, JPG or GIF (max. 800x400px)"}
+          {hint || "PDF, TXT, DOCX, and MD files supported (max 10MB each)"}
         </p>
+
+        {/* Additional helpful text */}
+        {allowsMultiple && (
+          <p className="text-xs text-muted-foreground/80">
+            You can select multiple files at once
+          </p>
+        )}
       </div>
     </div>
   );
@@ -307,99 +355,95 @@ export const FileListItemProgressBar = ({
     <motion.li
       layout="position"
       className={cx(
-        "relative flex gap-3 rounded-xl bg-primary p-4 ring-1 ring-secondary transition-shadow duration-100 ease-linear ring-inset",
-        failed && "ring-2 ring-error",
+        "relative flex gap-4 rounded-xl bg-background border border-border p-4 shadow-sm transition-all duration-200 hover:shadow-md",
+        failed &&
+          "border-red-300 bg-red-50/50 dark:border-red-400 dark:bg-red-950/30",
+        isComplete &&
+          "border-green-300 bg-green-50/50 dark:border-green-400 dark:bg-green-950/30",
         className
       )}
     >
-    <span className="size-10 shrink-0 dark:hidden">
-      <FileTypeIcon
-        type={type ?? "empty"}
-        theme="light"
-        variant={fileIconVariant ?? "default"}
+      {/* File Icon */}
+      <div
+        className={cx(
+          "flex items-center justify-center w-12 h-12 rounded-lg shrink-0 transition-colors duration-200",
+          getFileIconStyles(failed, isComplete)
+        )}
+      >
+        <FileTypeIcon
+          type={type ?? "empty"}
+          theme="light"
+          variant={fileIconVariant ?? "default"}
+          className="w-6 h-6"
         />
-    </span>
-    <span className="size-10 shrink-0 not-dark:hidden">
-      <FileTypeIcon
-        type={type ?? "empty"}
-        theme="dark"
-        variant={fileIconVariant ?? "default"}
-        />
-    </span>
+      </div>
 
-      <div className="flex min-w-0 flex-1 flex-col items-start">
-        <div className="flex w-full max-w-full min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex w-full items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-secondary">
+            <p className="truncate text-sm font-semibold text-foreground mb-1">
               {name}
             </p>
 
-            <div className="mt-0.5 flex items-center gap-2">
-              <p className="truncate text-sm whitespace-nowrap text-tertiary">
-                {getReadableFileSize(size)}
-              </p>
-
-              <hr className="h-3 w-px rounded-t-full rounded-b-full border-none bg-border-primary" />
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>{getReadableFileSize(size)}</span>
 
               <div className="flex items-center gap-1">
                 {isComplete && (
-                  <CheckCircle className="size-4 stroke-[2.5px] text-fg-success-primary" />
-                )}
-                {isComplete && (
-                  <p className="text-sm font-medium text-success-primary">
-                    Complete
-                  </p>
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600 font-medium">Complete</span>
+                  </>
                 )}
 
                 {!isComplete && !failed && (
-                  <UploadCloud02 className="size-4 stroke-[2.5px] text-fg-quaternary" />
-                )}
-                {!isComplete && !failed && (
-                  <p className="text-sm font-medium text-quaternary">
-                    Uploading...
-                  </p>
+                  <>
+                    <UploadCloud02 className="w-4 h-4 text-purple-600 animate-pulse" />
+                    <span className="text-muted-foreground">
+                      Uploading... {progress}%
+                    </span>
+                  </>
                 )}
 
-                {failed && <XCircle className="size-4 text-fg-error-primary" />}
                 {failed && (
-                  <p className="text-sm font-medium text-error-primary">
-                    Failed
-                  </p>
+                  <>
+                    <XCircle className="w-4 h-4 text-red-600" />
+                    <span className="text-red-600 font-medium">Failed</span>
+                  </>
                 )}
               </div>
             </div>
           </div>
 
-          <ButtonUtility
-            color="tertiary"
-            tooltip="Delete"
-            icon={Trash01}
-            size="xs"
-            className="-mt-2 -mr-2 self-start"
+          <button
             onClick={onDelete}
-          />
+            className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-200"
+            title="Remove file"
+          >
+            <Trash01 className="w-4 h-4" />
+          </button>
         </div>
 
-        {!failed && (
-          <div className="mt-1 w-full">
-            <ProgressBar
-              labelPosition="right"
-              max={100}
-              min={0}
-              value={progress}
-            />
+        {/* Progress Bar */}
+        {!failed && !isComplete && (
+          <div className="mt-3">
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         )}
 
+        {/* Retry Button */}
         {failed && (
-          <Button
-            color="link-destructive"
-            size="sm"
+          <button
             onClick={onRetry}
-            className="mt-1.5"
+            className="mt-3 px-3 py-1 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-200 self-start"
           >
             Try again
-          </Button>
+          </button>
         )}
       </div>
     </motion.li>
@@ -419,19 +463,28 @@ export const FileListItemProgressFill = ({
 }: FileListItemProps) => {
   const isComplete = progress === 100;
 
+  const getProgressBgStyles = () => {
+    if (failed) return "bg-red-100/70 dark:bg-red-950/30";
+    if (isComplete) return "bg-green-100/70 dark:bg-green-950/30";
+    return "bg-gradient-to-r from-purple-100/70 to-purple-200/70 dark:from-purple-950/30 dark:to-purple-900/30";
+  };
+
   return (
     <motion.li
       layout="position"
       className={cx(
-        "relative flex gap-3 overflow-hidden rounded-xl bg-primary p-4",
+        "relative flex gap-4 overflow-hidden rounded-xl bg-background border border-border shadow-sm transition-all duration-200",
+        failed && "border-red-300 dark:border-red-400",
+        isComplete && "border-green-300 dark:border-green-400",
         className
       )}
     >
-      {/* Progress fill. */}
+      {/* Animated Progress Fill Background */}
       <div
-        style={{ transform: `translateX(-${100 - progress}%)` }}
+        style={{ width: `${progress}%` }}
         className={cx(
-          "absolute inset-0 size-full bg-secondary transition duration-75 ease-linear",
+          "absolute inset-0 h-full transition-all duration-500 ease-out",
+          getProgressBgStyles(),
           isComplete && "opacity-0"
         )}
         role="progressbar"
@@ -439,79 +492,79 @@ export const FileListItemProgressFill = ({
         aria-valuemin={0}
         aria-valuemax={100}
       />
-      {/* Inner ring. */}
-      <div
-        className={cx(
-          "absolute inset-0 size-full rounded-[inherit] ring-1 ring-secondary transition duration-100 ease-linear ring-inset",
-          failed && "ring-2 ring-error"
-        )}
-      />
-      <span className="relative size-10 shrink-0 dark:hidden">
-        <FileTypeIcon
-          type={type ?? "empty"}
-          theme="light"
-          variant={fileIconVariant ?? "solid"}
-        />
-      </span>
-      <span className="relative size-10 shrink-0 not-dark:hidden">
-        <FileTypeIcon
-          type={type ?? "empty"}
-          theme="dark"
-          variant={fileIconVariant ?? "solid"}
-        />
-      </span>
-      <div className="relative flex min-w-0 flex-1">
-        <div className="relative flex min-w-0 flex-1 flex-col items-start">
-          <div className="w-full min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-secondary">
-              {name}
-            </p>
 
-            <div className="mt-0.5 flex items-center gap-2">
-              <p className="text-sm text-tertiary">
-                {failed
-                  ? "Upload failed, please try again"
-                  : getReadableFileSize(size)}
+      {/* Content */}
+      <div className="relative flex gap-4 w-full p-4">
+        {/* File Icon */}
+        <div
+          className={cx(
+            "flex items-center justify-center w-12 h-12 rounded-lg shrink-0 transition-colors duration-200",
+            getFileIconStyles(failed, isComplete)
+          )}
+        >
+          <FileTypeIcon
+            type={type ?? "empty"}
+            theme="light"
+            variant={fileIconVariant ?? "solid"}
+            className="w-6 h-6"
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex w-full items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground mb-1">
+                {name}
               </p>
 
-              {!failed && (
-                <>
-                  <hr className="h-3 w-px rounded-t-full rounded-b-full border-none bg-border-primary" />
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground">
+                  {failed
+                    ? "Upload failed, please try again"
+                    : getReadableFileSize(size)}
+                </span>
+
+                {!failed && (
                   <div className="flex items-center gap-1">
                     {isComplete && (
-                      <CheckCircle className="size-4 stroke-[2.5px] text-fg-success-primary" />
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600 font-medium">
+                          Complete
+                        </span>
+                      </>
                     )}
                     {!isComplete && (
-                      <UploadCloud02 className="size-4 stroke-[2.5px] text-fg-quaternary" />
+                      <>
+                        <UploadCloud02 className="w-4 h-4 text-purple-600 animate-pulse" />
+                        <span className="text-muted-foreground">
+                          {progress}%
+                        </span>
+                      </>
                     )}
-
-                    <p className="text-sm text-tertiary">{progress}%</p>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
+
+            <button
+              onClick={onDelete}
+              className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-200"
+              title="Remove file"
+            >
+              <Trash01 className="w-4 h-4" />
+            </button>
           </div>
 
           {failed && (
-            <Button
-              color="link-destructive"
-              size="sm"
+            <button
               onClick={onRetry}
-              className="mt-1.5"
+              className="mt-3 px-3 py-1 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-200 self-start"
             >
               Try again
-            </Button>
+            </button>
           )}
         </div>
-
-        <ButtonUtility
-          color="tertiary"
-          tooltip="Delete"
-          icon={Trash01}
-          size="xs"
-          className="-mt-2 -mr-2 self-start"
-          onClick={onDelete}
-        />
       </div>
     </motion.li>
   );

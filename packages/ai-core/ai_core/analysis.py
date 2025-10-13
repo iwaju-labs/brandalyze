@@ -4,7 +4,12 @@ from .embeddings import EmbeddingGenerator, calculate_brand_alignment_score
 
 class BrandAnalyzer:
     def __init__(self, api_key: str):
-        self.client = openai.OpenAI(api_key=api_key)
+        try:
+            self.client = openai.OpenAI(api_key=api_key)
+        except TypeError:
+            # Fallback for older OpenAI versions
+            openai.api_key = api_key
+            self.client = openai
         self.embedding_generator = EmbeddingGenerator(api_key)
 
     def analyze_brand_alignment(self,

@@ -5,9 +5,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 import toast, { Toaster } from "react-hot-toast";
-import {
-  ClerkProvider,
-} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,9 +33,9 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
           suppressHydrationWarning={true}
-        >          <ThemeProvider
-            defaultTheme="system"
-          >
+        >
+          {" "}
+          <ThemeProvider defaultTheme="system">
             <Navbar />
             {children}
             <Toaster

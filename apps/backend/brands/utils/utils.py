@@ -33,6 +33,12 @@ SUPPORTED_FORMATS = {
         'mime_types': [MIME_TYPE_TEXT_MARKDOWN, MIME_TYPE_TEXT_X_MARKDOWN, MIME_TYPE_TEXT_PLAIN],
         'max_size': 10 * 1024 * 1024,  # 10MB
         'description': 'Markdown files'
+    },
+    'image': {
+        'extensions': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
+        'mime_types': ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'],
+        'max_size': 10 * 1024 * 1024,  # 10MB
+        'description': 'Image files (OCR text extraction)'
     }
 }
 
