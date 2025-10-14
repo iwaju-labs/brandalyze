@@ -1,0 +1,12 @@
+Metadata-Version: 2.2
+Name: ai_core
+Version: 0.1.0
+Summary: AI core functionality for Brandalyze
+Requires-Python: >=3.8
+Requires-Dist: openai
+Requires-Dist: qdrant-client
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

@@ -1,0 +1,4 @@
+openai
+qdrant-client
+numpy
+scikit-learn

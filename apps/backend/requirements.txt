@@ -12,4 +12,4 @@ cryptography
 requests
 
 # Local packages (editable installations)
--e ../../packages/ai-core
+-e ./packages/ai_core
