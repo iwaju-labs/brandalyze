@@ -23,5 +23,5 @@ jobs:
           git add .
           git commit -m "Mirror frontend from monorepo"
           git branch -M main
-          git remote add origin https://$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
+          git remote add origin https://x-access-token:$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
           git push -f origin main
