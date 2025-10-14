@@ -65,9 +65,9 @@ export default async function HomePage() {
                       Be the first to know when we launch. Get exclusive early
                       access, beta features, and special pricing.
                     </p>
-                  </div>
+                  </div>{" "}
                   <a
-                    href="https://tally.so/r/mYaP4Q"
+                    href="https://tally.so/r/nrxj8M"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
