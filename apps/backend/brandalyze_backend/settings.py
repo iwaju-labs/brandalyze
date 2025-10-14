@@ -148,9 +148,19 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
-# Add production frontend URL from environment
-if os.getenv('CORS_ALLOWED_ORIGINS'):
-    CORS_ALLOWED_ORIGINS.extend(os.getenv('CORS_ALLOWED_ORIGINS').split(','))
+# Add frontend URL from environment
+frontend_url = os.getenv('FRONTEND_URL')
+if frontend_url and frontend_url.strip():
+    CORS_ALLOWED_ORIGINS.append(frontend_url.strip())
+
+# Add additional CORS origins from environment (for production)
+cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
+if cors_origins_env and cors_origins_env.strip() != 'need to update':
+    # Filter out invalid origins and add valid ones
+    for origin in cors_origins_env.split(','):
+        origin = origin.strip()
+        if origin and ('://' in origin or origin.startswith('localhost') or origin.startswith('127.0.0.1')):
+            CORS_ALLOWED_ORIGINS.append(origin)
 
 CORS_ALLOW_CREDENTIALS = True
 
