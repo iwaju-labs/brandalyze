@@ -11,17 +11,15 @@ jobs:
       - name: checkout source repo
         uses: actions/checkout@v4
 
-      - name: push frontend to public repo
+      - name: push frontend to public repo preserve history
         env:
           PUBLIC_REPO: https://github.com/iwaju-labs/brandalyze-frontend.git
           PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          cd apps/frontend
-          git init
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Mirror frontend from monorepo"
-          git branch -M main
-          git remote add origin https://x-access-token:$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
-          git push -f origin main
+          git remote add public https://x-access-token:$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
+          git fetch public
+          git sparse-checkout init --cone
+          git sparse-checkout set apps/frontend
+          git checkout main
+          git pull public main || true
+          git push public main:main --force
