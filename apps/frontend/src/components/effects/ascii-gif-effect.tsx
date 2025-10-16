@@ -31,10 +31,11 @@ export default function AsciiGifEffect({
     asciiContainer.style.position = "absolute";
     asciiContainer.style.top = "50%";
     asciiContainer.style.left = "50%";
-    asciiContainer.style.transform = "translate(-50%, -50%) scale(2.0)";
-    asciiContainer.style.fontFamily = "monospace";
-    asciiContainer.style.fontSize = "6px";
-    asciiContainer.style.lineHeight = "5px";
+    asciiContainer.style.transform = "translate(-50%, -50%) scale(1.0)";
+    asciiContainer.style.fontFamily = "monospace";    asciiContainer.style.fontSize = "10px";
+    asciiContainer.style.lineHeight = "8px";
+    asciiContainer.style.fontWeight = "bold";
+    asciiContainer.style.color = "#8b5cf6";
     asciiContainer.style.background = "transparent";
     asciiContainer.style.whiteSpace = "pre";
     asciiContainer.style.overflow = "visible";

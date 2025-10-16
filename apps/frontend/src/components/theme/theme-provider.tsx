@@ -31,19 +31,18 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(defaultTheme);
   const [mounted, setMounted] = useState(false);
 
-  // Initialize theme from localStorage after component mounts
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem(storageKey);
     if (stored === "light" || stored === "dark" || stored === "system") {
       setTheme(stored as Theme);
     }
-  }, [storageKey]);// Apply theme class immediately on mount
+  }, [storageKey]);
   useEffect(() => {
     setMounted(true);
 
     const root = document.documentElement;
-    
+
     if (theme === "system") {
       const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
         .matches
@@ -59,7 +58,7 @@ export function ThemeProvider({
     } else {
       root.classList.remove("dark");
     }
-  }, [theme]);  // Listen for changes to system theme preference
+  }, [theme]);
   useEffect(() => {
     if (theme !== "system") return;
 
@@ -91,7 +90,11 @@ export function ThemeProvider({
   );
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+      {mounted ? (
+        children
+      ) : (
+        <div style={{ visibility: "hidden" }}>{children}</div>
+      )}
     </ThemeProviderContext.Provider>
   );
 }

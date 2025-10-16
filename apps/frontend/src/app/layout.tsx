@@ -34,7 +34,7 @@ export default function RootLayout({
         <head>
           <script
             dangerouslySetInnerHTML={{
-              __html: `                (function() {
+              __html: `(function() {
                   const theme = localStorage.getItem('theme') || 'light';
                   if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
@@ -50,7 +50,8 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
           suppressHydrationWarning={true}
         >
-          {" "}          <ThemeProvider defaultTheme="light">
+          {" "}
+          <ThemeProvider defaultTheme="light">
             <Navbar />
             {children}
             <Toaster
