@@ -1,12 +1,20 @@
-import AsciiGifEffect from "@/components/effects/ascii-gif-effect";
 import { Zap, BarChart02, Target01 } from "@untitledui/icons";
 import { Footer } from "@/components/layout/footer";
+import { Vortex } from "@/components/ui/vortex";
 
 export default async function HomePage() {
-  return (    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white relative overflow-hidden transition-colors">
-      {/* ASCII Effect Background covering the entire hero - visible in both modes */}
-      <div className="absolute inset-0 z-0 pointer-events-none block">
-        <AsciiGifEffect className="opacity-30 dark:opacity-100" />
+  return (
+    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white relative overflow-hidden transition-colors">
+      <div className="fixed inset-0 z-0">
+        <Vortex
+          backgroundColor="transparent"
+          baseHue={280}
+          particleCount={50}
+          className="opacity-10 dark:opacity-50"
+          baseSpeed={0.0}
+          rangeY={3000}
+          baseRadius={0.5}
+        />
       </div>
       {/* Dark overlay with gradient for better text readability - only in dark mode */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black/70 z-10 dark:block hidden" />
