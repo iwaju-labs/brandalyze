@@ -24,47 +24,71 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
-  storageKey = "brandalyze-ui-theme",
+  defaultTheme = "light",
+  storageKey = "theme",
   ...props
 }: Readonly<ThemeProviderProps>) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
-  const [mounted, setMounted] = useState(false);
-
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Initialize from localStorage if available (client-side only)
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(storageKey);
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        return stored as Theme;
+      }
+    }
+    return defaultTheme;
+  });
+  const [mounted, setMounted] = useState(false);  // Apply theme class immediately on mount
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem(storageKey) as Theme;
-    if (stored) {
-      setTheme(stored);
-    }
-  }, [storageKey]);
 
-  useEffect(() => {
-    if (!mounted) return;
+    const root = document.documentElement;
     
-    const root = window.document.documentElement;
-
-    root.classList.remove("light", "dark");
-
     if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+      const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
         : "light";
 
-      root.classList.add(systemTheme);
-      return;
-    }    root.classList.add(theme);
-  }, [theme, mounted]);
-  const value = useMemo(() => ({
-    theme,
-    setTheme: (theme: Theme) => {
-      if (mounted) {
-        localStorage.setItem(storageKey, theme);
+      root.classList.remove("dark");
+      if (systemTheme === "dark") {
+        root.classList.add("dark");
       }
-      setTheme(theme);
-    },
-  }), [theme, mounted, storageKey]);
+    } else if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [theme]);  // Listen for changes to system theme preference
+  useEffect(() => {
+    if (theme !== "system") return;
+
+    const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      const root = document.documentElement;
+      const systemTheme = mediaQuery.matches ? "dark" : "light";
+      root.classList.remove("dark");
+      if (systemTheme === "dark") {
+        root.classList.add("dark");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
+
+  const value = useMemo(
+    () => ({
+      theme,
+      setTheme: (newTheme: Theme) => {
+        if (mounted) {
+          localStorage.setItem(storageKey, newTheme);
+        }
+        setTheme(newTheme);
+      },
+    }),
+    [theme, mounted, storageKey]
+  );
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

@@ -1,16 +1,16 @@
 import AsciiGifEffect from "@/components/effects/ascii-gif-effect";
 import { Zap, BarChart02, Target01 } from "@untitledui/icons";
-import { Footer } from '@/components/layout/footer';
+import { Footer } from "@/components/layout/footer";
 
 export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white relative overflow-hidden transition-colors">
       {/* ASCII Effect Background covering the entire hero - only in dark mode */}
-      <div className="absolute inset-0 z-0 dark:block hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none dark:block hidden">
         <AsciiGifEffect className="opacity-15" />
       </div>
       {/* Dark overlay with gradient for better text readability - only in dark mode */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70 z-10 dark:block hidden" />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black/70 z-10 dark:block hidden" />
       <main className="relative z-20 mx-auto max-w-7xl px-4 py-16 min-h-screen flex items-center">
         <div className="text-center w-full">
           {" "}
@@ -114,10 +114,10 @@ export default async function HomePage() {
               <span className="text-gray-400 dark:text-gray-800">•</span>
               <span className="text-sm">Three.js</span>
             </div>
-          </div>
+          </div>{" "}
         </div>
       </main>{" "}
-      <Footer variant="landing" />
+      <Footer />
     </div>
   );
 }
