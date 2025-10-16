@@ -28,17 +28,17 @@ export function ThemeProvider({
   storageKey = "theme",
   ...props
 }: Readonly<ThemeProviderProps>) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Initialize from localStorage if available (client-side only)
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(storageKey);
-      if (stored === "light" || stored === "dark" || stored === "system") {
-        return stored as Theme;
-      }
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = useState(false);
+
+  // Initialize theme from localStorage after component mounts
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem(storageKey);
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      setTheme(stored as Theme);
     }
-    return defaultTheme;
-  });
-  const [mounted, setMounted] = useState(false);  // Apply theme class immediately on mount
+  }, [storageKey]);// Apply theme class immediately on mount
   useEffect(() => {
     setMounted(true);
 
@@ -89,10 +89,9 @@ export function ThemeProvider({
     }),
     [theme, mounted, storageKey]
   );
-
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
+      {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
     </ThemeProviderContext.Provider>
   );
 }

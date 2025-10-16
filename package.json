@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/iwaju-labs/brandalyze#readme",
   "dependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "tailwindcss": "^3.4.18"
   }
 }
