@@ -215,15 +215,13 @@ def analyze_brand_alignment(request):
     Brand alignment analysis endpoint | checks usage limit enforcement
     """
     try:
-        # enforcing usage limits before processing 
-
-        can_analyze, remaining = DailyUsage.can_perform_analysis(request)
-        if not can_analyze:
-            subscription = UserSubscription.objects.get_or_create(
-                user = request.user,
-                defaults = {'tier': 'free', 'daily_analysis_limit' : 3}
-            )[0]
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user = request.user,
+            defaults = {'tier': 'free', 'daily_analysis_limit' : 3}
+        )
         
+        can_analyze, remaining = DailyUsage.can_perform_analysis(request.user)
+        if not can_analyze:
             return error_response(
                 f"Daily analysis limit reached ({subscription.daily_analysis_limit} analyses). Upgrade your plan or try again tomorrow",
                 code="USAGE_LIMIT_EXCEEDED",
@@ -236,6 +234,13 @@ def analyze_brand_alignment(request):
         # Validate input
         if not text.strip():
             return error_response("Text content is required", "MISSING_TEXT")
+        
+        if subscription.tier == 'free' and len(brand_samples) > 5:
+            return error_response(
+                "Free plan limited to 5 brand samples. Upgrade your plan for unlimited samples.",
+                code="BRAND_SAMPLE_LIMIT_EXCEEDED",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         if not brand_samples or len(brand_samples) == 0:
             return error_response(

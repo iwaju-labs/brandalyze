@@ -43,8 +43,15 @@ export const Navbar = () => {
               appearance={{
                 elements: {
                   avatarBox: "w-8 h-8",
+                  userButtonPopoverMain: "bg-white dark:bg-black dark:text-white",
+                  userButtonPopoverCard: "bg-white dark:bg-black border border-gray-200 dark:border-gray-700",
+                  userButtonPopoverActions: "bg-white dark:bg-black",
+                  userButtonPopoverActionButton: "text-gray-900 dark:text-white [&_*]:text-gray-900 [&_*]:dark:text-white",
+                  userPreviewSecondaryIdentifier: "dark:text-white",
                 },
               }}
+              userProfileMode="navigation"
+              userProfileUrl="/user-profile"
             />
           </SignedIn>
           <ThemeToggle />

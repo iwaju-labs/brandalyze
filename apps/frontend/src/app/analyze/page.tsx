@@ -13,6 +13,7 @@ import {
   Plus,
 } from "@untitledui/icons";
 import { Link } from "react-aria-components";
+import UsageDashboard from "@/components/dashboard/usage-dashboard";
 
 interface BrandAnalysisResult {
   alignment_score: number;
@@ -231,45 +232,11 @@ export default function BrandAnalysis() {
             Analyze how well your content aligns with your brand voice.
           </p>
 
-          {/* Usage Info Card */}
-          {!isLoadingUsage && usageInfo && (
-            <div className="mt-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Your Plan:{" "}
-                    {usageInfo.subscription.tier.charAt(0).toUpperCase() +
-                      usageInfo.subscription.tier.slice(1)}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {usageInfo.usage.remaining_today === null
-                      ? "Unlimited analyses today"
-                      : `${usageInfo.usage.remaining_today} analyses remaining today`}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {usageInfo.usage.today_count}
-                  </div>
-                  <div className="text-sm text-gray-500">Used Today</div>
-                </div>
-              </div>
-              {usageInfo.usage.remaining_today === 0 && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    You&apos;ve reached your daily limit.{" "}
-                    <a
-                      href="/pricing"
-                      className="text-yellow-900 underline font-semibold"
-                    >
-                      Upgrade your plan
-                    </a>{" "}
-                    for more analyses.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+        {/** Usage Dashboard */}
+        {!isLoadingUsage && (usageInfo?.usage.remaining_today === 0) && (
+          <UsageDashboard />
+        )}
+
         </div>
         <div className="space-y-6">
           <div>
