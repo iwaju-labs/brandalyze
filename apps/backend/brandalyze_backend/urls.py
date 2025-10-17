@@ -14,18 +14,32 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from brands.views import BrandViewSet, BrandSampleViewSet, upload_file, analyze_text, analyze_brand_alignment, get_user_usage
+from brands.views import (
+    BrandViewSet,
+    BrandSampleViewSet,
+    upload_file,
+    analyze_text,
+    analyze_brand_alignment,
+    get_user_usage,
+)
 
 router = DefaultRouter()
-router.register(r'brands', BrandViewSet, basename='brand')
-router.register(r'samples', BrandSampleViewSet, basename='sample')
+router.register(r"brands", BrandViewSet, basename="brand")
+router.register(r"samples", BrandSampleViewSet, basename="sample")
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),    path('api/upload/brand-style', upload_file, name='upload_file'),
-    path('api/analyze/text', analyze_text, name='analyze_text'),    path('api/analyze/brand-alignment', analyze_brand_alignment, name='analyze_brand_alignment'),
-    path('api/user/usage', get_user_usage, name='get_user_usage')
+    path("admin/", admin.site.urls),
+    path("api/", include(router.urls)),
+    path("api/upload/brand-style", upload_file, name="upload_file"),
+    path("api/analyze/text", analyze_text, name="analyze_text"),
+    path(
+        "api/analyze/brand-alignment",
+        analyze_brand_alignment,
+        name="analyze_brand_alignment",
+    ),
+    path("api/user/usage", get_user_usage, name="get_user_usage"),
 ]

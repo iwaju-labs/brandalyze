@@ -5,6 +5,14 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
 import toast from "react-hot-toast";
+import {
+  AlertTriangle,
+  AlignLeft,
+  CheckCircle,
+  Edit01,
+  Plus,
+} from "@untitledui/icons";
+import { Link } from "react-aria-components";
 
 interface BrandAnalysisResult {
   alignment_score: number;
@@ -89,45 +97,74 @@ export default function BrandAnalysis() {
     );
   }
   const handleBrandComparison = async () => {
+    if (usageInfo && usageInfo.usage.remaining_today === 0) {
+      toast.error(
+        "Daily analysis limit reached! Please upgrade or try again tomorrow",
+        {
+          duration: 600,
+          icon: <AlertTriangle />,
+          style: {
+            background: "#fefe2f2",
+            color: "#b91c1c",
+            border: "1px solid #fecaca",
+          },
+        }
+      );
+    }
+
     const filteredSamples = brandSamples.filter(
-      (sample) => sample.trim().length > 0,
+      (sample) => sample.trim().length > 0
     );
     if (filteredSamples.length === 0) {
-      toast.error("Please add at least one brand sample");
+      toast.error("Please add at least one brand sample", {
+        icon: <AlignLeft />,
+        style: {
+          background: "#fef3c7",
+          color: "#92400e",
+          border: "1px solid #fed7aa",
+        },
+      });
       return;
     }
     if (!newTextForComparison.trim()) {
-      toast.error("Please enter text to analyze");
+      toast.error("Please enter text to analyze", {
+        icon: <Edit01 />,
+        style: {
+          background: "#fef3c7",
+          color: "#92400e",
+          border: "1px solid #fed7aa",
+        },
+      });
       return;
     }
     setIsAnalyzing(true);
     try {
-      // Using proper authenticated endpoint
       const response = await authenticatedFetch(
         "/analyze/brand-alignment",
         getToken,
         {
           method: "POST",
           body: JSON.stringify({
-            text: newTextForComparison, // Fixed: was "new_text", now "text"
+            text: newTextForComparison,
             brand_samples: filteredSamples,
           }),
-        },
+        }
       );
 
-      // Authenticated endpoints wrap response in { success: true, data: {...} }
       setBrandAnalysisResult(response.data);
 
-      // Update usage info after successful analysis
       await fetchUsageInfo();
       toast.success(
         `Analysis complete - Alignment: ${response.data.brand_analysis.alignment_score}/100`,
+        {
+          icon: <CheckCircle />,
+        }
       );
     } catch (error) {
       console.error("Brand analysis failed:", error);
       if (error instanceof Error && error.message.includes("rate limit")) {
         toast.error(
-          "Daily analysis limit reached. Please upgrade your plan or try again tomorrow.",
+          "Daily analysis limit reached. Please upgrade your plan or try again tomorrow."
         );
       } else {
         toast.error("Failed to analyze brand alignment");
@@ -138,6 +175,25 @@ export default function BrandAnalysis() {
   };
 
   const addBrandSample = () => {
+    if (!usageInfo) return;
+
+    const limit = getBrandSampleLimit(usageInfo.subscription);
+    if (limit && brandSamples.length >= limit) {
+      toast.error(
+        `Free plan limited to ${limit} brand samples. Upgrade for unlimited samples`,
+        {
+          duration: 6000,
+          icon: <AlertTriangle />,
+          style: {
+            background: "#fef2f2",
+            color: "#b91c1c",
+            border: "1px solid #fecaca",
+          },
+        }
+      );
+      return;
+    }
+
     setBrandSamples([...brandSamples, ""]);
   };
 
@@ -149,6 +205,18 @@ export default function BrandAnalysis() {
 
   const removeBrandSample = (index: number) => {
     setBrandSamples(brandSamples.filter((_, i) => i !== index));
+  };
+
+  const getBrandSampleLimit = (subscription: UsageInfo["subscription"]) => {
+    switch (subscription.tier) {
+      case "free":
+        return 5;
+      case "pro":
+      case "enterprise":
+        return null;
+      default:
+        return 5;
+    }
   };
 
   return (
@@ -247,14 +315,32 @@ export default function BrandAnalysis() {
                 </div>
               </div>
             ))}
-            {brandSamples.length < 5 && (
-              <button
-                onClick={addBrandSample}
-                className="px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50"
-              >
-                + Add Brand Sample
-              </button>
-            )}
+            {(() => {
+              if (!usageInfo) return null;
+
+              const limit = getBrandSampleLimit(usageInfo.subscription);
+              const canAddMore = !limit || brandSamples.length < limit;
+
+              return canAddMore ? (
+                <button
+                  onClick={addBrandSample}
+                  className="flex flex-row px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                >
+                  <Plus /> Add Brand Sample
+                </button>
+              ) : (
+                <div className="text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded-md border">
+                  <AlertTriangle className="inline w-4 h-4 mr-2 text-yellow-500" />
+                  Free plan limited to {limit} samples.
+                  <Link
+                    href="/pricing"
+                    className="text-purple-600 hover:text-purple-700 ml-1 underline"
+                  >
+                    Upgrade for unlimited samples
+                  </Link>
+                </div>
+              );
+            })()}
           </div>
           <div>
             <label
@@ -296,9 +382,14 @@ export default function BrandAnalysis() {
             disabled={
               isAnalyzing ||
               brandSamples.filter((s) => s.trim()).length === 0 ||
-              !newTextForComparison.trim()
+              !newTextForComparison.trim() ||
+              usageInfo?.usage.remaining_today === 0
             }
-            className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+              isAnalyzing || usageInfo?.usage.remaining_today === 0
+                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl"
+            }`}
           >
             {isAnalyzing
               ? "Analyzing Brand Alignment..."
