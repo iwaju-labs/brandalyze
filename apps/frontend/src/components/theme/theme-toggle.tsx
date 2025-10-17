@@ -18,11 +18,11 @@ export function ThemeToggle() {
 
   let icon;
   if (theme === "dark") {
-    icon = <Moon02 className="h-[1.2rem] w-[1.2rem]"/>
+    icon = <Moon02 className="h-[1.2rem] w-[1.2rem]" />;
   } else if (theme === "light") {
-    icon = <Sun className="h-[1.2rem] w-[1.2rem]" />
+    icon = <Sun className="h-[1.2rem] w-[1.2rem]" />;
   } else if (theme === "system") {
-    icon = <Monitor01 className="h-[1.2rem] w-[1.2rem]" />
+    icon = <Monitor01 className="h-[1.2rem] w-[1.2rem]" />;
   }
 
   return (

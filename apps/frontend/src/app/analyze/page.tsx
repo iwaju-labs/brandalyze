@@ -1,21 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useState, useEffect, useCallback } from "react";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "../../../lib/api";
-import { Footer } from "@/components/layout/footer";
+import { authenticatedFetch } from "../../../lib/api";
 import toast from "react-hot-toast";
 
 interface BrandAnalysisResult {
   alignment_score: number;
-  feedback: {
-    ai_feedback: string;
-    tone_analysis: string;
-    suggestions_count: number;
-  };
+  feedback: string;
   brand_samples_analyzed: number;
-  analysis_succesful: boolean;
+  analysis_successful?: boolean;
   error?: string;
 }
 
@@ -26,22 +21,57 @@ export interface BrandAnalysisResponse {
     brand_samples_count: number;
     analysis_type: string;
   };
+  usage_info?: {
+    analyses_remaining_today: number | null;
+    subscription_tier: string;
+  };
+}
+
+interface UsageInfo {
+  subscription: {
+    tier: string;
+    daily_limit: number | null;
+    brand_sample_limit: number | null;
+    is_active: boolean;
+  };
+  usage: {
+    today_count: number;
+    remaining_today: number | null;
+    date: string;
+  };
 }
 
 export default function BrandAnalysis() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [brandSamples, setBrandSamples] = useState<string[]>([""]);
   const [newTextForComparison, setNewTextForComparison] = useState("");
   const [brandAnalysisResult, setBrandAnalysisResult] =
     useState<BrandAnalysisResponse | null>(null);
+  const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+  const fetchUsageInfo = useCallback(async () => {
+    try {
+      const response = await authenticatedFetch("/user/usage", getToken);
+      // Authenticated endpoints wrap response in { success: true, data: {...} }
+      setUsageInfo(response.data);
+    } catch (error) {
+      console.error("Failed to fetch usage info:", error);
+      toast.error("Failed to load usage information");
+    } finally {
+      setIsLoadingUsage(false);
+    }
+  }, [getToken]);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.push("/sign-in");
+    } else if (isLoaded && isSignedIn && user) {
+      fetchUsageInfo();
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, user, fetchUsageInfo]);
 
   if (!isLoaded) {
     return (
@@ -58,10 +88,9 @@ export default function BrandAnalysis() {
       </div>
     );
   }
-
   const handleBrandComparison = async () => {
     const filteredSamples = brandSamples.filter(
-      (sample) => sample.trim().length > 0
+      (sample) => sample.trim().length > 0,
     );
     if (filteredSamples.length === 0) {
       toast.error("Please add at least one brand sample");
@@ -73,21 +102,36 @@ export default function BrandAnalysis() {
     }
     setIsAnalyzing(true);
     try {
-      const response = await apiFetch("/analyze/brand-alignment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          new_text: newTextForComparison,
-          brand_samples: filteredSamples,
-        }),
-      });
+      // Using proper authenticated endpoint
+      const response = await authenticatedFetch(
+        "/analyze/brand-alignment",
+        getToken,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            text: newTextForComparison, // Fixed: was "new_text", now "text"
+            brand_samples: filteredSamples,
+          }),
+        },
+      );
+
+      // Authenticated endpoints wrap response in { success: true, data: {...} }
       setBrandAnalysisResult(response.data);
+
+      // Update usage info after successful analysis
+      await fetchUsageInfo();
       toast.success(
-        `Analysis complete - Alignment: ${response.data.brand_analysis.alignment_score}/100`
+        `Analysis complete - Alignment: ${response.data.brand_analysis.alignment_score}/100`,
       );
     } catch (error) {
       console.error("Brand analysis failed:", error);
-      toast.error("Failed to analyze brand alignment");
+      if (error instanceof Error && error.message.includes("rate limit")) {
+        toast.error(
+          "Daily analysis limit reached. Please upgrade your plan or try again tomorrow.",
+        );
+      } else {
+        toast.error("Failed to analyze brand alignment");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -110,6 +154,7 @@ export default function BrandAnalysis() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <div className="mx-auto max-w-4xl px-4 py-8">
+        {" "}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
             Welcome back, {user?.firstName || "User"}!
@@ -117,8 +162,47 @@ export default function BrandAnalysis() {
           <p className="mt-2 text-gray-500">
             Analyze how well your content aligns with your brand voice.
           </p>
-        </div>
 
+          {/* Usage Info Card */}
+          {!isLoadingUsage && usageInfo && (
+            <div className="mt-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Your Plan:{" "}
+                    {usageInfo.subscription.tier.charAt(0).toUpperCase() +
+                      usageInfo.subscription.tier.slice(1)}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {usageInfo.usage.remaining_today === null
+                      ? "Unlimited analyses today"
+                      : `${usageInfo.usage.remaining_today} analyses remaining today`}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {usageInfo.usage.today_count}
+                  </div>
+                  <div className="text-sm text-gray-500">Used Today</div>
+                </div>
+              </div>
+              {usageInfo.usage.remaining_today === 0 && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    You&apos;ve reached your daily limit.{" "}
+                    <a
+                      href="/pricing"
+                      className="text-yellow-900 underline font-semibold"
+                    >
+                      Upgrade your plan
+                    </a>{" "}
+                    for more analyses.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-4">
@@ -129,31 +213,23 @@ export default function BrandAnalysis() {
               well it aligns with your brand voice.
             </p>
           </div>
-
           <div>
             <div className="block text-lg font-medium text-foreground mb-2">
               Brand Samples
-            </div>
+            </div>{" "}
             <p className="text-sm text-gray-500 mb-4">
-              {" "}
               Add 2-5 examples of your brand&apos;s writing style (marketing
               copy, social posts, etc.)
-            </p>
-
+            </p>{" "}
             {brandSamples.map((sample, index) => (
-              <div
-                key={`brand-sample-${
-                  sample.substring(0, 20) || "empty"
-                }-${index}`}
-                className="mb-4"
-              >
+              <div key={`brand-sample-${index}`} className="mb-4">
                 <div className="flex items-start space-x-2">
                   <div className="flex-1">
                     <textarea
                       value={sample}
                       onChange={(e) => updateBrandSample(index, e.target.value)}
                       placeholder={`Brand sample ${index + 1}...`}
-                      className="w-full h-24 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      className="w-full h-24 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none dark:bg-neutral-500"
                       maxLength={2000}
                     />
                     <div className="text-xs text-gray-400 mt-1">
@@ -180,7 +256,6 @@ export default function BrandAnalysis() {
               </button>
             )}
           </div>
-
           <div>
             <label
               htmlFor="new-content-textarea"
@@ -197,7 +272,7 @@ export default function BrandAnalysis() {
               value={newTextForComparison}
               onChange={(e) => setNewTextForComparison(e.target.value)}
               placeholder="Enter your new content here..."
-              className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none dark:bg-neutral-500 dark:text-white"
               maxLength={5000}
             />
             <div className="flex justify-between items-center mt-2">
@@ -216,7 +291,6 @@ export default function BrandAnalysis() {
               </span>
             </div>
           </div>
-
           <button
             onClick={handleBrandComparison}
             disabled={
@@ -230,7 +304,6 @@ export default function BrandAnalysis() {
               ? "Analyzing Brand Alignment..."
               : "Analyze Brand Alignment"}
           </button>
-
           {brandAnalysisResult && (
             <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -256,14 +329,11 @@ export default function BrandAnalysis() {
                         {score}
                       </div>
                     );
-                  })()}
+                  })()}{" "}
                   <div className="text-right">
                     <div className="text-sm text-gray-500">Alignment Score</div>
                     <div className="text-lg font-semibold text-gray-900">
-                      {
-                        brandAnalysisResult.brand_analysis.feedback
-                          .tone_analysis
-                      }
+                      out of 100
                     </div>
                   </div>
                 </div>
@@ -287,30 +357,17 @@ export default function BrandAnalysis() {
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-3">
                   AI Feedback
-                </h4>
+                </h4>{" "}
                 <div className="bg-gray-50 p-4 rounded-md">
                   <p className="text-gray-700 whitespace-pre-line">
-                    {brandAnalysisResult.brand_analysis.feedback.ai_feedback}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                  Suggestions
-                </h4>
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <p className="text-gray-700">
-                    {brandAnalysisResult.brand_analysis.feedback
-                      .suggestions_count > 0
-                      ? `${brandAnalysisResult.brand_analysis.feedback.suggestions_count} improvement suggestions provided.`
-                      : "No suggestions needed. Content aligns well with brand."}
+                    {brandAnalysisResult.brand_analysis.feedback}
                   </p>
                 </div>
               </div>
             </div>
-          )}        </div>
+          )}{" "}
+        </div>
       </div>
-      <Footer variant="default" />
     </div>
   );
 }

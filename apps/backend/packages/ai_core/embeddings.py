@@ -8,8 +8,10 @@ from functools import lru_cache
 class EmbeddingGenerator:
     def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
         try:
+            # Initialize OpenAI client with minimal parameters
             self.client = openai.OpenAI(api_key=api_key)
-        except TypeError:
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
             # Fallback for older OpenAI versions
             openai.api_key = api_key
             self.client = openai

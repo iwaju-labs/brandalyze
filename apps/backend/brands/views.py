@@ -1,10 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.authentication import BaseAuthentication
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import tempfile
@@ -17,10 +17,47 @@ from .utils.responses import error_response, success_response
 from ai_core.text_extraction import extract_text
 from ai_core.text_processing import process_text
 from ai_core.analysis import BrandAnalyzer
+from analysis.models import DailyUsage, AnalysisLog, UserSubscription
+from .permissions import ClerkAuthenticated
+
+class ClerkAuthentication(BaseAuthentication):
+    """Custom DRF authentication that retrieves middleware-created user"""
+    def authenticate(self, request):
+        print(f"[DEBUG] ClerkAuthentication.authenticate() called")
+        
+        # Check if middleware stored an authenticated user
+        if hasattr(request, 'clerk_authenticated_user'):
+            user = request.clerk_authenticated_user
+            print(f"[DEBUG] ClerkAuthentication found stored user: {user}")
+            print(f"[DEBUG] ClerkAuthentication user.is_authenticated: {user.is_authenticated}")
+            
+            # Set the backend for proper authentication
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            return (user, None)
+        
+        # Fallback: if middleware decoded JWT but didn't store user, try to retrieve it
+        if hasattr(request, 'clerk_user') and request.clerk_user is not None:
+            print(f"[DEBUG] ClerkAuthentication fallback: retrieving user from clerk_user")
+            from django.contrib.auth import get_user_model
+            user_model = get_user_model()
+            clerk_id = request.clerk_user.get('sub')
+            
+            if clerk_id:
+                try:
+                    user = user_model.objects.get(username=clerk_id)
+                    print(f"[DEBUG] ClerkAuthentication fallback found user: {user}")
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                    return (user, None)
+                except user_model.DoesNotExist:
+                    print(f"[DEBUG] ClerkAuthentication: User with username {clerk_id} does not exist")
+                    return None
+        
+        print(f"[DEBUG] ClerkAuthentication: No clerk_user or clerk_authenticated_user found")
+        # Return None to let other authentication methods try
+        return None
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@csrf_exempt
 def upload_file(request):
     """
     Enhanced file upload with text extraction and analysis (MVP - no database saving)
@@ -30,8 +67,7 @@ def upload_file(request):
             return error_response("No file provided", code="MISSING_FILE")
         
         uploaded_file = request.FILES['file']
-        
-        # Validate file using comprehensive validation
+          # Validate file using comprehensive validation
         validation_result = validate_uploaded_file(uploaded_file)
         
         if not validation_result.is_valid:
@@ -39,7 +75,8 @@ def upload_file(request):
                 f"File validation failed: {', '.join(validation_result.errors)}",
                 code="FILE_VALIDATION_FAILED"
             )
-          # Extract and process text
+        
+        # Extract and process text
         try:
             # Save file temporarily for text extraction
             with tempfile.NamedTemporaryFile(delete=False, suffix=f".{validation_result.file_type}") as temp_file:
@@ -96,7 +133,6 @@ def upload_file(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@csrf_exempt
 def analyze_text(request):
     """
     Direct text analysis without file upload (MVP - no database saving)
@@ -142,46 +178,132 @@ def analyze_text(request):
         return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_exempt
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def analyze_brand_alignment(request):
     """
-    Compare new text against brand samples for alignment scoring
+    Brand alignment analysis endpoint
     """
     try:
-        new_text = request.data.get('new_text', '').strip()
+        print(f"[DEBUG] analyze_brand_alignment called - user: {request.user}")
+        print(f"[DEBUG] - request.user.is_authenticated: {request.user.is_authenticated}")
+        print(f"[DEBUG] - hasattr(request, 'clerk_user'): {hasattr(request, 'clerk_user')}")
+        if hasattr(request, 'clerk_user'):
+            print(f"[DEBUG] - request.clerk_user: {request.clerk_user}")
+        
+        # Get input data
+        text = request.data.get('text', '')
         brand_samples = request.data.get('brand_samples', [])
-
-        if not new_text:
-            return error_response("new_text is required", code="MISSING_NEW_TEXT", status_code=status.HTTP_400_BAD_REQUEST)
         
-        if not brand_samples or not isinstance(brand_samples, list):
-            return error_response("brand_samples array is required", code="MISSING_BRAND_SAMPLES", status_code=status.HTTP_400_BAD_REQUEST)
+        # Validate input
+        if not text.strip():
+            return error_response("Text content is required", "MISSING_TEXT")
         
-        if len(brand_samples) > 5:
-            return error_response("Maximum 5 brand samples allowed", code="TOO_MANY_SAMPLES", status_code=status.HTTP_400_BAD_REQUEST)
+        if not brand_samples or len(brand_samples) == 0:
+            return error_response("At least one brand sample is required", "MISSING_BRAND_SAMPLES")
         
-        analyzer = BrandAnalyzer(settings.OPENAI_API_KEY)
-
-        analysis_result = analyzer.analyze_brand_alignment(
-            new_text=new_text,
-            brand_samples=brand_samples,
-            max_requests_per_hour=settings.MAX_REQUESTS_PER_HOUR
-        )
-
-        if "error" in analysis_result:
-            return error_response(analysis_result["error"], code="ANALYSIS_FAILED", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Filter out empty brand samples
+        filtered_samples = [sample.strip() for sample in brand_samples if sample.strip()]
+        if len(filtered_samples) == 0:
+            return error_response("At least one non-empty brand sample is required", "EMPTY_BRAND_SAMPLES")
         
+        # Initialize AI analyzer
+        api_key = settings.OPENAI_API_KEY
+        if not api_key:
+            return error_response("AI service not configured", "AI_SERVICE_ERROR")
+        
+        analyzer = BrandAnalyzer(api_key)
+          # Perform AI analysis
+        analysis_result = analyzer.analyze_brand_alignment(text, filtered_samples)
+        
+        # Check for analysis errors
+        if 'error' in analysis_result:
+            return error_response(f"Analysis failed: {analysis_result['error']}", "ANALYSIS_ERROR")
+        
+        # Update usage tracking
+        from analysis.models import DailyUsage, AnalysisLog
+        try:
+            # Increment daily usage count
+            daily_usage = DailyUsage.get_today_usage(request.user)
+            daily_usage.analysis_count += 1
+            daily_usage.save()
+            
+            # Log the analysis
+            AnalysisLog.objects.create(
+                user=request.user,
+                analysis_type='brand_alignment',
+                input_length=len(text),
+                brand_samples_count=len(filtered_samples),
+                alignment_score=analysis_result.get('alignment_score', 0),
+                success=analysis_result.get('analysis_successful', False)
+            )
+        except Exception as e:
+            print(f"[WARNING] Failed to update usage tracking: {e}")
+        
+        # Use success_response to match other authenticated endpoints
         return success_response(
             data={
-                'brand_analysis': analysis_result,
+                'brand_analysis': {
+                    'alignment_score': analysis_result.get('alignment_score', 0),
+                    'feedback': analysis_result.get('feedback', {}).get('ai_feedback', 'No feedback available'),
+                    'brand_samples_analyzed': analysis_result.get('brand_samples_analyzed', len(filtered_samples)),
+                    'analysis_successful': analysis_result.get('analysis_successful', False)
+                },
                 'input_info': {
-                    'new_text_length': len(new_text),
-                    'brand_samples_count': len(brand_samples),
+                    'new_text_length': len(text),
+                    'brand_samples_count': len(filtered_samples),
                     'analysis_type': 'brand_alignment'
                 }
             },
-            message=f"Brand alignment analysis complete - Score: {analysis_result['alignment_score']}/100"
+            message="Brand alignment analysis completed successfully"
+        )
+            
+    except Exception as e:
+        print(f"[DEBUG] Exception in analyze_brand_alignment: {e}")
+        import traceback
+        traceback.print_exc()
+        return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def get_user_usage(request):
+    """
+    Get current user's usage information and subscription details
+    """
+    try:
+        user = request.user
+        
+        # Get or create subscription
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=user,
+            defaults={'tier': 'free', 'daily_analysis_limit': 3}
+        )
+        
+        # Get today's usage
+        today_usage = DailyUsage.get_today_usage(user)
+        
+        # Calculate remaining
+        if subscription.daily_analysis_limit is None:
+            remaining = None  # Unlimited
+        else:
+            remaining = max(0, subscription.daily_analysis_limit - today_usage.analysis_count)
+        
+        return success_response(
+            data={
+                'subscription': {
+                    'tier': subscription.tier,
+                    'daily_limit': subscription.daily_analysis_limit,
+                    'brand_sample_limit': subscription.brand_sample_limit,
+                    'is_active': subscription.is_subscription_active
+                },
+                'usage': {
+                    'today_count': today_usage.analysis_count,
+                    'remaining_today': remaining,
+                    'date': today_usage.date.isoformat()
+                }
+            },
+            message="Usage information retrieved successfully"
         )
     except Exception as e:
         return error_response(str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -200,7 +322,7 @@ def _validate_text_input(text: str):
 
 class BrandViewSet(viewsets.ModelViewSet):
     serializer_class = BrandSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ClerkAuthenticated]
 
     def get_queryset(self):
         """Only return brands owned by the current user"""
@@ -222,7 +344,7 @@ class BrandViewSet(viewsets.ModelViewSet):
     
 class BrandSampleViewSet(viewsets.ModelViewSet):
     serializer_class = BrandSampleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ClerkAuthenticated]
     
     def get_queryset(self):
         """Only return samples for brands owned by the current user"""
@@ -276,3 +398,13 @@ class BrandSampleViewSet(viewsets.ModelViewSet):
                 code="INTERNAL_ERROR",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def test_post_endpoint(request):
+    """Simple test endpoint to debug POST request issues"""
+    return success_response(
+        data={"message": "POST request successful", "received_data": request.data},
+        message="Test endpoint working"
+    )
+

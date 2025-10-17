@@ -1,5 +1,4 @@
 import { Zap, BarChart02, Target01 } from "@untitledui/icons";
-import { Footer } from "@/components/layout/footer";
 import { Vortex } from "@/components/ui/vortex";
 
 export default async function HomePage() {
@@ -124,7 +123,6 @@ export default async function HomePage() {
           </div>{" "}
         </div>
       </main>{" "}
-      <Footer />
     </div>
   );
 }

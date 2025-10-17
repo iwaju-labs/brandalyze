@@ -25,14 +25,15 @@ export default function AsciiGifEffect({
     if (!ctx) return;
 
     // ASCII characters ordered by brightness
-    const ASCII_CHARS = " .:-=+*#%@";    // Create ASCII display container
+    const ASCII_CHARS = " .:-=+*#%@"; // Create ASCII display container
     const asciiContainer = document.createElement("pre");
     asciiContainer.className = "ascii-effect-container";
     asciiContainer.style.position = "absolute";
     asciiContainer.style.top = "50%";
     asciiContainer.style.left = "50%";
     asciiContainer.style.transform = "translate(-50%, -50%) scale(1.0)";
-    asciiContainer.style.fontFamily = "monospace";    asciiContainer.style.fontSize = "10px";
+    asciiContainer.style.fontFamily = "monospace";
+    asciiContainer.style.fontSize = "10px";
     asciiContainer.style.lineHeight = "8px";
     asciiContainer.style.fontWeight = "bold";
     asciiContainer.style.color = "#8b5cf6";
@@ -80,7 +81,7 @@ export default function AsciiGifEffect({
           // Calculate brightness
           const brightness = r * 0.299 + g * 0.587 + b * 0.114;
           const charIndex = Math.floor(
-            (brightness / 255) * (ASCII_CHARS.length - 1)
+            (brightness / 255) * (ASCII_CHARS.length - 1),
           );
 
           ascii += ASCII_CHARS[charIndex];
@@ -182,7 +183,7 @@ export default function AsciiGifEffect({
         console.log("Video not loaded, starting fallback animation");
         video.dispatchEvent(new Event("error"));
       }
-    }, 2000);    // Cleanup
+    }, 2000); // Cleanup
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);

@@ -50,10 +50,10 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
           suppressHydrationWarning={true}
         >
-          {" "}
           <ThemeProvider defaultTheme="light">
             <Navbar />
             {children}
+            <Footer />
             <Toaster
               position="top-right"
               toastOptions={{

@@ -202,13 +202,13 @@ export const FileUploadDropZone = ({
   };
 
   const handleInputFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(event.target.files || []);
     console.log(
       "Selected files:",
       files.length,
-      files.map((f) => f.name)
+      files.map((f) => f.name),
     );
     processFiles(files);
   };
@@ -232,7 +232,7 @@ export const FileUploadDropZone = ({
         isDisabled && "cursor-not-allowed bg-muted border-muted opacity-60",
         isInvalid &&
           "border-red-300 bg-red-50 dark:border-red-400 dark:bg-red-950/30",
-        className
+        className,
       )}
       role="button"
       tabIndex={0}
@@ -245,7 +245,7 @@ export const FileUploadDropZone = ({
           isDraggingOver
             ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200"
             : "bg-muted text-muted-foreground",
-          isDisabled && "bg-muted text-muted-foreground opacity-60"
+          isDisabled && "bg-muted text-muted-foreground opacity-60",
         )}
       >
         <UploadCloud02 className="w-8 h-8" />
@@ -277,7 +277,7 @@ export const FileUploadDropZone = ({
               className={cx(
                 "font-semibold text-purple-700 hover:text-purple-900 transition-colors duration-200 underline underline-offset-2 dark:text-purple-300 dark:hover:text-purple-200",
                 isDisabled &&
-                  "text-muted-foreground hover:text-muted-foreground cursor-not-allowed"
+                  "text-muted-foreground hover:text-muted-foreground cursor-not-allowed",
               )}
             >
               Click to upload
@@ -300,7 +300,7 @@ export const FileUploadDropZone = ({
           className={cx(
             "text-sm text-muted-foreground transition-colors duration-200",
             isInvalid && "text-red-600 font-medium dark:text-red-400",
-            isDraggingOver && "text-purple-700 dark:text-purple-200"
+            isDraggingOver && "text-purple-700 dark:text-purple-200",
           )}
         >
           {hint || "PDF, TXT, DOCX, and MD files supported (max 10MB each)"}
@@ -360,14 +360,14 @@ export const FileListItemProgressBar = ({
           "border-red-300 bg-red-50/50 dark:border-red-400 dark:bg-red-950/30",
         isComplete &&
           "border-green-300 bg-green-50/50 dark:border-green-400 dark:bg-green-950/30",
-        className
+        className,
       )}
     >
       {/* File Icon */}
       <div
         className={cx(
           "flex items-center justify-center w-12 h-12 rounded-lg shrink-0 transition-colors duration-200",
-          getFileIconStyles(failed, isComplete)
+          getFileIconStyles(failed, isComplete),
         )}
       >
         <FileTypeIcon
@@ -476,7 +476,7 @@ export const FileListItemProgressFill = ({
         "relative flex gap-4 overflow-hidden rounded-xl bg-background border border-border shadow-sm transition-all duration-200",
         failed && "border-red-300 dark:border-red-400",
         isComplete && "border-green-300 dark:border-green-400",
-        className
+        className,
       )}
     >
       {/* Animated Progress Fill Background */}
@@ -485,7 +485,7 @@ export const FileListItemProgressFill = ({
         className={cx(
           "absolute inset-0 h-full transition-all duration-500 ease-out",
           getProgressBgStyles(),
-          isComplete && "opacity-0"
+          isComplete && "opacity-0",
         )}
         role="progressbar"
         aria-valuenow={progress}
@@ -499,7 +499,7 @@ export const FileListItemProgressFill = ({
         <div
           className={cx(
             "flex items-center justify-center w-12 h-12 rounded-lg shrink-0 transition-colors duration-200",
-            getFileIconStyles(failed, isComplete)
+            getFileIconStyles(failed, isComplete),
           )}
         >
           <FileTypeIcon

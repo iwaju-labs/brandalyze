@@ -5,8 +5,10 @@ from .embeddings import EmbeddingGenerator, calculate_brand_alignment_score
 class BrandAnalyzer:
     def __init__(self, api_key: str):
         try:
+            # Initialize OpenAI client with minimal parameters
             self.client = openai.OpenAI(api_key=api_key)
-        except TypeError:
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
             # Fallback for older OpenAI versions
             openai.api_key = api_key
             self.client = openai

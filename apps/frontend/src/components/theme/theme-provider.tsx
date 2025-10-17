@@ -86,7 +86,7 @@ export function ThemeProvider({
         setTheme(newTheme);
       },
     }),
-    [theme, mounted, storageKey]
+    [theme, mounted, storageKey],
   );
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
