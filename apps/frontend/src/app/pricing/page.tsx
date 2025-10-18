@@ -6,33 +6,6 @@ import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
 import toast from "react-hot-toast";
 import { CheckCircle, CreditCard02, Zap, Laptop02, ArrowRight, Building07 } from "@untitledui/icons";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Pricing Plans - Brandalyze | AI Brand Voice Analysis Tool",
-  description: "Choose the perfect plan for your brand analysis needs. Start with our free tier or upgrade to Pro for unlimited analyses. Affordable pricing for businesses of all sizes.",
-  keywords: [
-    "brand analysis pricing",
-    "AI tool subscription",
-    "marketing software pricing",
-    "brand voice analysis cost",
-    "content marketing tool pricing",
-    "free brand analysis trial"
-  ],
-  openGraph: {
-    title: "Pricing Plans - Brandalyze | AI Brand Voice Analysis Tool",
-    description: "Choose the perfect plan for your brand analysis needs. Start with our free tier or upgrade to Pro for unlimited analyses.",
-    type: "website",
-    url: "https://brandalyze.io/pricing",
-  },
-  twitter: {
-    title: "Pricing Plans - Brandalyze | AI Brand Voice Analysis Tool",
-    description: "Choose the perfect plan for your brand analysis needs. Start with our free tier or upgrade to Pro for unlimited analyses.",
-  },
-  alternates: {
-    canonical: "https://brandalyze.io/pricing",
-  },
-};
 
 const pricingTiers = [
   {

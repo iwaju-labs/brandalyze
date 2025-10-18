@@ -35,7 +35,7 @@ export const Navbar = () => {
           <SignedOut>
             <SignInButton mode="modal">
               <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                Sign In
+                Sign Up/Sign In
               </button>
             </SignInButton>
           </SignedOut>

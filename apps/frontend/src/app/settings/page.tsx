@@ -33,12 +33,13 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
-
   useEffect(() => {
-    if (isSignedIn) {
-      fetchSubscriptionInfo();
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
     }
-  }, [isSignedIn]);
+    fetchSubscriptionInfo();
+  }, [isSignedIn, router]);
 
   const fetchSubscriptionInfo = async () => {
     try {
@@ -86,9 +87,7 @@ export default function SettingsPage() {
       toast.error("Failed to open billing portal");
     }
   };
-
   if (!isSignedIn) {
-    router.push("/sign-in");
     return null;
   }
 

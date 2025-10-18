@@ -17,38 +17,6 @@ import UsageDashboard from "@/components/dashboard/usage-dashboard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
-  description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
-  keywords: [
-    "brand voice analysis",
-    "content analysis tool",
-    "AI brand checker",
-    "brand consistency analysis",
-    "messaging alignment",
-    "brand tone analysis",
-    "content optimization"
-  ],
-  openGraph: {
-    title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
-    description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
-    type: "website",
-    url: "https://brandalyze.io/analyze",
-  },
-  twitter: {
-    title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
-    description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
-  },
-  alternates: {
-    canonical: "https://brandalyze.io/analyze",
-  },
-  robots: {
-    index: false, // Analysis page should be private/gated
-    follow: true,
-  },
-};
 
 // Markdown component definitions
 const markdownComponents: Components = {
