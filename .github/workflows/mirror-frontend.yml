@@ -14,32 +14,34 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: push frontend to public repo preserve history
+      - name: push frontend to public repo
         env:
           PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-        run: |          # Configure git user with organization name
+        run: |
+          # Configure git user with organization name
           git config --global user.name "iwaju-labs"
           git config --global user.email "worshipgbadamosi@live.com"
           
-          # Add public repo remote with token authentication
-          git remote add public https://$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
+          # Create a temporary directory for frontend files
+          mkdir -p /tmp/frontend-only
           
-          # Create a new orphan branch for the frontend-only content
-          git checkout --orphan frontend-mirror
+          # Copy frontend files to temporary directory, placing them at root level
+          cp -r apps/frontend/* /tmp/frontend-only/ 2>/dev/null || true
+          cp apps/frontend/.gitignore /tmp/frontend-only/ 2>/dev/null || true
+          cp apps/frontend/.eslintrc* /tmp/frontend-only/ 2>/dev/null || true
           
-          # Remove all files except frontend
-          git rm -rf . || true
-          git clean -fxd || true
-          
-          # Copy frontend files to root
-          cp -r apps/frontend/* . 2>/dev/null || true
-          cp -r apps/frontend/.* . 2>/dev/null || true
+          # Create a new git repository in the temp directory
+          cd /tmp/frontend-only
+          git init
+          git config user.name "iwaju-labs"
+          git config user.email "worshipgbadamosi@live.com"
           
           # Add all frontend files
           git add .
           
-          # Commit the frontend-only content
+          # Commit the frontend files
           git commit -m "Mirror frontend from main branch - $(date)"
           
-          # Force push to public repo main branch
-          git push public frontend-mirror:main --force
+          # Add the public repo as remote and push
+          git remote add origin https://$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
+          git push origin main --force
