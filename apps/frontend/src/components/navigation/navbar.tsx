@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Settings01 } from "@untitledui/icons";
 
 export const Navbar = () => {
   return (
@@ -22,14 +23,14 @@ export const Navbar = () => {
             className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
             analyze
-          </Link>{" "}
+          </Link>
           <Link
             href="/pricing"
             className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
             pricing
           </Link>
-        </div>{" "}
+        </div>
         <div className="flex items-center space-x-4">
           <SignedOut>
             <SignInButton mode="modal">
@@ -53,6 +54,12 @@ export const Navbar = () => {
               userProfileMode="navigation"
               userProfileUrl="/user-profile"
             />
+                <Link
+                  href="/settings"
+                  className="text-black dark:text-white hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                >
+                  <Settings01 size={20}/>
+                </Link>
           </SignedIn>
           <ThemeToggle />
         </div>

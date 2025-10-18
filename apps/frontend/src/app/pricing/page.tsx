@@ -66,6 +66,11 @@ export default function PricingPage() {
   const { getToken } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{
+    show: boolean;
+    tier: typeof pricingTiers[0] | null;
+    type: 'trial' | 'subscription';
+  }>({ show: false, tier: null, type: 'subscription' });
 
   const handleSubscribe = async (tier: typeof pricingTiers[0]) => {
     if (!isSignedIn) {
@@ -79,12 +84,23 @@ export default function PricingPage() {
       return;
     }
 
-    if (!tier.stripeId) {
-      toast.error("This plan is not available for subscription");
+    // Show confirmation dialog instead of proceeding directly
+    setShowConfirmDialog({
+      show: true,
+      tier,
+      type: 'subscription'
+    });
+  };
+
+  const confirmSubscription = async () => {
+    const tier = showConfirmDialog.tier;
+    if (!tier || !tier.stripeId) {
+      toast.error("Invalid subscription plan");
       return;
     }
 
     setIsLoading(tier.name);
+    setShowConfirmDialog({ show: false, tier: null, type: 'subscription' });
 
     try {
       const response = await authenticatedFetch("/payments/create-checkout-session/", getToken, {
@@ -112,7 +128,17 @@ export default function PricingPage() {
       return;
     }
 
+    // Show confirmation dialog for trial
+    setShowConfirmDialog({
+      show: true,
+      tier: pricingTiers.find(t => t.name === "Pro") || null,
+      type: 'trial'
+    });
+  };
+
+  const confirmTrial = async () => {
     setIsLoading("trial");
+    setShowConfirmDialog({ show: false, tier: null, type: 'subscription' });
 
     try {
       await authenticatedFetch("/payments/start-trial/", getToken, {
@@ -269,6 +295,95 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog.show && showConfirmDialog.tier && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mr-4">
+                {showConfirmDialog.type === 'trial' ? (
+                  <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                ) : (
+                  <CreditCard02 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {showConfirmDialog.type === 'trial' 
+                    ? 'Start Free Trial' 
+                    : `Subscribe to ${showConfirmDialog.tier.name}`
+                  }
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {showConfirmDialog.type === 'trial' 
+                    ? 'Confirm your 7-day free trial'
+                    : 'Confirm your subscription'
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              {showConfirmDialog.type === 'trial' ? (
+                <div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    You're about to start a <strong>7-day free trial</strong> of the Pro plan. You'll get:
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-4">
+                    <li>50 analyses per day</li>
+                    <li>Unlimited brand samples</li>
+                    <li>Advanced AI insights</li>
+                    <li>Priority support</li>
+                  </ul>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No payment required. Cancel anytime during the trial.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    You're about to subscribe to the <strong>{showConfirmDialog.tier.name} plan</strong> for <strong>${showConfirmDialog.tier.price}/month</strong>.
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    You'll be redirected to our secure payment processor to complete your subscription.
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                    {showConfirmDialog.tier.features.slice(0, 4).map((feature, index) => (
+                      <li key={index}>{feature}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowConfirmDialog({ show: false, tier: null, type: 'subscription' })}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={showConfirmDialog.type === 'trial' ? confirmTrial : confirmSubscription}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+              >
+                {showConfirmDialog.type === 'trial' ? (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Start Trial
+                  </>
+                ) : (
+                  <>
+                    <CreditCard02 className="w-4 h-4 mr-2" />
+                    Continue to Payment
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
