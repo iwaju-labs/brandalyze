@@ -10,16 +10,27 @@ jobs:
     steps:
       - name: checkout source repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: push frontend to public repo preserve history
         env:
-          PUBLIC_REPO: https://github.com/iwaju-labs/brandalyze-frontend.git
           PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
+          # Configure git user
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add public repo remote
           git remote add public https://x-access-token:$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
-          git fetch public
+          
+          # Fetch public repo (ignore errors if repo is empty)
+          git fetch public || true
+          
+          # Configure sparse checkout for frontend only
           git sparse-checkout init --cone
           git sparse-checkout set apps/frontend
-          git checkout main
-          git pull public main || true
+          
+          # Force push to public repo (this will overwrite any conflicts)
           git push public main:main --force
