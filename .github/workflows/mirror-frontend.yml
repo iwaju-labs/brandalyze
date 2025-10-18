@@ -29,12 +29,15 @@ jobs:
           cp -r apps/frontend/* /tmp/frontend-only/ 2>/dev/null || true
           cp apps/frontend/.gitignore /tmp/frontend-only/ 2>/dev/null || true
           cp apps/frontend/.eslintrc* /tmp/frontend-only/ 2>/dev/null || true
-          
-          # Create a new git repository in the temp directory
+            # Create a new git repository in the temp directory
           cd /tmp/frontend-only
           git init
           git config user.name "iwaju-labs"
           git config user.email "worshipgbadamosi@live.com"
+          
+          # Set default branch to main
+          git config init.defaultBranch main
+          git checkout -b main
           
           # Add all frontend files
           git add .
