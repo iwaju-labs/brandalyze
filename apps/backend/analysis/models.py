@@ -25,6 +25,20 @@ class UserSubscription(models.Model):
     is_active = models.BooleanField(default=True)
     subscription_start = models.DateTimeField(default=timezone.now)
     subscription_end = models.DateTimeField(null=True, blank=True)
+
+    # Stripe integration fields
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_price_id = models.CharField(max_length=255, blank=True, null=True)
+
+    # Trial management
+    trial_start = models.DateTimeField(null=True, blank=True)
+    trial_end = models.DateTimeField(null=True, blank=True)
+    is_trial_active = models.BooleanField(default=False)
+
+    # Payment status
+    payment_status = models.CharField(max_length=50, default="active") # active, past_due, cancelled
+    next_billing_date = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         db_table = 'user_subscriptions'
@@ -40,6 +54,20 @@ class UserSubscription(models.Model):
         if self.subscription_end and self.subscription_end < timezone.now():
             return False
         return True
+    
+    @property
+    def is_on_trial(self):
+        """Check if a user is currently on trial"""
+        if not self.trial_start or not self.trial_end:
+            return False
+        return timezone.now() <= self.trial_end and self.is_trial_active
+    
+    @property
+    def days_left_in_trial(self):
+        """Get days remaining in trial"""
+        if not self.is_on_trial:
+            return 0
+        return (self.trial_end - timezone.now()).days
     
     @classmethod
     def get_tier_limits(cls, tier):

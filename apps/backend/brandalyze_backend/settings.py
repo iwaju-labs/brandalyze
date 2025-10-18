@@ -30,6 +30,18 @@ if str(AI_CORE_DIR) not in sys.path:
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
 
+# stripe
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+
+# Stripe Price IDs (set these after creating products in Stripe Dashboard)
+STRIPE_PRO_PRICE_ID = os.getenv("STRIPE_PRO_PRICE_ID")
+STRIPE_ENTERPRISE_PRICE_ID = os.getenv("STRIPE_ENTERPRISE_PRICE_ID")
+
+# Frontend URL for redirects
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -56,6 +68,7 @@ INSTALLED_APPS = [
     'brands',
     'accounts',
     'analysis',
+    'payments',
 ]
 
 MIDDLEWARE = [

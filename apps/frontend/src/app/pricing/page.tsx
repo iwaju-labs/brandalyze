@@ -5,7 +5,7 @@ export default function PricingPage() {
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
             <span className="text-gray-900 dark:text-white">
-              Simple Pricing
+              Pricing
             </span>
           </h1>
           <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
@@ -50,7 +50,7 @@ export default function PricingPage() {
               <li>• 50 analyses per day</li>
               <li>• Advanced AI feedback</li>
               <li>• Priority email support</li>
-              <li>• Export reports</li>
+              <li>• Export reports (coming soon)</li>
             </ul>
             <button className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors">
               Start Free Trial
@@ -70,7 +70,7 @@ export default function PricingPage() {
               <li>• Unlimited analyses</li>
               <li>• Custom integrations</li>
               <li>• Priority support</li>
-              <li>• Team management</li>
+              <li>• Team management (coming soon)</li>
             </ul>
             <button className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">
               Get Started
@@ -79,10 +79,10 @@ export default function PricingPage() {
         </div>
         <div className="mt-16 text-center">
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            All paid plans include 14-day free trial. No credit card required.
+            All paid plans include 7-day free trial.
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Questions? Email me at hello@brandalyze.com
+            Questions? Email me at dom@brandalyze.com
           </p>
         </div>
       </main>

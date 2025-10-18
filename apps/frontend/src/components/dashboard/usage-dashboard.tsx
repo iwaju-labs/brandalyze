@@ -118,7 +118,7 @@ export default function UsageDashboard() {
                 href="/pricing"
                 className="text-yellow-900 dark:text-yellow-100 underline font-semibold hover:text-yellow-700"
               >
-                Upgrade for unlimited analyses
+              {" "}Upgrade for unlimited analyses
               </a>
             </p>
           </div>
