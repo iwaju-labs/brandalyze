@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           </p>
         </div>
       </div>
-      <Footer variant="default" />
+      <Footer />
     </div>
   );
 }

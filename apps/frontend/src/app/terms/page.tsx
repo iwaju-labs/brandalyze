@@ -14,7 +14,7 @@ export default function TermsPage() {
           </p>
         </div>
       </div>
-      <Footer variant="default" />
+      <Footer />
     </div>
   );
 }
