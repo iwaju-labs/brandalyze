@@ -9,14 +9,18 @@ User = get_user_model()
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class StripeService:
-
+    
     @staticmethod
     def create_customer(user):
         """Create Stripe customer for user"""
         try:
-            customer = stripe.Customer.create(
+            # Handle case where first_name/last_name might be empty
+            name = f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip()
+            if not name:
+                name = user.username or user.email or "Customer"
+                customer = stripe.Customer.create(
                 email=user.email,
-                name=f"{user.first_name} {user.last_name}".strip(),
+                name=name,
                 metadata={'user_id': user.id}
             )
 
@@ -28,6 +32,20 @@ class StripeService:
         except stripe.StripeError as e:
             print(f"Stripe error creating customer: {e}")
             return None
+    
+    @staticmethod
+    def update_customer_email(customer_id, email):
+        """Update Stripe customer's email"""
+        try:
+            stripe.Customer.modify(
+                customer_id,
+                email=email
+            )
+            print(f"[DEBUG] Updated Stripe customer {customer_id} email to: {email}")
+            return True
+        except stripe.StripeError as e:
+            print(f"Stripe error updating customer email: {e}")
+            return False
         
     @staticmethod
     def create_checkout_session(user, price_id, success_url, cancel_url):
@@ -43,9 +61,18 @@ class StripeService:
             else:
                 customer_id = subscription.stripe_customer_id
                 
+                # Update customer email if it has changed
+                try:
+                    current_customer = stripe.Customer.retrieve(customer_id)
+                    if current_customer.email != user.email:
+                        print(f"[DEBUG] Customer email mismatch: {current_customer.email} vs {user.email}")
+                        StripeService.update_customer_email(customer_id, user.email)
+                except stripe.StripeError as e:
+                    print(f"[DEBUG] Could not retrieve/update customer: {e}")
+                
             session = stripe.checkout.Session.create(
                 customer=customer_id,
-                payment_method_types=["card", "paypal", "revolut_pay"],
+                payment_method_types=["card", "paypal"],
                 line_items=[{
                     'price': price_id,
                     'quantity': 1
@@ -66,17 +93,25 @@ class StripeService:
     @staticmethod
     def start_free_trial(user, days=7):
         """Start a free trial for a new user"""
-        subscription, created = UserSubscription.objects.get_or_create(user=user)
+        print(f"[DEBUG] start_free_trial called for user: {user}")
+        try:
+            subscription, created = UserSubscription.objects.get_or_create(user=user)
+            print(f"[DEBUG] subscription created: {created}, existing trial_start: {subscription.trial_start}")
 
-        if created or not subscription.trial_start:
-            subscription.tier = 'pro'
-            subscription.daily_analysis_limit=50,
-            subscription.trial_start = timezone.now()
-            subscription.trial_end = timezone.now() + timedelta(days=days)
-            subscription.is_trial_active = True
-            subscription.save()
-            return True
-        return False
+            if created or not subscription.trial_start:
+                subscription.tier = 'pro'
+                subscription.daily_analysis_limit = 50  # Fix: removed comma that made this a tuple
+                subscription.trial_start = timezone.now()
+                subscription.trial_end = timezone.now() + timedelta(days=days)
+                subscription.is_trial_active = True
+                subscription.save()
+                print(f"[DEBUG] Trial started successfully for user {user}")
+                return True
+            print(f"[DEBUG] Trial not started - user already has trial")
+            return False
+        except Exception as e:
+            print(f"[DEBUG] Error in start_free_trial: {e}")
+            raise e
     
     @staticmethod
     def handle_subscription_created(stripe_subscription: stripe.Subscription):

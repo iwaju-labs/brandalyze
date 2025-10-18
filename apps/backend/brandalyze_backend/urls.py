@@ -41,5 +41,5 @@ urlpatterns = [
         analyze_brand_alignment,
         name="analyze_brand_alignment",
     ),    path("api/user/usage", get_user_usage, name="get_user_usage"),
-    path("payments/", include("payments.urls")),
+    path("api/payments/", include("payments.urls")),
 ]

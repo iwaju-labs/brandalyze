@@ -29,7 +29,7 @@ if str(AI_CORE_DIR) not in sys.path:
 # clerk
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
-
+CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 # stripe
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")

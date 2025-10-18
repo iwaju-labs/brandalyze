@@ -7,13 +7,13 @@ from django.contrib.auth import get_user_model
 
 CLERK_JWKS_URL = getattr(settings, "CLERK_JWKS_URL", None)
 
-class ClerkAuthMiddleware:
+class ClerkAuthMiddleware:    
     def __init__(self, get_response):
         self.get_response = get_response
         self.jwk_client = PyJWKClient(CLERK_JWKS_URL)
 
     def _extract_email_from_payload(self, payload, clerk_id):
-        """Extract email from Clerk JWT payload with multiple fallbacks."""
+        """Extract email from Clerk JWT payload or fetch from Clerk API"""
         email = None
         
         # Try different email field patterns
@@ -34,11 +34,68 @@ class ClerkAuthMiddleware:
                 elif isinstance(first_addr, str):
                     email = first_addr
         
-        # Provide default email if none found
+        # If no email found in JWT, fetch from Clerk API
+        if not email or not isinstance(email, str) or "@" not in email:
+            email = self._fetch_email_from_clerk_api(clerk_id)
+        
+        # Provide default email if still none found
         if not email or not isinstance(email, str) or "@" not in email:
             email = f"{clerk_id}@clerk.local"
         
         return email
+    
+    def _fetch_email_from_clerk_api(self, clerk_id):
+        """Fetch user email from Clerk API"""
+        try:
+            import requests
+            from django.conf import settings
+            
+            # Get Clerk secret key from settings
+            clerk_secret = getattr(settings, 'CLERK_SECRET_KEY', None)
+            if not clerk_secret:
+                print("[DEBUG] No CLERK_SECRET_KEY found in settings")
+                return None
+            
+            # Fetch user details from Clerk API
+            headers = {
+                'Authorization': f'Bearer {clerk_secret}',
+                'Content-Type': 'application/json'
+            }
+            
+            print(f"[DEBUG] Fetching user email from Clerk API for user: {clerk_id}")
+            
+            response = requests.get(
+                f'https://api.clerk.dev/v1/users/{clerk_id}',
+                headers=headers,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                email_addresses = user_data.get('email_addresses', [])
+                
+                print(f"[DEBUG] Clerk API response - found {len(email_addresses)} email addresses")
+                
+                # Find primary email (first one that's verified)
+                for email_obj in email_addresses:
+                    if email_obj.get('verification', {}).get('status') == 'verified':
+                        email = email_obj.get('email_address')
+                        print(f"[DEBUG] Found verified email: {email}")
+                        return email
+                
+                # If no verified email, use the first one
+                if email_addresses:
+                    email = email_addresses[0].get('email_address')
+                    print(f"[DEBUG] Using first email address: {email}")
+                    return email
+                    
+            else:
+                print(f"[DEBUG] Clerk API error: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            print(f"[DEBUG] Failed to fetch email from Clerk API: {e}")
+        
+        return None
 
     def __call__(self, request):
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
@@ -64,8 +121,7 @@ class ClerkAuthMiddleware:
                 if not clerk_id:
                     print(f"[DEBUG] No 'sub' field found in payload keys: {list(payload.keys())}")
                     return JsonResponse({"error": "Invalid token: missing subject"}, status=401)
-                
-                # Extract email from Clerk JWT payload
+                  # Extract email from Clerk JWT payload
                 email = self._extract_email_from_payload(payload, clerk_id)
                 print(f"[DEBUG] Extracted email: {email}")
                 
@@ -73,6 +129,12 @@ class ClerkAuthMiddleware:
                     username=clerk_id,
                     defaults={"email": email}
                 )
+                
+                # Update email if it's different (e.g., from fake @clerk.local to real email)
+                if not created and user.email != email and "@clerk.local" in user.email:
+                    user.email = email
+                    user.save()
+                    print(f"[DEBUG] Updated user email from {user.email} to {email}")
                 
                 print(f"[DEBUG] User created/retrieved: {user} (created: {created})")
                 print(f"[DEBUG] User is_authenticated: {user.is_authenticated}")
