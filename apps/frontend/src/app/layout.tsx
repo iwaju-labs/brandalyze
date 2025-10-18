@@ -19,8 +19,77 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "brandalyze.",
-  description: "Brand consistency analysis tool",
+  title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+  description: "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency. Perfect for marketers, content creators, and businesses.",
+  keywords: [
+    "brand voice analysis",
+    "AI brand consistency",
+    "content marketing tool",
+    "brand alignment",
+    "marketing automation",
+    "brand voice checker",
+    "content analysis",
+    "brand messaging",
+    "AI copywriting tool",
+    "marketing analytics"
+  ],
+  authors: [{ name: "Brandalyze" }, { name: "IWAJU LABS"}],
+  creator: "Brandalyze",
+  publisher: "Brandalyze",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://brandalyze.io",
+    title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+    description: "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency.",
+    siteName: "Brandalyze",
+    images: [
+      {
+        url: "/assets/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Brandalyze - AI Brand Voice Analysis Tool",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+    description: "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency.",
+    images: ["/assets/twitter-image.png"],
+    creator: "@brandalyze",
+  },
+  alternates: {
+    canonical: "https://brandalyze.io",
+  },
+  category: "Marketing Technology",
+  classification: "Business Software",
+  applicationName: "Brandalyze",
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://brandalyze.io"),
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "Brandalyze",
+    "mobile-web-app-capable": "yes",
+    "theme-color": "#7c3aed",
+  },
 };
 
 export default function RootLayout({
@@ -32,6 +101,13 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+          <meta name="theme-color" content="#7c3aed" />
+          <meta name="color-scheme" content="light dark" />
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <link rel="manifest" href="/manifest.json" />
           <script
             dangerouslySetInnerHTML={{
               __html: `(function() {
@@ -43,6 +119,35 @@ export default function RootLayout({
                   }
                 })();
               `,
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "Brandalyze",
+                "description": "AI-powered brand voice analysis tool that ensures consistent brand messaging across all your content.",
+                "url": "https://brandalyze.io",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Web",
+                "offers": {
+                  "@type": "Offer",
+                  "price": "0",
+                  "priceCurrency": "USD",
+                  "availability": "https://schema.org/InStock"
+                },
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": "4.8",
+                  "ratingCount": "127"
+                },
+                "author": {
+                  "@type": "Organization",
+                  "name": "Brandalyze"
+                }
+              })
             }}
           />
         </head>

@@ -14,6 +14,92 @@ import {
 } from "@untitledui/icons";
 import { Link } from "react-aria-components";
 import UsageDashboard from "@/components/dashboard/usage-dashboard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
+  description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
+  keywords: [
+    "brand voice analysis",
+    "content analysis tool",
+    "AI brand checker",
+    "brand consistency analysis",
+    "messaging alignment",
+    "brand tone analysis",
+    "content optimization"
+  ],
+  openGraph: {
+    title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
+    description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
+    type: "website",
+    url: "https://brandalyze.io/analyze",
+  },
+  twitter: {
+    title: "Brand Voice Analysis - Brandalyze | AI-Powered Content Analysis",
+    description: "Analyze your content for brand voice consistency. Upload your brand samples and get instant AI-powered feedback on tone, messaging alignment, and brand coherence.",
+  },
+  alternates: {
+    canonical: "https://brandalyze.io/analyze",
+  },
+  robots: {
+    index: false, // Analysis page should be private/gated
+    follow: true,
+  },
+};
+
+// Markdown component definitions
+const markdownComponents: Components = {
+  h1: ({ children }) => (
+    <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-3 mt-4 first:mt-0">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 mt-3 first:mt-0">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-2 mt-3 first:mt-0">
+      {children}
+    </h3>
+  ),
+  p: ({ children }) => (
+    <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">{children}</p>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>
+  ),
+  ul: ({ children }) => (
+    <ul className="list-disc pl-6 mb-3 space-y-1">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal pl-6 mb-3 space-y-1">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="text-gray-700 dark:text-gray-300 leading-relaxed">{children}</li>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-4 border-purple-500 pl-4 italic text-gray-600 dark:text-gray-400 my-4">
+      {children}
+    </blockquote>
+  ),
+  code: ({ children, className }) => {
+    const isInline = !className;
+    return isInline ? (
+      <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">
+        {children}
+      </code>
+    ) : (
+      <code className="block bg-gray-200 dark:bg-gray-700 p-3 rounded text-sm font-mono text-gray-800 dark:text-gray-200 overflow-x-auto">
+        {children}
+      </code>
+    );
+  },
+};
 
 interface BrandAnalysisResult {
   alignment_score: number;
@@ -257,7 +343,7 @@ export default function BrandAnalysis() {
               copy, social posts, etc.)
             </p>{" "}
             {brandSamples.map((sample, index) => (
-              <div key={`brand-sample-${index}`} className="mb-4">
+              <div key={index} className="mb-4">
                 <div className="flex items-start space-x-2">
                   <div className="flex-1">
                     <textarea
@@ -363,9 +449,9 @@ export default function BrandAnalysis() {
               : "Analyze Brand Alignment"}
           </button>
           {brandAnalysisResult && (
-            <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div className="mt-8 bg-white dark:bg-inherit border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   Brand Alignment Analysis
                 </h3>
                 <div className="flex items-center space-x-2">
@@ -387,10 +473,10 @@ export default function BrandAnalysis() {
                         {score}
                       </div>
                     );
-                  })()}{" "}
+                  })()}
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Alignment Score</div>
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm text-gray-500 dark:gray-300">Alignment Score</div>
+                    <div className="text-lg font-semibold text-gray-900 dark:text-gray-300">
                       out of 100
                     </div>
                   </div>
@@ -401,25 +487,28 @@ export default function BrandAnalysis() {
                   <div className="text-2xl font-bold text-purple-600">
                     {brandAnalysisResult.input_info.brand_samples_count}
                   </div>
-                  <div className="text-sm text-gray-500">Brand Samples</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {brandAnalysisResult.input_info.new_text_length.toLocaleString()}
+                    <div className="text-sm text-gray-500 dark:text-gray-300">Brand Samples</div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Characters Analyzed
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {brandAnalysisResult.input_info.new_text_length.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-300">
+                      Characters Analyzed
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                  AI Feedback
-                </h4>{" "}
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <p className="text-gray-700 whitespace-pre-line">
-                    {brandAnalysisResult.brand_analysis.feedback}
-                  </p>
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                    AI Feedback
+                  </h4>
+                  <div className="bg-gray-50 dark:bg-black text-black dark:text-white p-4 rounded-md prose prose-gray max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={markdownComponents}
+                    >
+                        {brandAnalysisResult.brand_analysis.feedback}
+                    </ReactMarkdown>
                 </div>
               </div>
             </div>

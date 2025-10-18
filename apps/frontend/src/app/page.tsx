@@ -1,5 +1,34 @@
 import { Zap, BarChart02, Target01 } from "@untitledui/icons";
 import { Vortex } from "@/components/ui/vortex";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+  description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content. Start your free trial today.",
+  keywords: [
+    "AI brand analysis",
+    "brand voice consistency",
+    "content marketing automation",
+    "brand messaging tool",
+    "AI copywriting assistant",
+    "marketing analytics",
+    "brand alignment checker",
+    "content optimization"
+  ],
+  openGraph: {
+    title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+    description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
+    type: "website",
+    url: "https://brandalyze.io",
+  },
+  twitter: {
+    title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+    description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
+  },
+  alternates: {
+    canonical: "https://brandalyze.io",
+  },
+};
 
 export default async function HomePage() {
   return (

@@ -12,5 +12,11 @@ openai
 pdfplumber
 python-docx
 qdrant-client
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+whitenoise==6.6.0
+dj-database-url==2.1.0
+# Payment processing
+stripe==7.12.0
 # Local packages (editable installations)
 -e ./packages/ai_core

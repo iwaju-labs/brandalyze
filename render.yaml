@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: brandalyze-backend
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: cd apps/backend && pip install -r requirements.txt
+    startCommand: cd apps/backend && python manage.py collectstatic --noinput && python manage.py migrate && gunicorn brandalyze_backend.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DEBUG
+        value: False
+      - key: DJANGO_SETTINGS_MODULE
+        value: brandalyze_backend.settings
+      - key: ALLOWED_HOSTS
+        value: api.brandalyze.io,brandalyze-backend.onrender.com
+      - key: FRONTEND_URL
+        value: https://brandalyze.io
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://brandalyze.io,https://www.brandalyze.io
+      - key: SECURE_SSL_REDIRECT
+        value: True
+      - key: SECURE_PROXY_SSL_HEADER
+        value: HTTP_X_FORWARDED_PROTO,https
+      - key: USE_TLS
+        value: True
+
+databases:
+  - name: brandalyze-postgres
+    databaseName: brandalyze
+    user: brandalyze
+    region: oregon
+    plan: starter

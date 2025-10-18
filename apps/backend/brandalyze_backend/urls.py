@@ -26,12 +26,14 @@ from brands.views import (
     analyze_brand_alignment,
     get_user_usage,
 )
+from .health import HealthCheckView
 
 router = DefaultRouter()
 router.register(r"brands", BrandViewSet, basename="brand")
 router.register(r"samples", BrandSampleViewSet, basename="sample")
 
 urlpatterns = [
+    path("health/", HealthCheckView.as_view(), name="health_check"),
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/upload/brand-style", upload_file, name="upload_file"),

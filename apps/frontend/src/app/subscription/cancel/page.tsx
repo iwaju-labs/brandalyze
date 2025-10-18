@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, CreditCard02, MessageCircle } from "@untitledui/icons";
+import { AlertTriangle, ArrowLeft, CreditCard02, MessageCircle01 } from "@untitledui/icons";
 
 export default function SubscriptionCancelPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function SubscriptionCancelPage() {
           </h1>
           
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-            No worries! Your payment has been cancelled and you haven't been charged.
+            No worries! Your payment has been cancelled and you haven&apos;t been charged.
           </p>
 
           {/* What Happened */}
@@ -72,14 +72,14 @@ export default function SubscriptionCancelPage() {
           {/* Help Section */}
           <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
             <div className="flex items-center justify-center mb-4">
-              <MessageCircle className="w-6 h-6 text-purple-600 mr-2" />
+              <MessageCircle01 className="w-6 h-6 text-purple-600 mr-2" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Need Help?
               </h3>
             </div>
             
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              If you experienced any issues during checkout or have questions about our plans, we're here to help.
+              If you experienced any issues during checkout or have questions about our plans, we&apos;re here to help.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
