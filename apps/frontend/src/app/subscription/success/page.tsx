@@ -1,33 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { authenticatedFetch } from "../../../../lib/api";
 import toast from "react-hot-toast";
 import { CheckCircle, ArrowRight, CreditCard02 } from "@untitledui/icons";
 
-export default function SubscriptionSuccessPage() {
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { getToken } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    subscription?: {
+      status: string;
+      plan_name: string;
+      current_period_end: string;
+      tier: string;
+      next_billing_date: string;
+    };
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const sessionId = searchParams.get("session_id");
 
-  useEffect(() => {
-    if (!sessionId) {
-      setError("No session ID found");
-      setIsLoading(false);
-      return;
-    }
-
-    fetchSubscriptionInfo();
-  }, [sessionId]);
-
-  const fetchSubscriptionInfo = async () => {
+  const fetchSubscriptionInfo = useCallback(async () => {
     try {
       // Fetch updated billing info to confirm subscription
       const response = await authenticatedFetch("/payments/api/billing-info/", getToken);
@@ -41,7 +37,17 @@ export default function SubscriptionSuccessPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getToken]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setError("No session ID found");
+      setIsLoading(false);
+      return;
+    }
+
+    fetchSubscriptionInfo();
+  }, [sessionId, fetchSubscriptionInfo]);
 
   if (isLoading) {
     return (
@@ -96,10 +102,8 @@ export default function SubscriptionSuccessPage() {
           
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
             Your subscription has been activated successfully. You now have access to all the powerful features.
-          </p>
-
-          {/* Subscription Details */}
-          {subscriptionInfo && (
+          </p>          {/* Subscription Details */}
+          {subscriptionInfo?.subscription && (
             <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center justify-center">
                 <CreditCard02 className="mr-2" />
@@ -179,19 +183,32 @@ export default function SubscriptionSuccessPage() {
           </div>
 
           {/* Support Info */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Need help getting started? 
+          <div className="mt-8 text-center">            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Need help getting started?{" "}
               <a 
                 href="mailto:dom@brandalyze.com" 
-                className="text-purple-600 hover:text-purple-700 ml-1"
+                className="text-purple-600 hover:text-purple-700"
               >
                 Contact support
               </a>
             </p>
-          </div>
-        </div>
+          </div>        </div>
       </div>
     </div>
+  );
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SuccessPageContent />
+    </Suspense>
   );
 }
