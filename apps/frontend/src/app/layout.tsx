@@ -31,14 +31,14 @@ export const metadata: Metadata = {
     "content analysis",
     "brand messaging",
     "AI copywriting tool",
-    "marketing analytics"
-  ],
+    "marketing analytics"  ],
   authors: [{ name: "Brandalyze" }, { name: "IWAJU LABS"}],
   creator: "Brandalyze",
   publisher: "Brandalyze",
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
+    icon: [
+      { url: '/icon.png', sizes: 'any' },
+    ],
     apple: '/icon.png',
   },
   robots: {
@@ -104,14 +104,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <head>
+      <html lang="en" suppressHydrationWarning>        <head>
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
           <meta name="theme-color" content="#7c3aed" />
           <meta name="color-scheme" content="light dark" />
-          <link rel="icon" href="/favicon.ico" sizes="any" />
-          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <link rel="icon" href="/icon.png" type="image/png" />
+          <link rel="apple-touch-icon" href="/icon.png" />
           <link rel="manifest" href="/manifest.json" />
           <script
             dangerouslySetInnerHTML={{
