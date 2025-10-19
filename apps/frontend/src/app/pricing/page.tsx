@@ -284,12 +284,12 @@ export default function PricingPage() {
           
           <div className="mt-8">
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Questions? Email us at{" "}
+              Questions? Email me at{" "}
               <a 
-                href="mailto:dom@brandalyze.com" 
+                href="mailto:dom@brandalyze.io" 
                 className="text-purple-600 hover:text-purple-700"
               >
-                dom@brandalyze.com
+                dom@brandalyze.io
               </a>
             </p>
           </div>

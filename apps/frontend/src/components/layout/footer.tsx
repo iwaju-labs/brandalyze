@@ -37,6 +37,12 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
             <Link href="/terms" className="hover:opacity-80 transition-opacity">
               Terms of Service
             </Link>
+            <span>•</span>
+            <Link
+              href="mailto:dom@brandalyze.io"
+            >
+              Support - dom@brandalyze.io
+            </Link>
           </div>
         </div>
       </div>
