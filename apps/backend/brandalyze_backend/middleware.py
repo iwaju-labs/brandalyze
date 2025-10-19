@@ -4,7 +4,9 @@ from jwt import PyJWKClient
 from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth import get_user_model
+import logging
 
+logger = logging.getLogger(__name__)
 CLERK_JWKS_URL = getattr(settings, "CLERK_JWKS_URL", None)
 
 class ClerkAuthMiddleware:    
@@ -47,12 +49,10 @@ class ClerkAuthMiddleware:
     def _fetch_email_from_clerk_api(self, clerk_id):
         """Fetch user email from Clerk API"""
         try:
-            import requests
-            from django.conf import settings
-            
             # Get Clerk secret key from settings
             clerk_secret = getattr(settings, 'CLERK_SECRET_KEY', None)
             if not clerk_secret:
+                logger.error("No CLERK_SECRET_KEY found in settings")
                 print("[DEBUG] No CLERK_SECRET_KEY found in settings")
                 return None
             
@@ -62,6 +62,7 @@ class ClerkAuthMiddleware:
                 'Content-Type': 'application/json'
             }
             
+            logger.info(f"Fetching user email from Clerk API for user: {clerk_id}")
             print(f"[DEBUG] Fetching user email from Clerk API for user: {clerk_id}")
             
             response = requests.get(
@@ -74,25 +75,30 @@ class ClerkAuthMiddleware:
                 user_data = response.json()
                 email_addresses = user_data.get('email_addresses', [])
                 
+                logger.info(f"Clerk API response - found {len(email_addresses)} email addresses")
                 print(f"[DEBUG] Clerk API response - found {len(email_addresses)} email addresses")
                 
                 # Find primary email (first one that's verified)
                 for email_obj in email_addresses:
                     if email_obj.get('verification', {}).get('status') == 'verified':
                         email = email_obj.get('email_address')
+                        logger.info(f"Found verified email: {email}")
                         print(f"[DEBUG] Found verified email: {email}")
                         return email
                 
                 # If no verified email, use the first one
                 if email_addresses:
                     email = email_addresses[0].get('email_address')
+                    logger.info(f"Using first email address: {email}")
                     print(f"[DEBUG] Using first email address: {email}")
                     return email
                     
             else:
+                logger.error(f"Clerk API error: {response.status_code} - {response.text}")
                 print(f"[DEBUG] Clerk API error: {response.status_code} - {response.text}")
                 
         except Exception as e:
+            logger.error(f"Failed to fetch email from Clerk API: {e}")
             print(f"[DEBUG] Failed to fetch email from Clerk API: {e}")
         
         return None
@@ -114,15 +120,20 @@ class ClerkAuthMiddleware:
                 request.clerk_user = payload
                 
                 # Debug: Print JWT payload to understand structure
+                logger.info(f"Clerk JWT payload: {payload}")
                 print(f"[DEBUG] Clerk JWT payload: {payload}")
+                
                 user_model = get_user_model()
                 clerk_id = payload.get("sub")
                 
                 if not clerk_id:
+                    logger.error(f"No 'sub' field found in payload keys: {list(payload.keys())}")
                     print(f"[DEBUG] No 'sub' field found in payload keys: {list(payload.keys())}")
                     return JsonResponse({"error": "Invalid token: missing subject"}, status=401)
-                  # Extract email from Clerk JWT payload
+                
+                # Extract email from Clerk JWT payload
                 email = self._extract_email_from_payload(payload, clerk_id)
+                logger.info(f"Extracted email: {email}")
                 print(f"[DEBUG] Extracted email: {email}")
                 
                 user, created = user_model.objects.get_or_create(
@@ -134,22 +145,31 @@ class ClerkAuthMiddleware:
                 if not created and user.email != email and "@clerk.local" in user.email:
                     user.email = email
                     user.save()
+                    logger.info(f"Updated user email from {user.email} to {email}")
                     print(f"[DEBUG] Updated user email from {user.email} to {email}")
                 
+                logger.info(f"User created/retrieved: {user} (created: {created})")
                 print(f"[DEBUG] User created/retrieved: {user} (created: {created})")
+                logger.info(f"User is_authenticated: {user.is_authenticated}")
                 print(f"[DEBUG] User is_authenticated: {user.is_authenticated}")
                 
                 # Store the authenticated user for our custom authentication class to retrieve
                 # Don't set request.user here as AuthenticationMiddleware will override it
                 request.clerk_authenticated_user = user
                 
+                logger.info(f"Set request.clerk_authenticated_user to: {user}")
                 print(f"[DEBUG] Set request.clerk_authenticated_user to: {user}")
                 
             except jwt.ExpiredSignatureError:
+                logger.warning("JWT token expired")
+                print("[DEBUG] JWT token expired")
                 return JsonResponse({"error": "Token expired"}, status=401)
             except jwt.InvalidTokenError:
+                logger.warning("Invalid JWT token")
+                print("[DEBUG] Invalid JWT token")
                 return JsonResponse({"error": "Invalid token"}, status=401)
             except Exception as e:
+                logger.error(f"Authentication error: {str(e)}")
                 print(f"[DEBUG] Authentication error: {str(e)}")
                 return JsonResponse({"error": f"Authentication error: {str(e)}"}, status=401)
         else:
