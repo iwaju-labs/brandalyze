@@ -82,16 +82,24 @@ export default async function HomePage() {
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                     Be the first to know when we launch. Get exclusive early
-                    access, beta features, and special pricing.
+                    access, beta features, and special pricing. For now either join the waitlist or try out a demo.
                   </p>
                 </div>
                 <a
                   href="https://tally.so/r/nrxj8M"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 mb-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
                 >
                   Join Waitlist →
+                </a>
+                <a
+                  href="/analyze"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-black hover:bg-black/80 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+                >
+                  Try a Demo
                 </a>
               </div>
             </div>

@@ -36,6 +36,11 @@ export const metadata: Metadata = {
   authors: [{ name: "Brandalyze" }, { name: "IWAJU LABS"}],
   creator: "Brandalyze",
   publisher: "Brandalyze",
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
   robots: {
     index: true,
     follow: true,
