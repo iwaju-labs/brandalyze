@@ -62,7 +62,7 @@ export const metadata: Metadata = {
         siteName: "Brandalyze",
         images: [
             {
-                url: "/assets/og-image.png",
+                url: "https://brandalyze.io/assets/og-image.png",
                 width: 1200,
                 height: 630,
                 alt: "Brandalyze - AI Brand Voice Analysis Tool",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
         title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
         description:
             "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency.",
-        images: ["/assets/og-image.png"],
+        images: ["https://brandalyze.io/assets/og-image.png"],
         creator: "@brandalyze",
     },
     alternates: {
@@ -117,6 +117,17 @@ export default function RootLayout({
                     <link rel="icon" href="/icon.png" type="image/png" />
                     <link rel="apple-touch-icon" href="/icon.png" />
                     <link rel="manifest" href="/manifest.json" />
+                    
+                    {/* OpenGraph Meta Tags */}
+                    <meta property="og:image" content="https://brandalyze.io/assets/og-image.png" />
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
+                    <meta property="og:image:alt" content="Brandalyze - AI Brand Voice Analysis Tool" />
+                    
+                    {/* Twitter Meta Tags */}
+                    <meta name="twitter:image" content="https://brandalyze.io/assets/og-image.png" />
+                    <meta name="twitter:domain" content="brandalyze.io" />
+                    <meta name="twitter:url" content="https://brandalyze.io" />
                     <script
                         dangerouslySetInnerHTML={{
                             __html: `(function() {
