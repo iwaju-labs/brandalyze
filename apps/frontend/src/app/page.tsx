@@ -3,8 +3,10 @@ import { Vortex } from "@/components/ui/vortex";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
-  description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content. Start your free trial today.",
+  title:
+    "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+  description:
+    "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content. Start your free trial today.",
   keywords: [
     "AI brand analysis",
     "brand voice consistency",
@@ -13,17 +15,21 @@ export const metadata: Metadata = {
     "AI copywriting assistant",
     "marketing analytics",
     "brand alignment checker",
-    "content optimization"
+    "content optimization",
   ],
   openGraph: {
-    title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
-    description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
+    title:
+      "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+    description:
+      "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
     type: "website",
     url: "https://brandalyze.io",
   },
   twitter: {
-    title: "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
-    description: "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
+    title:
+      "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+    description:
+      "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content.",
   },
   alternates: {
     canonical: "https://brandalyze.io",
@@ -82,17 +88,21 @@ export default async function HomePage() {
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                     Be the first to know when we launch. Get exclusive early
-                    access, beta features, and special pricing. For now either join the waitlist or try out a demo.
+                    access, beta features, and special pricing. For now either
+                    join the waitlist or try out a demo.
                   </p>
-                </div>
-                <a
-                  href="https://tally.so/r/nrxj8M"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                </div>{" "}
+                <button
+                  data-tally-open="nrxj8M"
+                  data-tally-layout="modal"
+                  data-tally-width="500"
+                  data-tally-emoji-text="🚀"
+                  data-tally-emoji-animation="heart-beat"
+                  data-tally-auto-close="1500"
                   className="w-full inline-flex items-center justify-center px-6 py-3 mb-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
                 >
                   Join Waitlist →
-                </a>
+                </button>
                 <a
                   href="/analyze"
                   target="_blank"
