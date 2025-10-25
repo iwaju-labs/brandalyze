@@ -17,6 +17,7 @@ const pricingTiers = [
       "3 analyses per day",
       "5 brand samples",
       "Basic AI feedback",
+      "Manual Input for brand samples",
       "Community support"
     ],
     buttonText: "Get Started Free",
@@ -28,8 +29,7 @@ const pricingTiers = [
     name: "Pro",
     price: 19,
     billing: "month",
-    description: "For growing businesses and agencies",
-    features: [
+    description: "For growing businesses and agencies",    features: [
       "50 analyses per day",
       "Unlimited brand samples",
       "Advanced AI insights",
@@ -52,7 +52,8 @@ const pricingTiers = [
       "Custom AI models",
       "Dedicated support",
       "API access",
-      "Team management (coming soon)"
+      "Team management (coming soon)",
+      "Everything in previous tiers"
     ],
     buttonText: "Get Started",
     popular: false,
@@ -182,14 +183,14 @@ export default function PricingPage() {
               >
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-purple-600 to-black text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
+                    <span className="bg-black dark:bg-purple-800 text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
                       Most Popular
                     </span>
                   </div>
                 )}
 
                 <div className="text-center mb-8">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto mb-4">
                     <IconComponent className="w-6 h-6 text-purple-600" />
                   </div>
                   
@@ -229,7 +230,7 @@ export default function PricingPage() {
                   disabled={isLoading === tier.name || isLoading === "trial"}
                   className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center ${
                     tier.popular
-                      ? "bg-gradient-to-r from-purple-600 to-black hover:from-purple-700 hover:to-black/80 text-white shadow-lg hover:shadow-xl"
+                      ? "bg-purple-700 dark:bg-black text-white shadow-lg hover:shadow-xl"
                       : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
                   } ${
                     (isLoading === tier.name || isLoading === "trial")
@@ -328,7 +329,7 @@ export default function PricingPage() {
               {showConfirmDialog.type === 'trial' ? (
                 <div>
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    You're about to start a <strong>7-day free trial</strong> of the Pro plan. You'll get:
+                    You&apos;re about to start a <strong>7-day free trial</strong> of the Pro plan. You&apos;ll get:
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-4">
                     <li>50 analyses per day</li>
@@ -343,10 +344,10 @@ export default function PricingPage() {
               ) : (
                 <div>
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    You're about to subscribe to the <strong>{showConfirmDialog.tier.name} plan</strong> for <strong>${showConfirmDialog.tier.price}/month</strong>.
+                    You&apos;re about to subscribe to the <strong>{showConfirmDialog.tier.name} plan</strong> for <strong>${showConfirmDialog.tier.price}/month</strong>.
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    You'll be redirected to our secure payment processor to complete your subscription.
+                    You&apos;ll be redirected to our secure payment processor to complete your subscription.
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     {showConfirmDialog.tier.features.slice(0, 4).map((feature, index) => (

@@ -15,7 +15,7 @@ urlpatterns = [
     path('billing-info/', get_billing_info, name='get_billing_info'),
     path('portal/', create_customer_portal, name='create_customer_portal'),
     path('cancel/', cancel_subscription, name='cancel_subscription'),
-    
+
     # Webhook endpoint
     path('webhook/', stripe_webhook, name='stripe_webhook'),
 ]

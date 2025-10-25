@@ -110,11 +110,11 @@ export default function BrandAnalysis() {
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [brandSamples, setBrandSamples] = useState<string[]>([""]);
-  const [newTextForComparison, setNewTextForComparison] = useState("");
-  const [brandAnalysisResult, setBrandAnalysisResult] =
+  const [newTextForComparison, setNewTextForComparison] = useState("");  const [brandAnalysisResult, setBrandAnalysisResult] =
     useState<BrandAnalysisResponse | null>(null);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+  const [activeTab, setActiveTab] = useState<'manual'>('manual');
   const fetchUsageInfo = useCallback(async () => {
     try {
       const response = await authenticatedFetch("/user/usage", getToken);
@@ -300,8 +300,25 @@ export default function BrandAnalysis() {
             <p className="text-gray-500 mb-6">
               Add your brand samples below, then enter new content to see how
               well it aligns with your brand voice.
-            </p>
+            </p>          </div>
+          
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 dark:border-gray-700 mb-6">            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('manual')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'manual'
+                    ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Content Input
+              </button>
+            </nav>
           </div>
+
+          {/* Tab Content */}
+          {activeTab === 'manual' && (
           <div>
             <div className="block text-lg font-medium text-foreground mb-2">
               Brand Samples
@@ -360,9 +377,9 @@ export default function BrandAnalysis() {
                     Upgrade for unlimited samples
                   </Link>
                 </div>
-              );
-            })()}
-          </div>
+              );            })()}
+          </div>          )}
+
           <div>
             <label
               htmlFor="new-content-textarea"
