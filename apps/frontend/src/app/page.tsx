@@ -54,7 +54,6 @@ export default async function HomePage() {
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black/70 z-10 dark:block hidden" />
       <main className="relative z-20 mx-auto max-w-7xl px-4 py-16 min-h-screen flex items-center">
         <div className="text-center w-full">
-          {" "}
           <div className="mb-8">
             <span className="inline-block px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-mono rounded-full border border-purple-500/30 mb-6">
               AI-Powered Brand Analysis
@@ -91,7 +90,7 @@ export default async function HomePage() {
                     access, beta features, and special pricing. For now either
                     join the waitlist or try out a demo.
                   </p>
-                </div>{" "}
+                </div>
                 <button
                   data-tally-open="nrxj8M"
                   data-tally-layout="modal"
@@ -152,24 +151,18 @@ export default async function HomePage() {
                 messaging
               </p>
             </div>
-          </div>{" "}
+          </div>
           {/* Tech stack indicator */}
           <div className="mt-16 text-center">
             <p className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2">
               POWERED BY
             </p>
             <div className="flex items-center justify-center space-x-6 text-gray-600 dark:text-gray-600">
-              <span className="text-sm">OpenAI GPT-4</span>
-              <span className="text-gray-400 dark:text-gray-800">•</span>
-              <span className="text-sm">Next.js</span>
-              <span className="text-gray-400 dark:text-gray-800">•</span>
-              <span className="text-sm">Django</span>
-              <span className="text-gray-400 dark:text-gray-800">•</span>
-              <span className="text-sm">Three.js</span>
+              <span className="text-sm">OpenAI</span>
             </div>
-          </div>{" "}
+          </div>
         </div>
-      </main>{" "}
+      </main>
     </div>
   );
 }
