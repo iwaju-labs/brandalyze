@@ -45,6 +45,14 @@ def create_customer_portal(request):
 @permission_classes([ClerkAuthenticated])
 def cancel_subscription(request):
     """Cancel user's subscription"""
+    print("[DEBUG] ===== CANCEL SUBSCRIPTION ENDPOINT HIT =====")
+    print(f"[DEBUG] cancel_subscription called by user: {request.user}")
+    print(f"[DEBUG] Request method: {request.method}")
+    print(f"[DEBUG] Request data: {request.data}")
+    print(f"[DEBUG] User authenticated: {request.user.is_authenticated}")
+    print(f"[DEBUG] Headers: {dict(request.headers)}")
+    print("[DEBUG] ===============================================")
+    
     try:
         success, message = StripeService.cancel_subscription(request.user)
 
@@ -53,6 +61,9 @@ def cancel_subscription(request):
         else:
             return error_response(message, "CANCELLATION_FAILED")
     except Exception as e:
+        print(f"[DEBUG] Exception in cancel_subscription: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return error_response(str(e), "INTERNAL_ERROR")
 
 @api_view(['POST'])
@@ -107,12 +118,13 @@ def start_trial(request):
     """Start free trial for user"""
     try:
         print(f"[DEBUG] start_trial for user: {request.user}")
-        trial_started = StripeService.start_free_trial(request.user)
-        print(f"[DEBUG] trial_started: {trial_started}")
+        session = StripeService.start_free_trial(request.user)
+        print(f"[DEBUG] trial session: {session}")
         
-        if trial_started:
+        if session:
             return success_response(
-                message="Free trial started successfully"
+                data={'checkout_url': session.url},
+                message="Trial checkout session created successfully"
             )
         else:
             return error_response(
@@ -134,7 +146,6 @@ def get_billing_info(request):
     try:
         from analysis.models import UserSubscription
         subscription = UserSubscription.objects.get_or_create(user=request.user)[0]
-        
         return success_response(
             data={
                 'subscription': {
@@ -143,9 +154,19 @@ def get_billing_info(request):
                     'trial_active': subscription.is_on_trial,
                     'trial_days_left': subscription.days_left_in_trial if subscription.is_on_trial else 0,
                     'next_billing_date': subscription.next_billing_date.isoformat() if subscription.next_billing_date else None,
+                    'pending_cancellation': subscription.payment_status == 'cancel_at_period_end',
+                    'cancellation_date': subscription.next_billing_date.isoformat() if subscription.payment_status == 'cancel_at_period_end' and subscription.next_billing_date else None,
                 }
             }
         )
         
     except Exception as e:
         return error_response(str(e), "INTERNAL_ERROR")
+
+@api_view(['POST', 'GET'])
+def test_auth(request):
+    """Test endpoint to check authentication"""
+    print(f"[DEBUG] TEST AUTH - User: {request.user}")
+    print(f"[DEBUG] TEST AUTH - Method: {request.method}")
+    print(f"[DEBUG] TEST AUTH - Authenticated: {request.user.is_authenticated}")
+    return success_response(data={'user': str(request.user), 'authenticated': request.user.is_authenticated})

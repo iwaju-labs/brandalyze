@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from analysis.models import UserSubscription
 from datetime import datetime, timedelta
 from django.utils import timezone
+import traceback
 
 User = get_user_model()
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -18,7 +19,8 @@ class StripeService:
             name = f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip()
             if not name:
                 name = user.username or user.email or "Customer"
-                customer = stripe.Customer.create(
+            
+            customer = stripe.Customer.create(
                 email=user.email,
                 name=name,
                 metadata={'user_id': user.id}
@@ -82,36 +84,67 @@ class StripeService:
                 cancel_url=cancel_url,
                 allow_promotion_codes=True,
                 billing_address_collection='required',
-                metadata={'user_id':user.id}
+                metadata={'user_id': user.id}
             )
-
             return session
+        
         except stripe.StripeError as e:
             print(f"Error creating Stripe checkout session {e}")
             return None
         
     @staticmethod
     def start_free_trial(user, days=7):
-        """Start a free trial for a new user"""
+        """Start a free trial through Stripe checkout (requires payment method)"""
         print(f"[DEBUG] start_free_trial called for user: {user}")
         try:
             subscription, created = UserSubscription.objects.get_or_create(user=user)
             print(f"[DEBUG] subscription created: {created}, existing trial_start: {subscription.trial_start}")
 
-            if created or not subscription.trial_start:
-                subscription.tier = 'pro'
-                subscription.daily_analysis_limit = 50  # Fix: removed comma that made this a tuple
-                subscription.trial_start = timezone.now()
-                subscription.trial_end = timezone.now() + timedelta(days=days)
-                subscription.is_trial_active = True
+            # Check if user already had a trial
+            if subscription.trial_start and not created:
+                print("[DEBUG] Trial not started - user already has trial")
+                return False
+
+            # Create Stripe customer if needed
+            if not subscription.stripe_customer_id:
+                print("[DEBUG] Creating Stripe customer for trial")
+                customer = StripeService.create_customer(user)
+                if not customer:
+                    print("[DEBUG] Failed to create Stripe customer")
+                    return False
+                subscription.stripe_customer_id = customer.id
                 subscription.save()
-                print(f"[DEBUG] Trial started successfully for user {user}")
-                return True
-            print(f"[DEBUG] Trial not started - user already has trial")
+
+            print(f"[DEBUG] Creating checkout session for trial with {days} day trial")
+            # Create checkout session with trial (requires payment method)
+            session = stripe.checkout.Session.create(
+                customer=subscription.stripe_customer_id,
+                payment_method_types=["card"],
+                line_items=[{
+                    'price': settings.STRIPE_PRO_PRICE_ID,
+                    'quantity': 1
+                }],
+                mode="subscription",
+                subscription_data={
+                    'trial_period_days': days,
+                    'metadata': {'user_id': user.id}
+                },
+                success_url=f"{settings.FRONTEND_URL}/trial/success",
+                cancel_url=f"{settings.FRONTEND_URL}/pricing",
+                allow_promotion_codes=True,
+            )
+            
+            print(f"[DEBUG] Trial checkout session created: {session.id}")
+            return session  # Return session instead of True
+            
+        except stripe.StripeError as e:
+            print(f"[DEBUG] Stripe error in start_free_trial: {e}")
             return False
         except Exception as e:
             print(f"[DEBUG] Error in start_free_trial: {e}")
-            raise e
+            import traceback
+            traceback.print_exc()
+            return False
     
     @staticmethod
     def handle_subscription_created(stripe_subscription: stripe.Subscription):
@@ -277,9 +310,7 @@ class StripeService:
                 # Final attempt - warn about service suspension
                 print(f"Sending final payment notice to user {subscription.user.id}")
                 # TODO: Send final warning email
-                # EmailService.send_final_payment_warning(subscription.user)
-            
-                # If subscription is already canceled by Stripe, downgrade user
+                # EmailService.send_final_payment_warning(subscription.user)                # If subscription is already canceled by Stripe, downgrade user
                 try:
                     stripe_subscription = stripe.Subscription.retrieve(stripe_subscription_id)
                     if stripe_subscription.status in ['canceled', 'unpaid']:
@@ -303,11 +334,33 @@ class StripeService:
             return False
     
     @staticmethod
+    def handle_trial_will_end(stripe_subscription):
+        """Handle trial ending soon (sent 3 days before trial ends)"""
+        try:
+            subscription = UserSubscription.objects.filter(
+                stripe_subscription_id=stripe_subscription.id
+            ).first()
+
+            if not subscription:
+                print(f"No subscription found for trial ending: {stripe_subscription.id}")
+                return False
+            
+            print(f"Trial will end soon for user {subscription.user.id}")
+            
+            # TODO: Send trial ending email notification
+            # EmailService.send_trial_ending_notification(subscription.user)
+            
+            return True
+        
+        except Exception as e:
+            print(f"Error handling trial will end: {e}")
+            return False
+    
+    @staticmethod
     def get_customer_portal_url(user, return_url):
         """Create customer portal session for subscription management"""
         try:
-            subscription = UserSubscription.objects.filter(user=user).first()
-
+            subscription = UserSubscription.objects.filter(user=user).first()            
             if not subscription or not subscription.stripe_customer_id:
                 return None
             
@@ -317,39 +370,78 @@ class StripeService:
             )
 
             return session.url
-        
-        except stripe.StripeError as e:
+        except stripe.StripeError as e:            
             print(f"Error creating customer portal: {e}")
             return None
         
     @staticmethod
     def cancel_subscription(user):
-        """Cancel user's subscription (for immediate cancellation)"""
+        """Cancel user's subscription (cancel at period end)"""
+        print(f"[DEBUG] cancel_subscription called for user: {user}")
         try:
             subscription = UserSubscription.objects.filter(user=user).first()
-
-            if not subscription or not subscription.stripe_subscription_id:
-                return False, "No active subscription found"
+            print(f"[DEBUG] Found subscription: {subscription}")
             
-            stripe.Subscription.modify(
+            if subscription:
+                print(f"[DEBUG] Subscription details: tier={subscription.tier}, stripe_subscription_id={subscription.stripe_subscription_id}, payment_status={subscription.payment_status}")
+            
+            if not subscription:
+                print(f"[DEBUG] No subscription found for user {user}")
+                return False, "No subscription found"            # Handle trial-only subscriptions (no Stripe subscription)
+            if not subscription.stripe_subscription_id:
+                print("[DEBUG] No Stripe subscription ID found")
+                print(f"[DEBUG] is_trial_active: {subscription.is_trial_active}")
+                print(f"[DEBUG] trial_start: {subscription.trial_start}")
+                print(f"[DEBUG] trial_end: {subscription.trial_end}")
+                print(f"[DEBUG] is_on_trial property: {subscription.is_on_trial}")
+                
+                # This case should be rare now since trials go through Stripe
+                # But handle legacy trials that don't have Stripe subscription
+                if subscription.is_on_trial:
+                    print("[DEBUG] User is on legacy trial, cancelling trial and downgrading to free")
+                    # Cancel trial and downgrade to free
+                    subscription.tier = 'free'
+                    subscription.daily_analysis_limit = 3
+                    subscription.brand_sample_limit = 5
+                    subscription.payment_status = 'canceled'
+                    subscription.is_trial_active = False
+                    subscription.trial_start = None
+                    subscription.trial_end = None
+                    subscription.save()
+                    return True, "Trial cancelled successfully. You've been downgraded to the free plan."
+                else:
+                    print("[DEBUG] User has no active subscription to cancel")
+                    return False, "No active subscription found to cancel"
+            
+            print(f"[DEBUG] Attempting to cancel Stripe subscription: {subscription.stripe_subscription_id}")
+            
+            # Cancel at period end to let user keep access until billing period ends
+            stripe_subscription = stripe.Subscription.modify(
                 subscription.stripe_subscription_id,
-                cancel_at_period_end=False
+                cancel_at_period_end=True
             )
+            
+            print(f"[DEBUG] Stripe subscription modified successfully")
 
-            # update subscription back to free
-            subscription.tier = 'free'
-            subscription.daily_analysis_limit = 3
-            subscription.payment_status = 'canceled'
-            subscription.stripe_subscription_id = None
-            subscription.stripe_price_id = None
-            subscription.is_trial_active = False
+            # Update subscription status to indicate cancellation is scheduled
+            # but keep current tier and limits until the period ends
+            subscription.payment_status = 'cancel_at_period_end'
             subscription.save()
+            
+            print(f"[DEBUG] Local subscription updated")
 
-            return True, "Subscription cancelled successfully"
+            # Get the cancellation date
+            cancel_date = datetime.fromtimestamp(stripe_subscription.current_period_end)
+            
+            return True, f"Subscription will be cancelled on {cancel_date.strftime('%B %d, %Y')}. You'll keep access until then."
         
         except stripe.StripeError as e:
+            print(f"[DEBUG] Stripe error: {str(e)}")
             return False, f"Stripe error: {str(e)}"
         except Exception as e:
+            print(f"[DEBUG] General error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False, f"Error: {str(e)}"
         
     @staticmethod

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brandalyze Extension</title>
+    <style>
+        body {
+            width: 320px;
+            min-height: 200px;
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .subtitle {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .user-info {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-dot.authenticated {
+            background: #10b981;
+        }
+        
+        .status-dot.unauthenticated {
+            background: #ef4444;
+        }
+          .user-email {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .subscription-info {
+            margin-top: 4px;
+            font-size: 11px;
+        }
+        
+        .subscription-tier {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .subscription-tier.free {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .subscription-tier.pro {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        
+        .subscription-tier.enterprise {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .upgrade-notice {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 12px 0;
+            font-size: 12px;
+            color: #92400e;
+        }
+        
+        .upgrade-notice strong {
+            color: #78350f;
+        }
+        
+        .handle-section {
+            margin-bottom: 16px;
+        }
+        
+        .handle-section label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        
+        .handle-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .handle-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+        
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            width: 100%;
+            margin: 4px 0;
+        }
+        
+        .btn:hover {
+            background: #2563eb;
+        }
+        
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .btn.secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn.secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 12px 0;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #dc2626;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .success {
+            color: #059669;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">📊 Brandalyze</div>
+        <div class="subtitle">Twitter Profile Analysis</div>
+    </div>
+    
+    <div class="user-info">        <div class="user-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking authentication...</span>
+        </div>
+        <div class="user-email" id="userEmail"></div>
+        <div class="subscription-info" id="subscriptionInfo" style="display: none;">
+            <span class="subscription-tier" id="subscriptionTier"></span>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+    </div>
+      <div id="authenticatedContent" style="display: none;">
+        <div id="upgradeNotice" class="upgrade-notice" style="display: none;">
+            <strong>Extension Access Required</strong><br>
+            The browser extension requires a Pro or Enterprise subscription. 
+            <a href="#" id="upgradeLink">Upgrade your plan</a> to access this feature.
+        </div>
+        
+        <div class="handle-section">
+            <label for="twitterHandle">Twitter Handle:</label>
+            <input 
+                type="text" 
+                id="twitterHandle" 
+                class="handle-input" 
+                placeholder="@username (without @)"
+                autocomplete="off"
+            >
+            <div id="handleError" class="error"></div>
+            <div id="handleSuccess" class="success"></div>
+        </div>
+        
+        <button class="btn" id="saveHandleBtn">Save Handle</button>
+        <button class="btn secondary" id="analyzeProfileBtn" style="display: none;">Analyze Profile</button>
+    </div>
+    
+    <div id="unauthenticatedContent" style="display: none;">
+        <button class="btn" id="signInBtn">Sign In to Brandalyze</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import AllowAny
 from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import ValidationError
 from django.conf import settings
 import tempfile
 import os
@@ -384,87 +385,36 @@ def _validate_text_input(text: str):
 
 
 class BrandViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing brands"""
     serializer_class = BrandSerializer
+    authentication_classes = [ClerkAuthentication]
     permission_classes = [ClerkAuthenticated]
-
+    
     def get_queryset(self):
-        """Only return brands owned by the current user"""
+        # Return brands for the authenticated user
         return Brand.objects.filter(user=self.request.user)
-
+    
     def perform_create(self, serializer):
-        """Automatically set the user when creating a brand"""
+        # Assign the authenticated user when creating a brand
         serializer.save(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        """Create a new brand with proper validation"""
-        try:
-            return super().create(request, *args, **kwargs)
-        except Exception as e:
-            return error_response(
-                f"An unexpected error occurred {e}",
-                code="INTERNAL_ERROR",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
 
 class BrandSampleViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing brand samples"""
     serializer_class = BrandSampleSerializer
+    authentication_classes = [ClerkAuthentication]
     permission_classes = [ClerkAuthenticated]
-
+    
     def get_queryset(self):
-        """Only return samples for brands owned by the current user"""
-        user_brands = Brand.objects.filter(user=self.request.user)
-        return BrandSample.objects.filter(brand__in=user_brands)
-
-    def create(self, request, *args, **kwargs):
-        """Create a new brand sample with proper validation"""
-        try:
-            brand_id = request.data.get("brand_id")
-            text = request.data.get("text")
-
-            # Validate required fields
-            if not brand_id:
-                return error_response(
-                    "brand_id is required",
-                    code="BRAND_ID_REQUIRED",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if not text or not text.strip():
-                return error_response(
-                    "text is required and cannot be empty",
-                    code="TEXT_REQUIRED",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Validate brand ownership
-            try:
-                brand = Brand.objects.get(id=brand_id, user=request.user)
-            except Brand.DoesNotExist:
-                return error_response(
-                    "Brand not found or you do not have permission to access it",
-                    code="BRAND_NOT_FOUND",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
-
-            # Create the sample
-            sample = BrandSample.objects.create(
-                brand=brand,
-                text=text.strip(),
-                # embedding will be generated later when the AI service is implemented
-            )
-
-            serializer = BrandSampleSerializer(sample)
-            return success_response(
-                data=serializer.data, status_code=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            return error_response(
-                f"An unexpected error occurred {e}",
-                code="INTERNAL_ERROR",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        # Return samples for brands owned by the authenticated user
+        return BrandSample.objects.filter(brand__user=self.request.user)
+    
+    def perform_create(self, serializer):
+        # Ensure the brand belongs to the authenticated user
+        brand = serializer.validated_data['brand']
+        if brand.user != self.request.user:
+            raise ValidationError("You can only add samples to your own brands")
+        serializer.save()
 
 
 @api_view(["POST"])

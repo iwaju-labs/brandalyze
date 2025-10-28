@@ -69,6 +69,28 @@ class UserSubscription(models.Model):
             return 0
         return (self.trial_end - timezone.now()).days
     
+    @property
+    def is_pending_cancellation(self):
+        """Check if subscription is marked for cancellation at period end"""
+        return self.payment_status == 'cancel_at_period_end'
+    
+    @property
+    def should_have_access(self):
+        """Check if user should have access (active subscription or pending cancellation in grace period)"""
+        if not self.is_active:
+            return False
+        
+        # User has access if subscription is active or pending cancellation but still in grace period
+        if self.payment_status in ['active', 'cancel_at_period_end']:
+            if self.next_billing_date and self.next_billing_date > timezone.now():
+                return True
+        
+        # Check trial access
+        if self.is_on_trial:
+            return True
+            
+        return False
+
     @classmethod
     def get_tier_limits(cls, tier):
         """Get the limits for a specific tier"""

@@ -1,7 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework import status
 import stripe
-import json
 from brands.utils.responses import error_response, success_response
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
@@ -36,9 +35,12 @@ def stripe_webhook(request):
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
         StripeService.handle_subscription_canceled(subscription)
-    
     elif event['type'] == 'invoice.payment_failed':
         invoice = event['data']['object']
         StripeService.handle_payment_failed(invoice)
+    
+    elif event['type'] == 'customer.subscription.trial_will_end':
+        subscription = event['data']['object']
+        StripeService.handle_trial_will_end(subscription)
 
     return success_response(status_code=status.HTTP_200_OK)

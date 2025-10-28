@@ -1,7 +1,9 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from brands.utils.responses import error_response, success_response
+from brands.permissions import ClerkAuthenticated
+from brands.views import ClerkAuthentication
 from django.core.cache import cache
 from django.utils import timezone
 import hashlib
@@ -16,13 +18,15 @@ from .serializers import (
 )
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def verify_extension_auth(request):
     """Verify extension authentication and return user info"""
     try:
         user = request.user
         subscription = UserSubscription.objects.filter(user=user).first()
-
+        
+        # Check subscription requirements for extension access
         if not subscription or subscription.tier == "free":
             return error_response(
                 "Browser extension requires Pro or Enterprise subscription",
@@ -33,8 +37,9 @@ def verify_extension_auth(request):
         user_info = {
             "user_id": user.id,
             "username": user.username,
-            "subscription_tier": subscription.tier,
-            "daily_limit": 50 if subscription.tier == "pro" else 200,
+            "email": user.email,  # Add email to response
+            "subscription_tier": subscription.tier if subscription else "free",
+            "daily_limit": 50 if subscription and subscription.tier == "pro" else 200,
             "extension_enabled": True,
         }
 
@@ -51,10 +56,20 @@ def verify_extension_auth(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def list_user_brands(request):
-    """Get user's brands in lightweight format extension"""
+    """Get user's brands in lightweight format for extension"""
     try:
+        # Check subscription requirements for extension access
+        subscription = UserSubscription.objects.filter(user=request.user).first()
+        if not subscription or subscription.tier == "free":
+            return error_response(
+                message="Browser extension requires Pro or Enterprise subscription",
+                code="EXTENSION_REQUIRES_PAID_PLAN",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        
         brands = Brand.objects.filter(user=request.user).prefetch_related('samples')
         serializer = ExtensionBrandSerializer(brands, many=True)
 
@@ -65,13 +80,88 @@ def list_user_brands(request):
             })
     except Exception as e:
         return error_response(
-            message=f"Failed to fetch brands {e}",
+            message=f"Failed to fetch brands: {e}",
             code="BRANDS_FETCH_FAILED",
-            status=status.HTTP_400_BAD_REQUEST
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['POST'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def analyze_profile(request):
+    """Analyze a Twitter profile's recent posts for brand alignment"""
+    try:
+        handle = request.data.get('handle')
+        platform = request.data.get('platform', 'twitter')
+        posts_count = request.data.get('posts_count', 10)
+        
+        if not handle:
+            return error_response(
+                message="Twitter handle is required",
+                code="MISSING_HANDLE",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check daily usage limits
+        daily_count = ExtensionAnalysis.objects.filter(
+            user=request.user,
+            created_at__date=timezone.now().date()
+        ).count()        
+        subscription = UserSubscription.objects.filter(user=request.user).first()
+        
+        # Check subscription requirements for extension access
+        if not subscription or subscription.tier == "free":
+            return error_response(
+                message="Browser extension requires Pro or Enterprise subscription",
+                code="EXTENSION_REQUIRES_PAID_PLAN",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        
+        daily_limit = 50 if subscription.tier == 'pro' else 200
+
+        if daily_count >= daily_limit:
+            return error_response(
+                message=f"Daily analysis limit of {daily_limit} reached",
+                code='DAILY_LIMIT_EXCEEDED',
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        # Get user's first brand for analysis
+        brand = Brand.objects.filter(user=request.user).first()
+        if not brand:
+            return error_response(
+                message="No brand found. Please create a brand first.",
+                code="NO_BRAND_FOUND",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # For now, return mock data - you can integrate with Twitter API later
+        analysis_result = perform_profile_analysis(handle, brand, posts_count)
+        
+        # Record the analysis
+        ExtensionAnalysis.objects.create(
+            user=request.user,
+            platform=platform,
+            content_hash=hashlib.sha256(f"profile_{handle}".encode()).hexdigest()[:16],
+            brand_id=brand.id,
+            alignment_score=analysis_result['average_score']
+        )
+        
+        return success_response(
+            data=analysis_result,
+            message="Profile analysis completed successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            message=f"Profile analysis failed: {str(e)}",
+            code="PROFILE_ANALYSIS_FAILED",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def quick_analyze(request):
     """Optimised analysis endpoint for extension"""
     try:
@@ -93,9 +183,17 @@ def quick_analyze(request):
         daily_count = ExtensionAnalysis.objects.filter(
             user=request.user,
             created_at__date=timezone.now().date()
-        ).count()
-
+        ).count()        
         subscription = UserSubscription.objects.filter(user=request.user).first()
+        
+        # Check subscription requirements for extension access
+        if not subscription or subscription.tier == "free":
+            return error_response(
+                message="Browser extension requires Pro or Enterprise subscription",
+                code="EXTENSION_REQUIRES_PAID_PLAN",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        
         daily_limit = 50 if subscription.tier == 'pro' else 200
 
         if daily_count >= daily_limit:
@@ -186,7 +284,8 @@ def quick_analyze(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def check_usage_limits(request):
     """Check current usage against subscription limits"""
     try:
@@ -224,6 +323,64 @@ def check_usage_limits(request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+def perform_profile_analysis(handle, brand, posts_count=10):
+    """Analyze a Twitter profile's recent posts for brand alignment"""
+    # Mock implementation - replace with actual Twitter API integration
+    posts = [
+        {
+            'text': f"Sample tweet from @{handle} about business strategy and innovation",
+            'engagement': 25,
+            'date': '2024-01-15'
+        },
+        {
+            'text': f"Another post from @{handle} discussing market trends and growth",
+            'engagement': 42,
+            'date': '2024-01-14'
+        },
+        {
+            'text': f"Sharing insights about customer experience from @{handle}",
+            'engagement': 18,
+            'date': '2024-01-13'
+        }
+    ]
+    
+    # Mock analysis scores for each post
+    post_analyses = []
+    scores = []
+    
+    for i, post in enumerate(posts):
+        # Generate mock alignment score (in real implementation, use brand analysis)
+        score = 0.7 + (i * 0.05)  # Vary scores slightly
+        scores.append(score)
+        
+        post_analyses.append({
+            'text': post['text'],
+            'alignment_score': score,
+            'key_insights': [
+                f"Content aligns with brand voice {int(score * 100)}%",
+                f"Engagement rate: {post['engagement']} interactions",
+                "Tone matches brand guidelines"
+            ],
+            'engagement': post['engagement'],
+            'date': post['date']
+        })
+    
+    average_score = sum(scores) / len(scores) if scores else 0
+    
+    return {
+        'handle': handle,
+        'platform': 'twitter',
+        'posts_analyzed': len(posts),
+        'average_score': round(average_score, 2),
+        'post_analyses': post_analyses,
+        'overall_insights': [
+            f"Profile @{handle} shows {int(average_score * 100)}% brand alignment",
+            f"Analyzed {len(posts)} recent posts",
+            "Strong consistency in brand messaging"
+        ],
+        'brand_name': brand.name
+    }
+
 def perform_extension_analysis(content, brand):
     """
     Perform brand analysis using existing logic, adapted for extension use
@@ -242,7 +399,7 @@ def perform_extension_analysis(content, brand):
             }
         
         # Import and use existing analyzer
-        from packages.ai_core.analysis import BrandAnalyzer
+        from ai_core.analysis import BrandAnalyzer
         from django.conf import settings
         
         api_key = settings.OPENAI_API_KEY

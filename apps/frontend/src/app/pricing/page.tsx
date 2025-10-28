@@ -136,18 +136,22 @@ export default function PricingPage() {
       type: 'trial'
     });
   };
-
   const confirmTrial = async () => {
     setIsLoading("trial");
     setShowConfirmDialog({ show: false, tier: null, type: 'subscription' });
 
     try {
-      await authenticatedFetch("/payments/start-trial/", getToken, {
+      const response = await authenticatedFetch("/payments/start-trial/", getToken, {
         method: "POST"
       });
 
-      toast.success("🎉 Free trial started! Enjoy Pro features for 7 days.");
-      router.push("/analyze");
+      if (response.data?.checkout_url) {
+        // Redirect to Stripe checkout
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.success("🎉 Free trial started! Enjoy Pro features for 7 days.");
+        router.push("/analyze");
+      }
 
     } catch (error) {
       console.error("Trial error:", error);
