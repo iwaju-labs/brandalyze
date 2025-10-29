@@ -32,10 +32,13 @@
       "css": [],
       "run_at": "document_idle"
     }
-  ],
-  "action": {
+  ],  "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Brandalyze Extension"
+  },
+  "options_ui": {
+    "page": "popup/options.html",
+    "open_in_tab": true
   },
   "icons": {
     "16": "assets/icon16.svg"

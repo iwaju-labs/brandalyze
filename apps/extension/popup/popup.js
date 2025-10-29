@@ -1,3 +1,9 @@
+// Clean popup.js without duplicates and simplified complexity
+
+// Global variables
+let currentUser = null;
+let currentPlatform = null;
+
 // Fetch user info from backend after authentication
 async function fetchUserInfo(apiUrl, jwt) {
     try {
@@ -35,171 +41,312 @@ async function fetchUserInfo(apiUrl, jwt) {
     };
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const userEmail = document.getElementById('userEmail');
-    const subscriptionInfo = document.getElementById('subscriptionInfo');
-    const subscriptionTier = document.getElementById('subscriptionTier');
-    const upgradeNotice = document.getElementById('upgradeNotice');
-    const upgradeLink = document.getElementById('upgradeLink');
-    const loading = document.getElementById('loading');
-    const authenticatedContent = document.getElementById('authenticatedContent');
-    const unauthenticatedContent = document.getElementById('unauthenticatedContent');
-    const signInBtn = document.getElementById('signInBtn');
-    const twitterHandle = document.getElementById('twitterHandle');
-    const saveHandleBtn = document.getElementById('saveHandleBtn');
-    const analyzeProfileBtn = document.getElementById('analyzeProfileBtn');
-    const handleError = document.getElementById('handleError');
-    const handleSuccess = document.getElementById('handleSuccess');
-
-    let currentUser = null;
-
-    // Show loading state
-    function showLoading() {
-        loading.classList.add('show');
+// Open Brandalyze app for sign in
+async function openBrandalyzeApp() {
+    try {
+        await chrome.runtime.sendMessage({
+            action: 'openBrandalyzeApp'
+        });
+        globalThis.close();
+    } catch (error) {
+        console.error('Failed to open Brandalyze app:', error);
+        alert('Please manually navigate to Brandalyze and sign in.');
     }
+}
 
-    // Hide loading state
-    function hideLoading() {
-        loading.classList.remove('show');
-    }
-
-    // Clear messages
-    function clearMessages() {
-        handleError.textContent = '';
-        handleSuccess.textContent = '';
-    }    // Update UI based on authentication state
-    function updateAuthUI(authState) {
-        hideLoading();
-          console.log('🔐 Auth check:', authState.isAuthenticated ? 'authenticated' : 'not authenticated');
-        console.log('📧 Has apiUrl/jwt:', !!(authState.apiUrl && authState.jwt));
+// Platform detection function
+async function detectCurrentPlatform() {
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const url = tab.url;
         
-        if (authState.isAuthenticated && authState.userData) {
-            currentUser = authState.userData;
+        if (url.includes('twitter.com') || url.includes('x.com')) {
+            return {
+                platform: 'twitter',
+                displayName: 'Twitter/X',
+                handleKey: 'twitterHandle'
+            };
+        } else if (url.includes('linkedin.com')) {
+            return {
+                platform: 'linkedin',
+                displayName: 'LinkedIn',
+                handleKey: 'linkedinHandle'
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Platform detection error:', error);
+        return null;
+    }
+}
+
+// DOM helper functions
+function getElement(id) {
+    return document.getElementById(id);
+}
+
+function showElement(element) {
+    if (element) element.classList.remove('hidden');
+}
+
+function hideElement(element) {
+    if (element) element.classList.add('hidden');
+}
+
+function setText(element, text) {
+    if (element) element.textContent = text;
+}
+
+// Open options page
+function openOptionsPage() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('popup/options.html') });
+    globalThis.close();
+}
+
+// Main DOMContentLoaded handler
+document.addEventListener('DOMContentLoaded', async () => {    // Get all DOM elements
+    const elements = {
+        statusDot: getElement('statusDot'),
+        statusText: getElement('statusText'),
+        userEmail: getElement('userEmail'),
+        subscriptionInfo: getElement('subscriptionInfo'),
+        subscriptionTier: getElement('subscriptionTier'),
+        upgradeNotice: getElement('upgradeNotice'),
+        upgradeLink: getElement('upgradeLink'),
+        loading: getElement('loading'),
+        authenticatedContent: getElement('authenticatedContent'),
+        unauthenticatedContent: getElement('unauthenticatedContent'),
+        signInBtn: getElement('signInBtn'),
+        cacheText: getElement('cacheText'),
+        refreshAuthBtn: getElement('refreshAuthBtn'),
+        platformIndicator: getElement('platformIndicator'),
+        analyzeProfileBtn: getElement('analyzeProfileBtn'),
+        analyzeButtonText: getElement('analyzeButtonText'),
+        openOptionsBtn: getElement('openOptionsBtn'),
+        handleError: getElement('handleError'),
+        handleSuccess: getElement('handleSuccess'),
+        // Content alignment elements
+        contentToAnalyze: getElement('contentToAnalyze'),
+        alignmentType: getElement('alignmentType'),
+        referenceHandle: getElement('referenceHandle'),
+        analyzeContentBtn: getElement('analyzeContentBtn')
+    };
+
+    // Utility functions
+    function showLoading() {
+        showElement(elements.loading);
+    }
+
+    function hideLoading() {
+        hideElement(elements.loading);
+    }
+
+    function clearMessages() {
+        setText(elements.handleError, '');
+        setText(elements.handleSuccess, '');
+        hideElement(elements.handleError);
+        hideElement(elements.handleSuccess);
+    }    // Update platform indicator
+    function updatePlatformIndicator(platformInfo) {
+        currentPlatform = platformInfo;
+        
+        if (platformInfo) {
+            setText(elements.platformIndicator, `Currently on ${platformInfo.displayName}`);
+            showElement(elements.platformIndicator);
             
-            statusDot.className = 'status-dot authenticated';
-            statusText.textContent = 'Authenticated';
-              // Show user email from backend if possible
-            let email = 'Unknown user';
-            if (authState.apiUrl && authState.jwt) {
-                console.log('📞 Calling backend for user email...');
-                fetchUserInfo(authState.apiUrl, authState.jwt).then(userInfo => {
-                    console.log('✅ Got user info:', userInfo);
-                    userEmail.textContent = userInfo.email;
-                    
-                    // Show subscription tier
-                    if (userInfo.subscriptionTier) {
-                        subscriptionTier.textContent = userInfo.subscriptionTier;
-                        subscriptionTier.className = `subscription-tier ${userInfo.subscriptionTier}`;
-                        subscriptionInfo.style.display = 'block';
-                    }
-                    
-                    // Show upgrade notice if needed
-                    if (userInfo.requiresUpgrade) {
-                        upgradeNotice.style.display = 'block';
-                        // Disable extension features
-                        twitterHandle.disabled = true;
-                        saveHandleBtn.disabled = true;
-                        analyzeProfileBtn.disabled = true;
-                    } else {
-                        upgradeNotice.style.display = 'none';
-                        // Enable extension features
-                        twitterHandle.disabled = false;
-                        saveHandleBtn.disabled = false;
-                        analyzeProfileBtn.disabled = false;
-                    }
-                });
-            } else {
-                console.log('⚠️ Using fallback email extraction');
-                if (currentUser.email && currentUser.email !== 'Unknown') {
-                    email = currentUser.email;
-                } else if (currentUser.primary_email_address) {
-                    email = currentUser.primary_email_address;
-                } else if (currentUser.fullName && currentUser.fullName !== 'Unknown User') {
-                    email = currentUser.fullName;
-                }
-                userEmail.textContent = email;
-            }
-            
-            authenticatedContent.style.display = 'block';
-            unauthenticatedContent.style.display = 'none';
-            
-            // Load saved handle
-            loadSavedHandle();
+            // Update analyze button text
+            setText(elements.analyzeButtonText, `Analyze ${platformInfo.displayName} Profile`);
         } else {
-            console.log('Not authenticated or no user data'); // Debug log
-            statusDot.className = 'status-dot unauthenticated';
-            statusText.textContent = 'Not authenticated';
-            userEmail.textContent = 'Please sign in to continue';
-            
-            authenticatedContent.style.display = 'none';
-            unauthenticatedContent.style.display = 'block';
+            hideElement(elements.platformIndicator);
+            setText(elements.analyzeButtonText, 'Analyze Current Profile');
         }
-    }
-
-    // Load saved Twitter handle
-    async function loadSavedHandle() {
-        try {
-            const result = await chrome.storage.local.get(['twitterHandle']);
-            if (result.twitterHandle) {
-                twitterHandle.value = result.twitterHandle;
-                analyzeProfileBtn.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('Failed to load saved handle:', error);
-        }
-    }
-
-    // Save Twitter handle
-    async function saveHandle() {
+    }    // Analyze profile
+    async function analyzeProfile() {
         clearMessages();
         
-        const handle = twitterHandle.value.trim().replace(/^@/, '');
+        if (!currentPlatform) {
+            setText(elements.handleError, 'Please navigate to Twitter/X or LinkedIn to analyze profiles');
+            showElement(elements.handleError);
+            return;
+        }
+        
+        // Check if user has handle configured for current platform
+        const result = await chrome.storage.local.get([currentPlatform.handleKey]);
+        const handle = result[currentPlatform.handleKey];
         
         if (!handle) {
-            handleError.textContent = 'Please enter a Twitter handle';
+            setText(elements.handleError, `Please configure your ${currentPlatform.displayName} handle in Settings first`);
+            showElement(elements.handleError);
             return;
         }
         
-        if (!/^[a-zA-Z0-9_]{1,15}$/.test(handle)) {
-            handleError.textContent = 'Invalid Twitter handle format';
-            return;
-        }
+        // Show loading state
+        showLoading();
+        setText(elements.analyzeButtonText, 'Analyzing...');
+        if (elements.analyzeProfileBtn) elements.analyzeProfileBtn.disabled = true;
         
         try {
-            await chrome.storage.local.set({ twitterHandle: handle });
-            handleSuccess.textContent = 'Handle saved successfully!';
-            analyzeProfileBtn.style.display = 'block';
-        } catch (error) {
-            handleError.textContent = 'Failed to save handle';
-            console.error('Save handle error:', error);
-        }
-    }
-
-    // Analyze Twitter profile
-    async function analyzeProfile() {
-        const handle = twitterHandle.value.trim().replace(/^@/, '');
-        
-        if (!handle) {
-            handleError.textContent = 'Please enter a Twitter handle first';
-            return;
-        }
-        
-        try {
-            // Open Twitter profile page
-            const twitterUrl = `https://twitter.com/${handle}`;
-            await chrome.tabs.create({ url: twitterUrl });
+            // Call backend analysis API
+            const response = await chrome.runtime.sendMessage({
+                action: 'analyzeProfile',
+                data: {
+                    handle: handle,
+                    platform: currentPlatform.platform,
+                    posts_count: 10
+                }
+            });            if (response.success) {
+                // Show success message for voice analysis
+                const data = response.data;
+                let successMessage = 'Profile voice analysis completed!';
+                
+                if (data.confidence_score) {
+                    successMessage += ` Confidence: ${Math.round(data.confidence_score * 100)}%`;
+                } else if (data.average_score) {
+                    successMessage += ` Average alignment: ${Math.round(data.average_score * 100)}%`;
+                }
+                
+                // Add voice analysis summary if available
+                if (data.voice_analysis) {
+                    const voice = data.voice_analysis;
+                    successMessage = `Voice Analysis Complete! Tone: ${voice.tone}`;
+                }
+                
+                setText(elements.handleSuccess, successMessage);
+                showElement(elements.handleSuccess);
+                
+                // Store analysis result for display
+                await chrome.storage.local.set({
+                    lastAnalysis: {
+                        ...response.data,
+                        timestamp: Date.now()
+                    }
+                });
+                
+                // Auto-hide success message after 3 seconds
+                setTimeout(() => {
+                    hideElement(elements.handleSuccess);
+                }, 3000);
+            } else {
+                throw new Error(response.error || 'Analysis failed');
+            }        } catch (error) {
+            console.error('Profile analysis error:', error);
+            let errorMessage = 'Failed to analyze profile';
             
-            // Close popup
-            globalThis.close();
-        } catch (error) {
-            handleError.textContent = 'Failed to open Twitter profile';
-            console.error('Open profile error:', error);
+            // Provide more specific error messages
+            if (error.message.includes('EXTENSION_REQUIRES_PAID_PLAN')) {
+                errorMessage = 'Analysis requires Pro or Enterprise subscription';
+            } else if (error.message.includes('DAILY_LIMIT_EXCEEDED')) {
+                errorMessage = 'Daily analysis limit reached. Try again tomorrow.';
+            } else if (error.message.includes('NO_BRAND_FOUND')) {
+                errorMessage = 'Please create a brand in Brandalyze first';
+            } else if (error.message.includes('sign in')) {
+                errorMessage = 'Please sign in to Brandalyze first';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            setText(elements.handleError, errorMessage);
+            showElement(elements.handleError);
+        } finally {
+            hideLoading();
+            setText(elements.analyzeButtonText, currentPlatform ? `Analyze ${currentPlatform.displayName} Profile` : 'Analyze Current Profile');
+            if (elements.analyzeProfileBtn) elements.analyzeProfileBtn.disabled = false;
         }
     }
 
-    // Check authentication status
+    // Analyze content alignment
+    async function analyzeContentAlignment() {
+        clearMessages();
+        
+        const content = elements.contentToAnalyze?.value?.trim();
+        if (!content) {
+            setText(elements.handleError, 'Please enter content to analyze');
+            showElement(elements.handleError);
+            return;
+        }
+        
+        const alignmentType = elements.alignmentType?.value || 'brand';
+        const referenceHandle = elements.referenceHandle?.value?.trim();
+        
+        if (alignmentType === 'profile' && !referenceHandle) {
+            setText(elements.handleError, 'Please enter a reference handle for profile comparison');
+            showElement(elements.handleError);
+            return;
+        }
+        
+        // Show loading state
+        showLoading();
+        setText(elements.analyzeContentBtn, 'Analyzing...');
+        if (elements.analyzeContentBtn) elements.analyzeContentBtn.disabled = true;
+        
+        try {
+            const response = await chrome.runtime.sendMessage({
+                action: 'analyzeContentAlignment',
+                data: {
+                    content: content,
+                    type: alignmentType,
+                    reference_handle: referenceHandle,
+                    platform: currentPlatform?.platform || 'twitter'
+                }
+            });
+            
+            if (response.success) {
+                const data = response.data;
+                let successMessage = `Alignment: ${Math.round(data.alignment_score * 100)}% (${data.alignment_level})`;
+                
+                setText(elements.handleSuccess, successMessage);
+                showElement(elements.handleSuccess);
+                
+                // Store analysis result
+                await chrome.storage.local.set({
+                    lastContentAnalysis: {
+                        ...response.data,
+                        timestamp: Date.now()
+                    }
+                });
+                
+                // Auto-hide success message after 3 seconds
+                setTimeout(() => {
+                    hideElement(elements.handleSuccess);
+                }, 3000);
+            } else {
+                throw new Error(response.error || 'Analysis failed');
+            }
+        } catch (error) {
+            console.error('Content alignment analysis error:', error);
+            let errorMessage = 'Failed to analyze content alignment';
+            
+            if (error.message.includes('EXTENSION_REQUIRES_PAID_PLAN')) {
+                errorMessage = 'Analysis requires Pro or Enterprise subscription';
+            } else if (error.message.includes('DAILY_LIMIT_EXCEEDED')) {
+                errorMessage = 'Daily analysis limit reached';
+            } else if (error.message.includes('NO_BRAND_FOUND')) {
+                errorMessage = 'Please create a brand in Brandalyze first';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            setText(elements.handleError, errorMessage);
+            showElement(elements.handleError);
+        } finally {
+            hideLoading();
+            setText(elements.analyzeContentBtn, 'Check Alignment');
+            if (elements.analyzeContentBtn) elements.analyzeContentBtn.disabled = false;
+        }
+    }
+
+    // Toggle reference handle visibility based on alignment type
+    function toggleReferenceHandle() {
+        const alignmentType = elements.alignmentType?.value;
+        if (alignmentType === 'profile') {
+            showElement(elements.referenceHandle);
+        } else {
+            hideElement(elements.referenceHandle);
+            if (elements.referenceHandle) elements.referenceHandle.value = '';
+        }
+    }
+
+    // Check authentication
     async function checkAuth() {
         showLoading();
         try {
@@ -220,37 +367,159 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Open Brandalyze app for sign in
-    async function openBrandalyzeApp() {
+    // Force refresh authentication
+    async function forceRefreshAuth() {
+        showLoading();
+        setText(elements.cacheText, 'Refreshing...');
+        
         try {
-            await chrome.runtime.sendMessage({
-                action: 'openBrandalyzeApp'
+            const response = await chrome.runtime.sendMessage({
+                action: 'forceAuthRefresh'
             });
             
-            // Close popup after opening app
-            globalThis.close();
+            if (response.success) {
+                updateAuthUI(response.data);
+            } else {
+                updateAuthUI({ isAuthenticated: false });
+                console.error('Force refresh failed:', response.error);
+            }
         } catch (error) {
-            console.error('Failed to open Brandalyze app:', error);
-            alert('Please manually navigate to Brandalyze and sign in.');
+            hideLoading();
+            updateAuthUI({ isAuthenticated: false });
+            console.error('Force refresh error:', error);
+        }
+    }
+
+    // Update authentication UI
+    function updateAuthUI(authState) {
+        hideLoading();
+        
+        // Show cache status
+        if (authState.lastChecked) {
+            const age = Math.round((Date.now() - authState.lastChecked) / 1000);
+            setText(elements.cacheText, `Auth cached (${age}s ago)`);
+        } else {
+            setText(elements.cacheText, 'Fresh auth check');
+        }
+        
+        if (authState.isAuthenticated && authState.userData) {
+            // Authenticated state
+            if (elements.statusDot) elements.statusDot.className = 'status-dot authenticated';
+            setText(elements.statusText, 'Authenticated');
+            
+            // Handle user info
+            if (authState.apiUrl && authState.jwt) {
+                fetchUserInfo(authState.apiUrl, authState.jwt).then(userInfo => {
+                    setText(elements.userEmail, userInfo.email);
+                    updateSubscriptionUI(userInfo);
+                });
+            }
+            
+            showElement(elements.authenticatedContent);
+            hideElement(elements.unauthenticatedContent);
+            
+            // Detect platform
+            detectCurrentPlatform().then(updatePlatformIndicator);
+        } else {
+            // Unauthenticated state
+            if (elements.statusDot) elements.statusDot.className = 'status-dot unauthenticated';
+            setText(elements.statusText, 'Not authenticated');
+            setText(elements.userEmail, 'Please sign in to continue');
+            
+            hideElement(elements.authenticatedContent);
+            showElement(elements.unauthenticatedContent);
+        }
+    }
+
+    // Update subscription UI and disable features for free users
+    function updateSubscriptionUI(userInfo) {
+        if (userInfo.subscriptionTier && elements.subscriptionTier) {
+            setText(elements.subscriptionTier, userInfo.subscriptionTier);
+            
+            let tierClasses = 'bg-gray-100 text-gray-600 border-gray-200';
+            if (userInfo.subscriptionTier?.toLowerCase() === 'pro') {
+                tierClasses = 'bg-blue-100 text-blue-800 border-blue-200';
+            } else if (userInfo.subscriptionTier?.toLowerCase() === 'enterprise') {
+                tierClasses = 'bg-purple-100 text-purple-800 border-purple-200';
+            }
+            
+            elements.subscriptionTier.className = `inline-block px-2 py-0.5 rounded text-xs font-medium uppercase border ${tierClasses}`;
+            showElement(elements.subscriptionInfo);
+        }
+          // Handle free user restrictions
+        if (userInfo.requiresUpgrade || userInfo.subscriptionTier?.toLowerCase() === 'free') {
+            showElement(elements.upgradeNotice);
+            
+            // Disable features for free users
+            if (elements.analyzeProfileBtn) {
+                elements.analyzeProfileBtn.disabled = true;
+                elements.analyzeProfileBtn.className = elements.analyzeProfileBtn.className.replace('bg-blue-500 hover:bg-blue-600', 'bg-gray-400 cursor-not-allowed');
+                setText(elements.analyzeButtonText, 'Pro Feature - Analyze Profile');
+            }
+            
+            if (elements.analyzeContentBtn) {
+                elements.analyzeContentBtn.disabled = true;
+                elements.analyzeContentBtn.className = elements.analyzeContentBtn.className.replace('bg-blue-500 hover:bg-blue-600', 'bg-gray-400 cursor-not-allowed');
+                setText(elements.analyzeContentBtn, 'Pro Feature');
+            }
+            
+            if (elements.contentToAnalyze) {
+                elements.contentToAnalyze.disabled = true;
+                elements.contentToAnalyze.placeholder = 'Pro feature - upgrade to use';
+            }
+        } else {
+            hideElement(elements.upgradeNotice);
+            
+            // Enable features for paid users
+            if (elements.analyzeProfileBtn) {
+                elements.analyzeProfileBtn.disabled = false;
+                elements.analyzeProfileBtn.className = elements.analyzeProfileBtn.className.replace('bg-gray-400 cursor-not-allowed', 'bg-blue-500 hover:bg-blue-600');
+                // Button text will be updated by updatePlatformIndicator
+            }
+            
+            if (elements.analyzeContentBtn) {
+                elements.analyzeContentBtn.disabled = false;
+                elements.analyzeContentBtn.className = elements.analyzeContentBtn.className.replace('bg-gray-400 cursor-not-allowed', 'bg-blue-500 hover:bg-blue-600');
+                setText(elements.analyzeContentBtn, 'Check Alignment');
+            }
+            
+            if (elements.contentToAnalyze) {
+                elements.contentToAnalyze.disabled = false;
+                elements.contentToAnalyze.placeholder = 'Enter your post content to check alignment...';
+            }
         }
     }    // Event listeners
-    signInBtn.addEventListener('click', openBrandalyzeApp);
-    saveHandleBtn.addEventListener('click', saveHandle);
-    analyzeProfileBtn.addEventListener('click', analyzeProfile);
-    upgradeLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        // Open Brandalyze pricing page
-        chrome.tabs.create({ url: 'http://localhost:3000/pricing' });
-        globalThis.close();
-    });
+    if (elements.signInBtn) elements.signInBtn.addEventListener('click', openBrandalyzeApp);
+    if (elements.refreshAuthBtn) elements.refreshAuthBtn.addEventListener('click', forceRefreshAuth);
+    if (elements.analyzeProfileBtn) elements.analyzeProfileBtn.addEventListener('click', analyzeProfile);
+    if (elements.openOptionsBtn) elements.openOptionsBtn.addEventListener('click', openOptionsPage);
+    if (elements.analyzeContentBtn) elements.analyzeContentBtn.addEventListener('click', analyzeContentAlignment);
     
-    // Save handle on Enter key
-    twitterHandle.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            saveHandle();
-        }
-    });
+    // Toggle reference handle visibility based on alignment type
+    if (elements.alignmentType) {
+        elements.alignmentType.addEventListener('change', () => {
+            const alignmentType = elements.alignmentType.value;
+            if (alignmentType === 'profile') {
+                showElement(elements.referenceHandle);
+            } else {
+                hideElement(elements.referenceHandle);
+                if (elements.referenceHandle) elements.referenceHandle.value = '';
+            }
+        });
+    }
+    
+    if (elements.upgradeLink) {
+        elements.upgradeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.create({ url: 'http://localhost:3000/pricing' });
+            globalThis.close();
+        });
+    }
 
-    // Initial auth check
+    if (elements.analyzeContentBtn) elements.analyzeContentBtn.addEventListener('click', analyzeContentAlignment);
+
+    // Initial setup
+    const platformInfo = await detectCurrentPlatform();
+    updatePlatformIndicator(platformInfo);
     await checkAuth();
 });

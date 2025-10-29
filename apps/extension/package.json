@@ -1,0 +1,16 @@
+{
+  "name": "brandalyze-extension",
+  "version": "1.0.0",
+  "description": "Brandalyze Chrome Extension",
+  "scripts": {
+    "build-css": "tailwindcss -i ./src/input.css -o ./popup/popup.css --watch",
+    "build-css-prod": "tailwindcss -i ./src/input.css -o ./popup/popup.css --minify",
+    "dev": "tailwindcss -i ./src/input.css -o ./popup/popup.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "dependencies": {
+    "lucide": "^0.548.0"
+  }
+}

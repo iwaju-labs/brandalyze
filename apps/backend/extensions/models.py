@@ -19,7 +19,7 @@ class ExtensionAnalysis(models.Model):
     session = models.ForeignKey(ExtensionSession, on_delete=models.CASCADE, null=True, blank=True)
     platform = models.CharField(max_length=50)
     content_hash = models.CharField(max_length=64)
-    brand_id = models.IntegerField()
+    brand_id = models.IntegerField(null=True, blank=True)  # Made nullable for profile voice analysis
     alignment_score = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
 

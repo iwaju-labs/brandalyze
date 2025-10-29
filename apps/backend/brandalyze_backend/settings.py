@@ -241,6 +241,13 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'text-embedding-3-small')
 MAX_REQUESTS_PER_HOUR = int(os.getenv('MAX_REQUESTS_PER_HOUR', '10'))
 
+# Social Media API Keys
+X_API_BEARER_TOKEN = os.getenv('X_API_BEARER_TOKEN')
+X_API_CONSUMER_KEY = os.getenv('X_API_KEY')  # Maps to X_API_KEY in .env
+X_API_CONSUMER_SECRET = os.getenv('X_API_KEY_SECRET')  # Maps to X_API_KEY_SECRET in .env
+X_API_ACCESS_TOKEN = os.getenv('X_API_ACCESS_TOKEN')
+X_API_ACCESS_TOKEN_SECRET = os.getenv('X_API_ACCESS_TOKEN_SECRET')
+
 # Logging configuration - ensure debug prints are visible in Render
 LOGGING = {
     'version': 1,

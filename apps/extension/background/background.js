@@ -4,12 +4,15 @@ console.log("Brandalyze extension background script loaded with Clerk integratio
 const DEV_API_BASE_URL = "http://localhost:8000/api";
 const PROD_API_BASE_URL = "https://brandalyze.onrender.com/api";
 
-// AUTH STATE MANAGEMENT
+// AUTH STATE MANAGEMENT - Simple and persistent
 let authState = {
     isAuthenticated: false,
     clerkToken: null,
     userData: null,
-    currentApiUrl: DEV_API_BASE_URL
+    currentApiUrl: DEV_API_BASE_URL,
+    lastChecked: null,
+    cacheTimeout: 30 * 60 * 1000, // 30 minutes - much longer cache
+    activeBrandalyzeTabs: new Set()
 };
 
 chrome.runtime.onStartup.addListener(checkClerkAuth);
@@ -29,9 +32,8 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Background received message:", request);
 
-    switch (request.action) {
-        case "checkClerkAuth":
-            checkClerkAuth()
+    switch (request.action) {        case "checkClerkAuth":
+            getAuthState()
                 .then(response => sendResponse({ success: true, data: response }))
                 .catch(error => sendResponse({ success: false, error: error.message }));
             return true;
@@ -40,9 +42,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             handleContentAnalysis(request.data)
                 .then(response => sendResponse({ success: true, data: response }))
                 .catch(error => sendResponse({ success: false, error: error.message }));
-            return true;        
+            return true;
+            
         case "analyzeProfile":
             handleProfileAnalysis(request.data)
+                .then(response => sendResponse({ success: true, data: response }))
+                .catch(error => sendResponse({ success: false, error: error.message }));
+            return true;
+            
+        case "analyzeContentAlignment":
+            handleContentAlignmentAnalysis(request.data)
                 .then(response => sendResponse({ success: true, data: response }))
                 .catch(error => sendResponse({ success: false, error: error.message }));
             return true;
@@ -53,9 +62,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(error => sendResponse({ success: false, error: error.message }));
             return true;
             
+        case "forceAuthRefresh":
+            console.log('Forcing auth refresh...');
+            invalidateAuthCache();
+            checkClerkAuth()
+                .then(response => sendResponse({ success: true, data: response }))
+                .catch(error => sendResponse({ success: false, error: error.message }));
+            return true;
+            
         default:
             console.warn('Unknown action:', request.action);
             sendResponse({ success: false, error: 'Unknown action' });
+    }
+});
+
+// Listen for tab updates to invalidate cache when user navigates away from Brandalyze
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    // If user navigates away from Brandalyze, invalidate auth cache
+    if (changeInfo.url && !changeInfo.url.includes('localhost:3000') && !changeInfo.url.includes('brandalyze.io')) {
+        const brandalyzeTabs = authState.activeBrandalyzeTabs || new Set();
+        if (brandalyzeTabs.has(tabId)) {
+            brandalyzeTabs.delete(tabId);
+            if (brandalyzeTabs.size === 0) {
+                console.log('All Brandalyze tabs closed, invalidating auth cache');
+                invalidateAuthCache();
+            }
+        }
+    }
+});
+
+// Track Brandalyze tabs
+chrome.tabs.onRemoved.addListener((tabId) => {
+    const brandalyzeTabs = authState.activeBrandalyzeTabs || new Set();
+    if (brandalyzeTabs.has(tabId)) {
+        brandalyzeTabs.delete(tabId);
+        if (brandalyzeTabs.size === 0) {
+            console.log('Last Brandalyze tab closed, invalidating auth cache');
+            invalidateAuthCache();
+        }
     }
 });
 
@@ -64,7 +108,7 @@ async function checkClerkAuth() {
     try {
         // First check if we have a stored Clerk token
         const result = await chrome.storage.local.get(['clerkToken', 'userData', 'currentApiUrl']);
-          if (result.clerkToken) {
+        if (result.clerkToken) {
             // Verify the stored token
             const isValid = await verifyClerkToken(result.clerkToken, result.currentApiUrl);
             if (isValid) {
@@ -80,7 +124,9 @@ async function checkClerkAuth() {
                 // Token is invalid, clear and try to get new one
                 await clearAuthData();
             }
-        }          // Try to get Clerk token from the main app
+        }
+        
+        // Try to get Clerk token from the main app
         const tokenData = await getClerkTokenFromBrandalyzeApp();
         if (tokenData && tokenData.token) {
             // Verify the token first
@@ -89,7 +135,8 @@ async function checkClerkAuth() {
             if (isValid) {
                 // Now get user data using the verified token
                 const userData = await fetchUserDataFromBrands(tokenData.token, authState.currentApiUrl);
-                  // Store the token, API URL, and user data
+                
+                // Store the token, API URL, and user data
                 await chrome.storage.local.set({ 
                     clerkToken: tokenData.token,
                     currentApiUrl: authState.currentApiUrl,
@@ -134,7 +181,8 @@ async function getClerkTokenFromBrandalyzeApp() {
         const tabUrl = tabs[0].url;
         
         console.log(`Executing script in tab: ${tabUrl}`);
-          const results = await chrome.scripting.executeScript({
+        
+        const results = await chrome.scripting.executeScript({
             target: { tabId },
             func: () => {
                 console.log('Script executing in Brandalyze app context');
@@ -175,7 +223,8 @@ async function getClerkTokenFromBrandalyzeApp() {
                     const clerkKeys = allKeys.filter(key => 
                         key.includes('clerk') || key.includes('__session')
                     );
-                      console.log('Found Clerk keys in localStorage:', clerkKeys);
+                    
+                    console.log('Found Clerk keys in localStorage:', clerkKeys);
                     
                     // Check the values of these keys
                     for (const key of clerkKeys) {
@@ -203,7 +252,8 @@ async function getClerkTokenFromBrandalyzeApp() {
                 } catch (e) {
                     console.log('Failed to check localStorage:', e);
                 }
-                  // Method 3: Check cookies for Clerk session
+                
+                // Method 3: Check cookies for Clerk session
                 console.log('Checking cookies...');
                 console.log('document.cookie:', document.cookie);
                 try {
@@ -212,7 +262,8 @@ async function getClerkTokenFromBrandalyzeApp() {
                     
                     for (let cookie of cookies) {
                         const [name, value] = cookie.trim().split('=');
-                        console.log(`Cookie: ${name} = ${value}`);                        if (name && (name.includes('__session') || name.includes('clerk')) && value) {
+                        console.log(`Cookie: ${name} = ${value}`);
+                        if (name && (name.includes('__session') || name.includes('clerk')) && value) {
                             // Check if it looks like a JWT
                             if (value.includes('.') && value.split('.').length === 3) {
                                 console.log('Found JWT-like cookie:', name);
@@ -247,14 +298,16 @@ async function getClerkTokenFromBrandalyzeApp() {
                 
                 console.log('No token found in any method');
                 return null;
-            }        });
+            }
+        });
         
         console.log('Script execution results:', results);
         const token = results[0]?.result;
         console.log('Extracted token:', token ? 'FOUND' : 'NOT FOUND');
         console.log('Token length:', token ? token.length : 0);
         console.log('First 50 chars of token:', token ? token.substring(0, 50) + '...' : 'N/A');
-          if (token) {
+        
+        if (token) {
             console.log('Token found, determining API URL...');
             // Determine environment and API URL based on tab URL
             const isLocalhost = tabUrl.includes('localhost:3000');
@@ -345,7 +398,8 @@ async function clearAuthData() {
 
 // Fetch user data by making a brands request and extracting user info from the auth verification
 async function fetchUserDataFromBrands(token, apiUrl) {
-    try {        // Make request to brands endpoint - this will trigger middleware to process JWT and create/update user
+    try {
+        // Make request to brands endpoint - this will trigger middleware to process JWT and create/update user
         await fetch(`${apiUrl}/brands/`, {
             method: 'GET',
             headers: {
@@ -420,38 +474,92 @@ async function getUserDataFromAPI(token, apiUrl) {
     }
 }
 
-// Profile analysis handler - analyze recent posts from a Twitter profile
+// Profile analysis handler - simple version with basic 401 retry
 async function handleProfileAnalysis(analysisData) {
     try {
+        console.log('🔍 Starting profile analysis:', analysisData);
+        
         // Ensure we have authentication
         if (!authState.isAuthenticated || !authState.clerkToken) {
+            console.log('⚠️ Not authenticated, checking auth...');
             await checkClerkAuth();
             if (!authState.isAuthenticated) {
                 throw new Error("Please sign in to Brandalyze first");
             }
         }
 
-        // Use the extension's profile analysis endpoint
-        const response = await fetch(`${authState.currentApiUrl}/extension/analyze/profile/`, {
+        console.log('✅ Authentication OK, making API request...');
+        console.log('🔗 API URL:', `${authState.currentApiUrl}/extension/analyze/profile/voice/`);        const requestBody = {
+            handle: analysisData.handle,
+            platform: analysisData.platform || 'twitter',
+            posts_count: analysisData.posts_count || 10,
+            extracted_posts: analysisData.extractedPosts || null, // Include extracted posts
+            extracted_bio: analysisData.extractedBio || null, // Include extracted bio data
+            use_bio: analysisData.use_bio !== undefined ? analysisData.use_bio : true // Default to bio analysis for better rate limits
+        };
+        console.log('📤 Request body:', requestBody);
+
+        // Make the API request
+        const response = await fetch(`${authState.currentApiUrl}/extension/analyze/profile/voice/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${authState.clerkToken}`,
             },
-            body: JSON.stringify({
-                handle: analysisData.handle,
-                platform: analysisData.platform || 'twitter',
-                posts_count: 10 // Analyze last 10 posts
-            }),
+            body: JSON.stringify(requestBody),
         });
 
-        if (!response.ok) {
+        console.log('📥 Response status:', response.status);
+        
+        // If 401, try refreshing auth once
+        if (response.status === 401) {
+            console.log('🔄 Got 401, refreshing auth and retrying once...');
+            await checkClerkAuth();
+            
+            if (authState.isAuthenticated) {
+                const retryResponse = await fetch(`${authState.currentApiUrl}/extension/analyze/profile/voice/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authState.clerkToken}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                  if (!retryResponse.ok) {
+                    const errorData = await retryResponse.json().catch(() => ({}));
+                    
+                    // Return structured error for frontend
+                    throw new Error(errorData.message || `Profile analysis failed: ${retryResponse.status}`);
+                }
+                
+                const data = await retryResponse.json();
+                console.log('✅ Analysis completed after retry:', data);
+                
+                // Check if the backend returned an error in the data
+                if (!data.success && data.message) {
+                    throw new Error(data.message);
+                }
+                
+                return data.data || data;
+            }
+        }
+          if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error('❌ API Error:', errorData);
+            
+            // Return structured error for frontend
             throw new Error(errorData.message || `Profile analysis failed: ${response.status}`);
         }
 
         const data = await response.json();
-        return data.data || data; // Handle both success_response and direct response formats
+        console.log('✅ Analysis completed:', data);
+        
+        // Check if the backend returned an error in the data
+        if (!data.success && data.message) {
+            throw new Error(data.message);
+        }
+        
+        return data.data || data;
     } catch (error) {
         console.error("Profile analysis error:", error);
         throw error;
@@ -493,6 +601,84 @@ async function handleContentAnalysis(analysisData) {
         return data;
     } catch (error) {
         console.error("Analysis error:", error);
+        throw error;
+    }
+}
+
+// Content alignment analysis handler - simple version with 401 retry
+async function handleContentAlignmentAnalysis(analysisData) {
+    try {
+        console.log('🔍 Starting content alignment analysis:', analysisData);
+        
+        // Ensure we have authentication
+        if (!authState.isAuthenticated || !authState.clerkToken) {
+            console.log('⚠️ Not authenticated, checking auth...');
+            await checkClerkAuth();
+            if (!authState.isAuthenticated) {
+                throw new Error("Please sign in to Brandalyze first");
+            }
+        }
+
+        console.log('✅ Authentication OK, making API request...');
+        console.log('🔗 API URL:', `${authState.currentApiUrl}/extension/analyze/content/alignment/`);
+        
+        const requestBody = {
+            content: analysisData.content,
+            type: analysisData.type || 'brand',
+            brand_id: analysisData.brand_id,
+            reference_handle: analysisData.reference_handle,
+            platform: analysisData.platform || 'twitter'
+        };
+        console.log('📤 Request body:', requestBody);
+
+        const response = await fetch(`${authState.currentApiUrl}/extension/analyze/content/alignment/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${authState.clerkToken}`,
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        console.log('📥 Response status:', response.status);
+        
+        // If 401, try refreshing auth once
+        if (response.status === 401) {
+            console.log('🔄 Got 401, refreshing auth and retrying once...');
+            await checkClerkAuth();
+            
+            if (authState.isAuthenticated) {
+                const retryResponse = await fetch(`${authState.currentApiUrl}/extension/analyze/content/alignment/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authState.clerkToken}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                
+                if (!retryResponse.ok) {
+                    const errorData = await retryResponse.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Content alignment analysis failed: ${retryResponse.status}`);
+                }
+                
+                const data = await retryResponse.json();
+                console.log('✅ Analysis completed after retry:', data);
+                return data.data || data;
+            }
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ API Error:', errorData);
+            throw new Error(errorData.message || `Content alignment analysis failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Analysis completed:', data);
+        return data.data || data;
+    } catch (error) {
+        console.error("Content alignment analysis error:", error);
         throw error;
     }
 }
@@ -594,4 +780,39 @@ async function debugTabInfo() {
     console.log('Brandalyze tabs found:', brandalyzeTabs.map(t => ({ id: t.id, url: t.url })));
     
     return brandalyzeTabs;
+}
+
+// Smart auth state getter with caching - simple version
+async function getAuthState() {
+    const now = Date.now();
+    
+    // If we have recent cached auth state, return it
+    if (authState.lastChecked && (now - authState.lastChecked) < authState.cacheTimeout) {
+        console.log('Using cached auth state (age:', Math.round((now - authState.lastChecked) / 1000), 'seconds)');
+        return {
+            ...authState,
+            apiUrl: authState.currentApiUrl,
+            jwt: authState.clerkToken,
+            lastChecked: authState.lastChecked
+        };
+    }
+    
+    // Cache is stale or doesn't exist, refresh auth
+    console.log('Auth cache stale or missing, refreshing...');
+    const freshAuthState = await checkClerkAuth();
+    authState.lastChecked = now;
+    
+    return {
+        ...freshAuthState,
+        lastChecked: authState.lastChecked
+    };
+}
+
+// Invalidate auth cache (call when user signs out or token becomes invalid)
+function invalidateAuthCache() {
+    console.log('Invalidating auth cache');
+    authState.lastChecked = null;
+    authState.isAuthenticated = false;
+    authState.clerkToken = null;
+    authState.userData = null;
 }
