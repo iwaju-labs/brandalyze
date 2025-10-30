@@ -32,14 +32,16 @@
       const urlMatch = globalThis.location.href.match(
         /linkedin\.com\/in\/([^/?]+)/
       );
-      const handle = urlMatch ? urlMatch[1] : "";      // Extract display name - try multiple selectors
+      const handle = urlMatch ? urlMatch[1] : "";
+      
+      // Extract display name - try multiple selectors
       let displayName = "";
       const nameSelectors = [
         "h1.text-heading-xlarge",
         "h1[data-generated-suggestion-target]",
         ".pv-text-details__left-panel h1",
         ".ph5 h1",
-        ".pv-top-card--list h1"
+        ".pv-top-card--list h1",
       ];
       for (const selector of nameSelectors) {
         const element = document.querySelector(selector);
@@ -56,7 +58,7 @@
         ".pv-text-details__left-panel .text-body-medium",
         ".pv-top-card--list .text-body-medium",
         ".ph5 .text-body-medium",
-        ".pv-text-details__left-panel .pv-entity__summary-info"
+        ".pv-text-details__left-panel .pv-entity__summary-info",
       ];
       for (const selector of headlineSelectors) {
         const element = document.querySelector(selector);
@@ -73,11 +75,14 @@
         ".text-body-small.inline.t-black--light.break-words",
         ".pv-text-details__left-panel .text-body-small",
         ".ph5 .text-body-small",
-        ".pv-top-card--list .text-body-small"
+        ".pv-top-card--list .text-body-small",
       ];
       for (const selector of locationSelectors) {
         const element = document.querySelector(selector);
-        if (element?.textContent?.trim() && !element.textContent.includes('connections')) {
+        if (
+          element?.textContent?.trim() &&
+          !element.textContent.includes("connections")
+        ) {
           location = element.textContent.trim();
           break;
         }
@@ -95,14 +100,15 @@
         // Alternative selectors
         "#about ~ * .visually-hidden",
         "[data-field='summary'] .visually-hidden",
-        ".pv-about-section .visually-hidden"
+        ".pv-about-section .visually-hidden",
       ];
-      
+
       for (const selector of bioSelectors) {
         const elements = document.querySelectorAll(selector);
         for (const element of elements) {
           const text = element?.textContent?.trim();
-          if (text && text.length > 50) { // Bio should be substantial
+          if (text && text.length > 50) {
+            // Bio should be substantial
             bio = text;
             break;
           }
@@ -117,9 +123,9 @@
         '.pv-text-details__left-panel a[href*="connections"] span',
         '.pv-top-card--list a[href*="connections"] span',
         '.ph5 a[href*="connections"] span',
-        '.text-body-small a span[aria-hidden="true"]'
+        '.text-body-small a span[aria-hidden="true"]',
       ];
-      
+
       for (const selector of connectionSelectors) {
         const element = document.querySelector(selector);
         if (element?.textContent?.trim()) {
@@ -133,17 +139,17 @@
             if (connectionsCount > 0) break;
           }
         }
-      }      // Extract current company/position - try multiple approaches
+      } // Extract current company/position - try multiple approaches
       let company = "";
       const companySelectors = [
         '.pvs-entity__caption-wrapper .t-14.t-normal span[aria-hidden="true"]',
-        '.pv-entity__summary-info .pv-entity__summary-info-v2',
-        '.experience-section .pv-entity__summary-info',
-        '.pv-profile-section .pv-entity__summary-info-v2',
+        ".pv-entity__summary-info .pv-entity__summary-info-v2",
+        ".experience-section .pv-entity__summary-info",
+        ".pv-profile-section .pv-entity__summary-info-v2",
         '.pvs-list__item .t-14 span[aria-hidden="true"]',
-        '#experience ~ * .pvs-entity__caption-wrapper span'
+        "#experience ~ * .pvs-entity__caption-wrapper span",
       ];
-      
+
       for (const selector of companySelectors) {
         const element = document.querySelector(selector);
         if (element?.textContent?.trim()) {
@@ -152,22 +158,26 @@
         }
       }
 
-      // Extract industry - try multiple approaches  
+      // Extract industry - try multiple approaches
       let industry = "";
       const industrySelectors = [
         '[data-field="industry"] .pv-entity__summary-info-v2',
-        '.pv-text-details__left-panel .text-body-small',
-        '.pv-top-card--list .text-body-small',
-        '.ph5 .text-body-small'
+        ".pv-text-details__left-panel .text-body-small",
+        ".pv-top-card--list .text-body-small",
+        ".ph5 .text-body-small",
       ];
-      
+
       for (const selector of industrySelectors) {
         const element = document.querySelector(selector);
-        if (element?.textContent?.trim() && element.textContent.toLowerCase().includes('industry')) {
+        if (
+          element?.textContent?.trim() &&
+          element.textContent.toLowerCase().includes("industry")
+        ) {
           industry = element.textContent.trim();
           break;
         }
-      }      const profileData = {
+      }
+      const profileData = {
         handle: handle,
         display_name: displayName,
         headline: headline,
@@ -190,7 +200,7 @@
       console.log("🏢 Company:", company);
       console.log("🏭 Industry:", industry);
       console.log("📊 Full data:", profileData);
-      
+
       return profileData;
     } catch (error) {
       console.error("❌ Error extracting LinkedIn profile data:", error);
@@ -204,10 +214,12 @@
       console.log("📊 Displaying analysis results:", analysisData);
 
       // Remove any existing results display
-      const existingResults = document.getElementById("brandalyze-analysis-results");
+      const existingResults = document.getElementById(
+        "brandalyze-analysis-results"
+      );
       if (existingResults) {
         existingResults.remove();
-      }      // Create results container
+      } // Create results container
       const resultsContainer = document.createElement("div");
       resultsContainer.id = "brandalyze-analysis-results";
       resultsContainer.style.cssText = `
@@ -245,9 +257,10 @@
       `;
 
       // Add CSS animation
-      if (!document.getElementById('brandalyze-animations')) {
-        const style = document.createElement('style');
-        style.id = 'brandalyze-animations';        style.textContent = `
+      if (!document.getElementById("brandalyze-animations")) {
+        const style = document.createElement("style");
+        style.id = "brandalyze-animations";
+        style.textContent = `
           @keyframes brandalyze-fade-in {
             from { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
             to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -337,7 +350,7 @@
               hover: background: #f1f5f9;
             ">×</button>
           </div>
-      `;// Display voice analysis if available
+      `; // Display voice analysis if available
       if (analysisData.voice_analysis) {
         const voice = analysisData.voice_analysis;
         content += `
@@ -350,20 +363,28 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
               <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border-left: 4px solid #0a66c2;">
                 <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Communication Tone</div>
-                <div style="font-weight: 600; color: #1e293b;">${voice.tone || 'Professional'}</div>
+                <div style="font-weight: 600; color: #1e293b;">${
+                  voice.tone || "Professional"
+                }</div>
               </div>
               <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border-left: 4px solid #10b981;">
                 <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Communication Style</div>
-                <div style="font-weight: 600; color: #1e293b;">${voice.style || 'Thoughtful'}</div>
+                <div style="font-weight: 600; color: #1e293b;">${
+                  voice.style || "Thoughtful"
+                }</div>
               </div>
             </div>
 
             <!-- Personality Traits -->
-            ${voice.personality_traits && voice.personality_traits.length > 0 ? `
+            ${
+              voice.personality_traits && voice.personality_traits.length > 0
+                ? `
             <div style="margin-bottom: 16px;">
               <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Key Personality Traits</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                ${voice.personality_traits.map(trait => `
+                ${voice.personality_traits
+                  .map(
+                    (trait) => `
                   <span style="
                     background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%); 
                     color: #5b21b6; 
@@ -373,30 +394,47 @@
                     font-weight: 500;
                     border: 1px solid #a78bfa;
                   ">${trait}</span>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </div>
-            </div>` : ''}
+            </div>`
+                : ""
+            }
 
             <!-- Communication Patterns -->
-            ${voice.communication_patterns && voice.communication_patterns.length > 0 ? `
+            ${
+              voice.communication_patterns &&
+              voice.communication_patterns.length > 0
+                ? `
             <div style="margin-bottom: 16px;">
               <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Communication Patterns</div>
               <div style="background: #fefce8; border-radius: 8px; padding: 12px; border-left: 3px solid #eab308;">
-                ${voice.communication_patterns.map(pattern => `
+                ${voice.communication_patterns
+                  .map(
+                    (pattern) => `
                   <div style="display: flex; align-items: center; margin-bottom: 4px; font-size: 13px;">
                     <span style="color: #ca8a04; margin-right: 6px;">▸</span>
                     <span style="color: #374151;">${pattern}</span>
                   </div>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </div>
-            </div>` : ''}
+            </div>`
+                : ""
+            }
 
             <!-- Content Themes -->
-            ${voice.content_themes && voice.content_themes.length > 0 ? `
+            ${
+              voice.content_themes && voice.content_themes.length > 0
+                ? `
             <div style="margin-bottom: 16px;">
               <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Primary Content Themes</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                ${voice.content_themes.map(theme => `
+                ${voice.content_themes
+                  .map(
+                    (theme) => `
                   <span style="
                     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); 
                     color: #166534; 
@@ -406,19 +444,31 @@
                     font-weight: 500;
                     border: 1px solid #86efac;
                   ">${theme}</span>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </div>
-            </div>` : ''}
+            </div>`
+                : ""
+            }
 
             <!-- Emotional Indicators -->
-            ${voice.emotional_indicators ? `
+            ${
+              voice.emotional_indicators
+                ? `
             <div style="margin-bottom: 16px;">
               <div style="font-size: 14px; color: #64748b; margin-bottom: 12px; font-weight: 500;">Emotional Indicators</div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                ${Object.entries(voice.emotional_indicators).map(([emotion, score]) => {
-                  const percentage = Math.round(score * 10);
-                  const color = percentage >= 80 ? '#10b981' : percentage >= 60 ? '#f59e0b' : '#ef4444';
-                  return `
+                ${Object.entries(voice.emotional_indicators)
+                  .map(([emotion, score]) => {
+                    const percentage = Math.round(score * 10);
+                    const color =
+                      percentage >= 80
+                        ? "#10b981"
+                        : percentage >= 60
+                        ? "#f59e0b"
+                        : "#ef4444";
+                    return `
                     <div style="background: white; border-radius: 6px; padding: 12px; border: 1px solid #e5e7eb;">
                       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-size: 12px; color: #6b7280; text-transform: capitalize;">${emotion}</span>
@@ -429,12 +479,15 @@
                       </div>
                     </div>
                   `;
-                }).join('')}
+                  })
+                  .join("")}
               </div>
-            </div>` : ''}
+            </div>`
+                : ""
+            }
           </div>
         `;
-      }      // Display analysis summary if available
+      } // Display analysis summary if available
       if (analysisData.analysis_summary) {
         content += `
           <div style="margin-bottom: 24px;">
@@ -453,12 +506,22 @@
             </div>
           </div>
         `;
-      }      // Display confidence score if available
+      } // Display confidence score if available
       if (analysisData.confidence_score) {
         const confidence = Math.round(analysisData.confidence_score * 100);
-        const confidenceColor = confidence >= 75 ? '#10b981' : confidence >= 50 ? '#f59e0b' : '#ef4444';
-        const confidenceLabel = confidence >= 75 ? 'High Confidence' : confidence >= 50 ? 'Medium Confidence' : 'Low Confidence';
-        
+        const confidenceColor =
+          confidence >= 75
+            ? "#10b981"
+            : confidence >= 50
+            ? "#f59e0b"
+            : "#ef4444";
+        const confidenceLabel =
+          confidence >= 75
+            ? "High Confidence"
+            : confidence >= 50
+            ? "Medium Confidence"
+            : "Low Confidence";
+
         content += `
           <div style="margin-bottom: 24px;">
             <h3 style="font-size: 18px; font-weight: 600; color: #0a66c2; margin-bottom: 16px; display: flex; align-items: center;">
@@ -486,12 +549,16 @@
                 "></div>
               </div>
               <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
-                Based on ${analysisData.analysis_type === 'bio_analysis' ? 'profile bio content' : 'post content analysis'}
+                Based on ${
+                  analysisData.analysis_type === "bio_analysis"
+                    ? "profile bio content"
+                    : "post content analysis"
+                }
               </div>
             </div>
           </div>
         `;
-      }      // Add action buttons
+      } // Add action buttons
       content += `
           <div style="
             display: flex; 
@@ -550,14 +617,14 @@
 
       // Add event listeners
       document.body.appendChild(overlay);
-      document.body.appendChild(resultsContainer);      // Close button handlers
+      document.body.appendChild(resultsContainer); // Close button handlers
       const closeButtons = [
         document.getElementById("brandalyze-close-results"),
         document.getElementById("brandalyze-close-results-btn"),
-        overlay
+        overlay,
       ];
 
-      closeButtons.forEach(btn => {
+      closeButtons.forEach((btn) => {
         if (btn && btn !== overlay) {
           // Add hover effects for non-overlay buttons
           btn.onmouseenter = () => {
@@ -581,17 +648,19 @@
             }
           };
         }
-        
+
         if (btn) {
           btn.onclick = () => {
-            resultsContainer.style.animation = "brandalyze-fade-out 0.2s ease forwards";
+            resultsContainer.style.animation =
+              "brandalyze-fade-out 0.2s ease forwards";
             overlay.style.animation = "brandalyze-fade-out 0.2s ease forwards";
             setTimeout(() => {
               resultsContainer.remove();
               overlay.remove();
-            }, 200);          };
+            }, 200);
+          };
         }
-      });// Save button handler
+      }); // Save button handler
       const saveButton = document.getElementById("brandalyze-save-analysis");
       if (saveButton) {
         // Enhanced hover effects
@@ -603,39 +672,44 @@
           saveButton.style.transform = "translateY(0)";
           saveButton.style.boxShadow = "0 4px 12px rgba(14, 165, 233, 0.3)";
         };
-        
+
         saveButton.onclick = async () => {
           try {
             // Get profile handle for storage key
-            const urlMatch = globalThis.location.href.match(/linkedin\.com\/in\/([^/?]+)/);
-            const handle = urlMatch ? urlMatch[1] : 'unknown';
-            
+            const urlMatch = globalThis.location.href.match(
+              /linkedin\.com\/in\/([^/?]+)/
+            );
+            const handle = urlMatch ? urlMatch[1] : "unknown";
+
             // Save to platform-specific storage
             const storageKey = `linkedin_profile_analysis_${handle}`;
             const analysisRecord = {
               profile_handle: handle,
               analysis_data: analysisData,
               analyzed_at: new Date().toISOString(),
-              platform: 'linkedin',
-              profile_url: globalThis.location.href
+              platform: "linkedin",
+              profile_url: globalThis.location.href,
             };
 
             await chrome.storage.local.set({
-              [storageKey]: analysisRecord
+              [storageKey]: analysisRecord,
             });
 
             // Also maintain a list of saved analyses
-            const savedAnalyses = await chrome.storage.local.get('saved_analyses') || {};
+            const savedAnalyses =
+              (await chrome.storage.local.get("saved_analyses")) || {};
             const currentSaved = savedAnalyses.saved_analyses || [];
-            
+
             // Add or update this analysis in the list
-            const existingIndex = currentSaved.findIndex(item => item.storage_key === storageKey);
+            const existingIndex = currentSaved.findIndex(
+              (item) => item.storage_key === storageKey
+            );
             const listItem = {
               storage_key: storageKey,
-              platform: 'linkedin',
+              platform: "linkedin",
               handle: handle,
               analyzed_at: analysisRecord.analyzed_at,
-              profile_url: analysisRecord.profile_url
+              profile_url: analysisRecord.profile_url,
             };
 
             if (existingIndex >= 0) {
@@ -645,25 +719,24 @@
             }
 
             await chrome.storage.local.set({
-              saved_analyses: currentSaved
+              saved_analyses: currentSaved,
             });
 
             // Update button to show success
             saveButton.textContent = "✓ Saved!";
             saveButton.style.background = "#10b981";
-            
+
             setTimeout(() => {
               saveButton.textContent = "Save Analysis";
               saveButton.style.background = "#0a66c2";
             }, 2000);
 
             console.log(`✅ Analysis saved with key: ${storageKey}`);
-            
           } catch (error) {
             console.error("❌ Error saving analysis:", error);
             saveButton.textContent = "Save Failed";
             saveButton.style.background = "#ef4444";
-            
+
             setTimeout(() => {
               saveButton.textContent = "Save Analysis";
               saveButton.style.background = "#0a66c2";
@@ -671,7 +744,6 @@
           }
         };
       }
-
     } catch (error) {
       console.error("❌ Error displaying analysis results:", error);
       showNotification("Failed to display analysis results", "error");
@@ -727,12 +799,12 @@
           "error"
         );
         return;
-      }      // Update button state with spinner
+      } // Update button state with spinner
       const originalText = button.querySelector(
         ".artdeco-button__text"
       ).textContent;
       const buttonText = button.querySelector(".artdeco-button__text");
-      
+
       // Add loading state with spinner
       buttonText.innerHTML = `
         <div class="brandalyze-spinner"></div>
