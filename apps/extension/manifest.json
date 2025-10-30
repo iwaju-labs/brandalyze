@@ -18,9 +18,7 @@
   "background": {
     "service_worker": "background/background.js"
   },
-
-  "content_scripts": [
-    {
+  "content_scripts": [    {
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["content/shared.js", "content/twitter.js"],
       "css": [],
@@ -31,8 +29,14 @@
       "js": ["content/shared.js", "content/linkedin.js"],
       "css": [],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:3000/*", "https://brandalyze.io/*"],
+      "js": ["content/brandalyze-sync.js"],
+      "css": [],
+      "run_at": "document_idle"
     }
-  ],  "action": {
+  ],"action": {
     "default_popup": "popup/popup.html",
     "default_title": "Brandalyze Extension"
   },

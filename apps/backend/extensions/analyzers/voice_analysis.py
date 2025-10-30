@@ -170,19 +170,38 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
         - Verified: {verified}
         - Account Created: {account_age}
 
-        Based on this profile information, analyze and provide a structured response with:
+        You must respond with ONLY a valid JSON object in this exact format:
+        {{
+            "tone": "A concise description of their overall communication tone (e.g., 'Professional and approachable', 'Energetic and innovative')",
+            "style": "Their communication style (e.g., 'Thought leadership focused', 'Personal brand storytelling')",
+            "personality_traits": [
+                "First key personality trait",
+                "Second key personality trait", 
+                "Third key personality trait",
+                "Fourth key personality trait"
+            ],
+            "communication_patterns": [
+                "First communication pattern observed",
+                "Second communication pattern observed",
+                "Third communication pattern observed"
+            ],
+            "content_themes": [
+                "Primary content theme",
+                "Secondary content theme",
+                "Third content theme"
+            ],
+            "emotional_indicators": {{
+                "enthusiasm": 7.5,
+                "professionalism": 8.0,
+                "approachability": 7.0,
+                "authority": 8.5
+            }}
+        }}
 
-        1. TONE: Describe the likely overall tone based on bio language (professional, casual, enthusiastic, etc.)
-        2. STYLE: Communication style inferred from bio (thought leadership, personal brand, business-focused, etc.)
-        3. PERSONALITY_TRAITS: List 3-4 key personality traits evident from the bio and profile setup
-        4. COMMUNICATION_PATTERNS: Likely communication patterns based on bio language and profile presentation
-        5. CONTENT_THEMES: Main topics and themes they likely discuss based on bio keywords and description
-        6. EMOTIONAL_INDICATORS: Emotional qualities with scores 0-10 (enthusiasm, professionalism, approachability, authority)
-
-        Note: This analysis is based on profile bio only. Provide insights while acknowledging the limited data source.
-        Format your response as clear, concise descriptions for each category.
+        Base your analysis on the profile information provided. Provide realistic insights while acknowledging this is based on bio/profile data only.
         """
 
+        print(f"🤖 Sending bio analysis prompt for @{handle}")
         response = analyzer.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": bio_prompt}],
@@ -191,6 +210,7 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
         )
 
         ai_response = response.choices[0].message.content
+        print(f"🎯 AI Response for @{handle}: {ai_response}")
 
         # Parse the AI response into structured format
         bio_analysis = parse_voice_analysis_response(ai_response)
@@ -201,6 +221,7 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
         bio_analysis['has_location'] = bool(profile_data.get('location'))
         bio_analysis['has_website'] = bool(profile_data.get('website'))
         
+        print(f"✅ Parsed bio analysis for @{handle}: {bio_analysis}")
         return bio_analysis
 
     except Exception as e:
@@ -302,74 +323,336 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
 
 
 def parse_voice_analysis_response(ai_response):
-    """Parse AI response into structured voice analysis data"""
+    """Parse AI response into structured voice analysis data using JSON parsing"""
     try:
-        # Initialize default structure
-        voice_data = {
-            "tone": "Professional and approachable",
-            "style": "Engaging communication",
-            "personality_traits": [],
-            "communication_patterns": [],
-            "content_themes": [],
-            "emotional_indicators": {
-                "enthusiasm": 7.0,
-                "professionalism": 8.0,
-                "approachability": 7.5,
-                "authority": 7.5,
-            },
-        }
-
-        # Simple parsing logic - can be enhanced with more sophisticated NLP
-        lines = ai_response.split("\n")
-        current_section = None
-
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Detect sections
-            if "TONE:" in line.upper():
-                current_section = "tone"
-                voice_data["tone"] = line.split(":", 1)[1].strip()
-            elif "STYLE:" in line.upper():
-                current_section = "style"
-                voice_data["style"] = line.split(":", 1)[1].strip()
-            elif "PERSONALITY" in line.upper():
-                current_section = "personality_traits"
-            elif "COMMUNICATION" in line.upper():
-                current_section = "communication_patterns"
-            elif "CONTENT" in line.upper() or "THEMES" in line.upper():
-                current_section = "content_themes"
-            elif "EMOTIONAL" in line.upper():
-                current_section = "emotional_indicators"
-            elif line.startswith(("-", "•", "*", "1.", "2.", "3.", "4.", "5.")):
-                # Extract list items
-                item = line.lstrip("-•*123456789. ").strip()
-                if current_section in [
-                    "personality_traits",
-                    "communication_patterns",
-                    "content_themes",
-                ]:
-                    voice_data[current_section].append(item)
-
-        return voice_data
+        print(f"🔍 Parsing AI response: {ai_response[:200]}...")
+        
+        # Try to parse as JSON first (new format)
+        import json
+        import re
+        
+        # Clean the response to extract JSON
+        cleaned_response = ai_response.strip()
+        
+        # Try to find JSON object in the response
+        json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            try:
+                voice_data = json.loads(json_str)
+                print(f"✅ Successfully parsed JSON response: {voice_data}")
+                
+                # Validate required fields and provide defaults if missing
+                if "tone" not in voice_data:
+                    voice_data["tone"] = "Professional communication style"
+                if "style" not in voice_data:
+                    voice_data["style"] = "Thoughtful brand communication"
+                if "personality_traits" not in voice_data or not voice_data["personality_traits"]:
+                    voice_data["personality_traits"] = ["Professional", "Thoughtful", "Engaging"]
+                if "communication_patterns" not in voice_data or not voice_data["communication_patterns"]:
+                    voice_data["communication_patterns"] = ["Clear messaging", "Consistent tone"]
+                if "content_themes" not in voice_data or not voice_data["content_themes"]:
+                    voice_data["content_themes"] = ["Professional content", "Industry insights"]
+                if "emotional_indicators" not in voice_data:
+                    voice_data["emotional_indicators"] = {
+                        "enthusiasm": 7.0,
+                        "professionalism": 8.0,
+                        "approachability": 7.5,
+                        "authority": 7.5,
+                    }
+                
+                return voice_data
+                
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parsing failed: {e}")
+                # Fall back to text parsing
+                pass
+        
+        # Fallback to text parsing for older format responses
+        print("📝 Falling back to text parsing...")
+        return parse_text_response_fallback(ai_response)
 
     except Exception as e:
-        print(f"Error parsing voice analysis: {e}")
+        print(f"❌ Error parsing voice analysis: {e}")
+        # Return enhanced fallback with better defaults
         return {
             "tone": "Professional and engaging",
-            "style": "Clear communication style",
-            "personality_traits": ["Professional", "Thoughtful", "Engaging"],
-            "communication_patterns": ["Clear messaging", "Consistent tone"],
-            "content_themes": ["Professional content", "Industry insights"],
+            "style": "Thoughtful communication with industry focus",
+            "personality_traits": [
+                "Industry-focused professional",
+                "Strategic thinker", 
+                "Relationship builder",
+                "Goal-oriented"
+            ],
+            "communication_patterns": [
+                "Uses industry-specific terminology",
+                "Shares insights and expertise",
+                "Engages with professional network"
+            ],
+            "content_themes": [
+                "Professional development",
+                "Industry insights",
+                "Leadership perspectives",
+                "Business strategy"
+            ],
             "emotional_indicators": {
-                "enthusiasm": 7.0,
-                "professionalism": 8.0,
-                "approachability": 7.5,
-                "authority": 7.5,
+                "enthusiasm": 7.5,
+                "professionalism": 9.0,
+                "approachability": 7.0,
+                "authority": 8.0,
             },
         }
+    try:
+        print(f"🔍 Parsing AI response: {ai_response[:200]}...")
+        
+        # Try to parse as JSON first (new format)
+        import json
+        import re
+        
+        # Clean the response to extract JSON
+        cleaned_response = ai_response.strip()
+        
+        # Try to find JSON object in the response
+        json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            try:
+                voice_data = json.loads(json_str)
+                print(f"✅ Successfully parsed JSON response: {voice_data}")
+                
+                # Validate required fields and provide defaults if missing
+                if "tone" not in voice_data:
+                    voice_data["tone"] = "Professional communication style"
+                if "style" not in voice_data:
+                    voice_data["style"] = "Thoughtful brand communication"
+                if "personality_traits" not in voice_data or not voice_data["personality_traits"]:
+                    voice_data["personality_traits"] = ["Professional", "Thoughtful", "Engaging"]
+                if "communication_patterns" not in voice_data or not voice_data["communication_patterns"]:
+                    voice_data["communication_patterns"] = ["Clear messaging", "Consistent tone"]
+                if "content_themes" not in voice_data or not voice_data["content_themes"]:
+                    voice_data["content_themes"] = ["Professional content", "Industry insights"]
+                if "emotional_indicators" not in voice_data:
+                    voice_data["emotional_indicators"] = {
+                        "enthusiasm": 7.0,
+                        "professionalism": 8.0,
+                        "approachability": 7.5,
+                        "authority": 7.5,
+                    }
+                
+                return voice_data
+                
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parsing failed: {e}")
+                # Fall back to text parsing
+                pass
+        
+        # Fallback to text parsing for older format responses
+        print("📝 Falling back to text parsing...")
+        return parse_text_response_fallback(ai_response)
+
+    except Exception as e:
+        print(f"❌ Error parsing voice analysis: {e}")
+        # Return enhanced fallback with better defaults
+        return {
+            "tone": "Professional and engaging",
+            "style": "Thoughtful communication with industry focus",
+            "personality_traits": [
+                "Industry-focused professional",
+                "Strategic thinker", 
+                "Relationship builder",
+                "Goal-oriented"
+            ],
+            "communication_patterns": [
+                "Uses industry-specific terminology",
+                "Shares insights and expertise",
+                "Engages with professional network"
+            ],
+            "content_themes": [
+                "Professional development",
+                "Industry insights",
+                "Leadership perspectives",
+                "Business strategy"
+            ],
+            "emotional_indicators": {
+                "enthusiasm": 7.5,
+                "professionalism": 9.0,
+                "approachability": 7.0,
+                "authority": 8.0,
+            },
+        }
+
+
+def parse_text_response_fallback(ai_response):
+    """Fallback parsing for text-based AI responses"""
+    # Initialize default structure
+    voice_data = {
+        "tone": "Not specified",
+        "style": "Not specified", 
+        "personality_traits": [],
+        "communication_patterns": [],
+        "content_themes": [],
+        "emotional_indicators": {
+            "enthusiasm": 7.0,
+            "professionalism": 8.0,
+            "approachability": 7.5,
+            "authority": 7.5,
+        },
+    }
+
+    # Enhanced parsing logic with multiple approaches
+    lines = ai_response.split("\n")
+    current_section = None
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # More flexible section detection
+        line_upper = line.upper()
+        
+        # Extract tone
+        if any(keyword in line_upper for keyword in ["TONE:", "1. TONE", "**TONE"]):
+            tone_match = extract_content_after_colon(line)
+            if tone_match:
+                voice_data["tone"] = tone_match
+            current_section = "tone"
+            
+        # Extract style  
+        elif any(keyword in line_upper for keyword in ["STYLE:", "2. STYLE", "**STYLE"]):
+            style_match = extract_content_after_colon(line)
+            if style_match:
+                voice_data["style"] = style_match
+            current_section = "style"
+            
+        # Detect personality traits section
+        elif any(keyword in line_upper for keyword in ["PERSONALITY", "3. PERSONALITY", "**PERSONALITY"]):
+            current_section = "personality_traits"
+            # Try to extract inline content
+            traits_match = extract_content_after_colon(line)
+            if traits_match:
+                voice_data["personality_traits"] = [traits_match]
+                
+        # Detect communication patterns section
+        elif any(keyword in line_upper for keyword in ["COMMUNICATION", "4. COMMUNICATION", "**COMMUNICATION"]):
+            current_section = "communication_patterns"
+            patterns_match = extract_content_after_colon(line)
+            if patterns_match:
+                voice_data["communication_patterns"] = [patterns_match]
+                
+        # Detect content themes section
+        elif any(keyword in line_upper for keyword in ["CONTENT", "THEMES", "5. CONTENT", "**CONTENT"]):
+            current_section = "content_themes"
+            themes_match = extract_content_after_colon(line)
+            if themes_match:
+                voice_data["content_themes"] = [themes_match]
+                
+        # Detect emotional indicators section
+        elif any(keyword in line_upper for keyword in ["EMOTIONAL", "6. EMOTIONAL", "**EMOTIONAL"]):
+            current_section = "emotional_indicators"
+            
+        # Extract list items for current section
+        elif line.startswith(("-", "•", "*")) or any(line.startswith(f"{i}.") for i in range(1, 10)):
+            item = clean_list_item(line)
+            if item and current_section in ["personality_traits", "communication_patterns", "content_themes"]:
+                if item not in voice_data[current_section]:
+                    voice_data[current_section].append(item)
+                    
+        # Try to extract emotional scores
+        elif current_section == "emotional_indicators" and ":" in line:
+            emotion_name, score = extract_emotional_score(line)
+            if emotion_name and score is not None:
+                voice_data["emotional_indicators"][emotion_name] = score
+
+    # Fallback extraction if primary parsing didn't work well
+    if voice_data["tone"] == "Not specified":
+        voice_data["tone"] = extract_fallback_tone(ai_response)
+        
+    if voice_data["style"] == "Not specified":
+        voice_data["style"] = extract_fallback_style(ai_response)
+        
+    # Ensure we have some personality traits
+    if not voice_data["personality_traits"]:
+        voice_data["personality_traits"] = extract_fallback_traits(ai_response)
+        
+    return voice_data
+
+
+def extract_content_after_colon(line):
+    """Extract content after colon or other delimiters"""
+    if ":" in line:
+        return line.split(":", 1)[1].strip()
+    elif " - " in line:
+        return line.split(" - ", 1)[1].strip()
+    return None
+
+
+def clean_list_item(line):
+    """Clean and extract list item content"""
+    # Remove list markers and clean up
+    cleaned = line.lstrip("-•*123456789. ").strip()
+    return cleaned if cleaned and len(cleaned) > 3 else None
+
+
+def extract_emotional_score(line):
+    """Extract emotional indicator name and score from a line"""
+    try:
+        if ":" in line:
+            parts = line.split(":", 1)
+            emotion_name = parts[0].strip().lower()
+            score_text = parts[1].strip()
+              # Extract numeric score
+            import re
+            score_match = re.search(r'(\d+(?:\.\d+)?)', score_text)
+            if score_match:
+                score = float(score_match.group(1))
+                # Normalize to 0-10 scale if needed
+                if score > 10:
+                    score = score / 10
+                return emotion_name, score
+    except Exception:
+        pass
+    return None, None
+
+
+def extract_fallback_tone(ai_response):
+    """Extract tone using fallback methods"""
+    tone_keywords = {
+        "professional": ["professional", "formal", "business"],
+        "casual": ["casual", "informal", "relaxed"],
+        "enthusiastic": ["enthusiastic", "energetic", "passionate"],
+        "authoritative": ["authoritative", "confident", "expert"],
+        "approachable": ["approachable", "friendly", "warm"]
+    }
+    
+    ai_lower = ai_response.lower()
+    for tone, keywords in tone_keywords.items():
+        if any(keyword in ai_lower for keyword in keywords):
+            return f"{tone.title()} communication style"
+    
+    return "Professional and engaging"
+
+
+def extract_fallback_style(ai_response):
+    """Extract style using fallback methods"""
+    if "leadership" in ai_response.lower():
+        return "Leadership-focused communication"
+    elif "thought" in ai_response.lower():
+        return "Thought leadership style"
+    elif "business" in ai_response.lower():
+        return "Business-oriented communication"
+    else:
+        return "Professional brand communication"
+
+
+def extract_fallback_traits(ai_response):
+    """Extract personality traits using fallback methods"""
+    return [
+        "Strategic thinker",
+        "Professional presence", 
+        "Industry expertise",
+        "Collaborative approach"
+    ]
 
 
 def perform_brand_alignment_analysis(content, brand):
