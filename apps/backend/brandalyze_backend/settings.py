@@ -242,11 +242,16 @@ OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'text-embedding-3-small')
 MAX_REQUESTS_PER_HOUR = int(os.getenv('MAX_REQUESTS_PER_HOUR', '10'))
 
 # Social Media API Keys
+# twitter/x
 X_API_BEARER_TOKEN = os.getenv('X_API_BEARER_TOKEN')
 X_API_CONSUMER_KEY = os.getenv('X_API_KEY')  # Maps to X_API_KEY in .env
 X_API_CONSUMER_SECRET = os.getenv('X_API_KEY_SECRET')  # Maps to X_API_KEY_SECRET in .env
 X_API_ACCESS_TOKEN = os.getenv('X_API_ACCESS_TOKEN')
 X_API_ACCESS_TOKEN_SECRET = os.getenv('X_API_ACCESS_TOKEN_SECRET')
+
+LINKEDIN_CLIENT_ID = os.getenv('LINKEDIN_CLIENT_ID')
+LINKEDIN_CLIENT_SECRET = os.getenv('LINKEDIN_PRIMARY_CLIENT_SECRET')
+LINKEDIN_REDIRECT_URI = os.getenv('LINKEDIN_REDIRECT_URI', 'https://localhost:8000/api/auth/linkedin/callback/')
 
 # Logging configuration - ensure debug prints are visible in Render
 LOGGING = {

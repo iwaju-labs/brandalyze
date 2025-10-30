@@ -42,12 +42,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             handleContentAnalysis(request.data)
                 .then(response => sendResponse({ success: true, data: response }))
                 .catch(error => sendResponse({ success: false, error: error.message }));
-            return true;
-            
-        case "analyzeProfile":
-            handleProfileAnalysis(request.data)
-                .then(response => sendResponse({ success: true, data: response }))
-                .catch(error => sendResponse({ success: false, error: error.message }));
+            return true;        case "analyzeProfile":
+            // Handle both Twitter and LinkedIn profile analysis
+            if (request.platform === 'linkedin') {
+                console.log('🔍 Processing LinkedIn profile analysis request');
+                handleLinkedInProfileAnalysis(request.data, request.platform)
+                    .then(response => {
+                        console.log('✅ LinkedIn analysis response:', response);
+                        const responseData = { success: true, results: response };
+                        console.log('📤 Sending back to content script:', responseData);
+                        sendResponse(responseData);
+                    })
+                    .catch(error => {
+                        console.error('❌ LinkedIn analysis error:', error);
+                        const errorData = { success: false, message: error.message };
+                        console.log('📤 Sending error back to content script:', errorData);
+                        sendResponse(errorData);
+                    });
+            } else {
+                handleProfileAnalysis(request.data)
+                    .then(response => sendResponse({ success: true, data: response }))
+                    .catch(error => sendResponse({ success: false, error: error.message }));
+            }
             return true;
             
         case "analyzeContentAlignment":
@@ -562,6 +578,99 @@ async function handleProfileAnalysis(analysisData) {
         return data.data || data;
     } catch (error) {
         console.error("Profile analysis error:", error);
+        throw error;
+    }
+}
+
+// LinkedIn profile analysis handler using DOM-extracted data
+async function handleLinkedInProfileAnalysis(profileData, platform) {
+    try {
+        console.log('🔍 Starting LinkedIn profile analysis:', profileData);
+        
+        // Ensure we have authentication
+        if (!authState.isAuthenticated || !authState.clerkToken) {
+            console.log('⚠️ Not authenticated, checking auth...');
+            await checkClerkAuth();
+            if (!authState.isAuthenticated) {
+                throw new Error("Please sign in to Brandalyze first");
+            }
+        }
+
+        console.log('✅ Authentication OK, making API request...');
+        
+        // Process LinkedIn profile data for analysis
+        const requestBody = {
+            handle: profileData.handle,
+            platform: 'linkedin',
+            extracted_bio: {
+                bio: profileData.bio || profileData.headline || '',
+                display_name: profileData.display_name,
+                location: profileData.location,
+                company: profileData.company,
+                industry: profileData.industry,
+                connections_count: profileData.connections_count || 0,
+                headline: profileData.headline
+            },
+            use_bio: true, // LinkedIn profiles use bio/headline analysis
+            posts_count: 0 // No posts analysis for LinkedIn DOM extraction
+        };
+
+        console.log('📤 LinkedIn analysis request:', requestBody);
+
+        // Make the API request
+        const response = await fetch(`${authState.currentApiUrl}/extension/analyze/profile/voice/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${authState.clerkToken}`,
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        console.log('📥 Response status:', response.status);
+        
+        // If 401, try refreshing auth once
+        if (response.status === 401) {
+            console.log('🔄 Got 401, refreshing auth and retrying once...');
+            await checkClerkAuth();
+            
+            if (authState.isAuthenticated) {
+                const retryResponse = await fetch(`${authState.currentApiUrl}/extension/analyze/profile/voice/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authState.clerkToken}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                
+                if (!retryResponse.ok) {
+                    const errorData = await retryResponse.json().catch(() => ({}));
+                    throw new Error(errorData.message || `LinkedIn analysis failed: ${retryResponse.status}`);
+                }
+                
+                const retryData = await retryResponse.json();
+                console.log('✅ LinkedIn analysis completed (retry):', retryData);
+                return retryData.data || retryData;
+            }
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `LinkedIn analysis failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ LinkedIn analysis completed:', data);
+        
+        // Check if the backend returned an error in the data
+        if (!data.success && data.message) {
+            throw new Error(data.message);
+        }
+        
+        return data.data || data;
+    } catch (error) {
+        console.error("LinkedIn profile analysis error:", error);
         throw error;
     }
 }

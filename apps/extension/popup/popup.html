@@ -1,104 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Brandalyze Extension</title>
-    <link rel="stylesheet" href="popup.css">
-</head>
-<body>    <!-- Header with Logo -->
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <!-- Header with Logo -->
     <div class="text-center mb-5 pb-4 border-b border-gray-200">
-        <div class="flex items-center justify-center mb-2">
-            <img src="../assets/icon.png" alt="Brandalyze" class="w-6 h-6 mr-2">
-            <div class="text-lg font-semibold text-gray-800">Brandalyze</div>
-        </div>
-        <div class="text-xs text-gray-500">AI Powered Brand Analysis</div>
-        <div class="text-xs text-blue-600 mt-1 hidden" id="platformIndicator"></div>
-    </div>
-    
-    <!-- User Info Card -->
-    <div class="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
-        <div class="flex items-center gap-2 mb-2">
-            <div class="w-2 h-2 rounded-full" id="statusDot"></div>
-            <span class="text-sm" id="statusText">Checking authentication...</span>
-        </div>
-        <div class="text-xs text-gray-500" id="userEmail"></div>
+      <div class="flex items-center justify-center mb-2">
+        <img src="../assets/icon.png" alt="Brandalyze" class="w-6 h-6 mr-2" />
+        <div class="text-lg font-semibold text-gray-800">Brandalyze</div>
+      </div>
+      <div class="text-xs text-gray-500">AI Powered Brand Analysis</div>
+      <div
+        class="text-xs text-blue-600 mt-1 hidden"
+        id="platformIndicator"
+      ></div>
+    </div>    <!-- User Info Card with Settings Button -->
+    <div class="flex gap-2 mb-4">
+      <div class="flex-1 bg-gray-50 border border-gray-200 rounded-md p-3">
+        <div class="text-xs text-gray-500" id="userEmail">Checking authentication...</div>
         <div class="mt-1 text-xs hidden" id="subscriptionInfo">
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium uppercase" id="subscriptionTier"></span>
+          <span
+            class="inline-block px-2 py-0.5 rounded text-xs font-medium uppercase"
+            id="subscriptionTier"
+          ></span>
         </div>
+      </div>
+
+      <button
+        class="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-3 rounded cursor-pointer text-lg flex items-center justify-center"
+        id="openOptionsBtn"
+        title="Settings & Handles"
+      >
+        ⚙️
+      </button>
     </div>
-    
     <!-- Loading Spinner -->
     <div class="hidden text-center my-3" id="loading">
-        <div class="w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full spinner mx-auto"></div>
-    </div>    
-      <!-- Cache Status (for debugging) -->
-    <div class="text-xs text-gray-400 text-center mb-2 flex items-center justify-center gap-2" id="cacheStatus">
-        <span id="cacheText"></span>
-        <button id="refreshAuthBtn" class="text-blue-500 hover:text-blue-700 underline cursor-pointer" title="Refresh authentication">↻</button>
-    </div>    <!-- Authenticated Content -->
-    <div id="authenticatedContent" class="hidden">
-        <!-- Upgrade Notice -->
-        <div id="upgradeNotice" class="hidden bg-yellow-50 border border-yellow-200 rounded p-2 mb-3 text-xs text-yellow-800">
-            <strong class="text-yellow-900">Extension Access Required</strong><br>
-            The browser extension requires a Pro or Enterprise subscription. 
-            <a href="#" id="upgradeLink" class="text-yellow-700 underline hover:text-yellow-900">Upgrade your plan</a> to access this feature.
-        </div>
-          <!-- Main Action Buttons -->
-        <div class="space-y-2">
-            <button class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white border-0 px-4 py-2 rounded cursor-pointer text-sm font-medium" id="analyzeProfileBtn">
-                <span id="analyzeButtonText">Analyze Current Profile</span>
-            </button>
-            
-            <!-- Content Alignment Analysis -->
-            <div class="bg-blue-50 border border-blue-200 rounded p-3">
-                <h3 class="text-sm font-medium text-blue-900 mb-2">Content Alignment Check</h3>
-                
-                <div class="space-y-2">
-                    <textarea 
-                        id="contentToAnalyze" 
-                        class="w-full p-2 border border-gray-300 rounded text-xs resize-none"
-                        placeholder="Enter your post content to check alignment..."
-                        rows="2"
-                    ></textarea>
-                    
-                    <div class="flex gap-2">
-                        <select id="alignmentType" class="flex-1 p-1 border border-gray-300 rounded text-xs">
-                            <option value="brand">My Brand</option>
-                            <option value="profile">Profile Voice</option>
-                        </select>
-                        
-                        <input 
-                            type="text" 
-                            id="referenceHandle" 
-                            class="flex-1 p-1 border border-gray-300 rounded text-xs hidden"
-                            placeholder="@username"
-                        >
-                    </div>
-                    
-                    <button class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white border-0 px-3 py-1 rounded cursor-pointer text-xs font-medium" id="analyzeContentBtn">
-                        Check Alignment
-                    </button>
-                </div>
-            </div>
-            
-            <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded cursor-pointer text-sm font-medium" id="openOptionsBtn">
-                ⚙️ Settings & Handles
-            </button>
-        </div>
-        
-        <!-- Status Messages -->
-        <div id="handleError" class="text-red-600 text-xs mt-2 hidden"></div>
-        <div id="handleSuccess" class="text-green-600 text-xs mt-2 hidden"></div>
+      <div
+        class="w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full spinner mx-auto"
+      ></div>
     </div>
-    
+    <!-- Cache Status (for debugging) -->
+    <div
+      class="text-xs text-gray-400 text-center mb-2 flex items-center justify-center gap-2"
+      id="cacheStatus"
+    >
+      <span id="cacheText"></span>
+      <button
+        id="refreshAuthBtn"
+        class="text-blue-500 hover:text-blue-700 underline cursor-pointer"
+        title="Refresh authentication"
+      >
+        ↻
+      </button>
+    </div>
+    <!-- Authenticated Content -->
+    <div id="authenticatedContent" class="hidden">
+      <!-- Upgrade Notice -->
+      <div
+        id="upgradeNotice"
+        class="hidden bg-yellow-50 border border-yellow-200 rounded p-2 mb-3 text-xs text-yellow-800"
+      >
+        <strong class="text-yellow-900">Extension Access Required</strong><br />
+        The browser extension requires a Pro or Enterprise subscription.
+        <a
+          href="#"
+          id="upgradeLink"
+          class="text-yellow-700 underline hover:text-yellow-900"
+          >Upgrade your plan</a
+        >
+        to access this feature.
+      </div>
+      <!-- Platform Navigation Buttons -->
+      <div class="space-y-2">
+        <div class="bg-gray-50 border border-gray-200 rounded p-3">
+          <h3 class="text-sm font-medium text-gray-800 mb-2">
+            Profile Analysis
+          </h3>
+          <p class="text-xs text-gray-600 mb-3">
+            Go to your profile and use the analyze button
+          </p>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              class="bg-black hover:bg-gray-800 text-white border-0 p-3 rounded cursor-pointer flex items-center justify-center"
+              id="goToTwitterBtn"
+              title="Go to your Twitter/X profile"
+            >
+              <img
+                src="../assets/icons/twitter-x.svg"
+                alt="X"
+                class="w-5 h-5 filter invert"
+              />
+            </button>
+
+            <button
+              class="bg-blue-600 hover:bg-blue-700 text-white border-0 p-3 rounded cursor-pointer flex items-center justify-center"
+              id="goToLinkedInBtn"
+              title="Go to your LinkedIn profile"
+            >
+              <img
+                src="../assets/icons/linkedin.svg"
+                alt="LinkedIn"
+                class="w-5 h-5"
+              />
+            </button>
+          </div>
+
+          <div class="mt-2 text-xs text-gray-500 text-center">
+            Look for the "Analyze Profile" button on profile pages
+          </div>
+        </div>
+
+        <!-- Content Alignment Analysis -->
+        <div class="bg-blue-50 border border-blue-200 rounded p-3">
+          <h3 class="text-sm font-medium text-blue-900 mb-2">
+            Content Alignment Check
+          </h3>
+
+          <div class="space-y-2">
+            <textarea
+              id="contentToAnalyze"
+              class="w-full p-2 border border-gray-300 rounded text-xs resize-none"
+              placeholder="Enter your post content to check alignment..."
+              rows="2"
+            ></textarea>
+
+            <div class="flex gap-2">
+              <select
+                id="alignmentType"
+                class="flex-1 p-1 border border-gray-300 rounded text-xs"
+              >
+                <option value="brand">My Brand</option>
+                <option value="profile">Profile Voice</option>
+              </select>
+
+              <input
+                type="text"
+                id="referenceHandle"
+                class="flex-1 p-1 border border-gray-300 rounded text-xs hidden"
+                placeholder="@username"
+              />
+            </div>
+
+            <button
+              class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white border-0 px-3 py-1 rounded cursor-pointer text-xs font-medium"
+              id="analyzeContentBtn"
+            >
+              Check Alignment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Messages -->
+      <div id="handleError" class="text-red-600 text-xs mt-2 hidden"></div>
+      <div id="handleSuccess" class="text-green-600 text-xs mt-2 hidden"></div>
+    </div>
+
     <!-- Unauthenticated Content -->
     <div id="unauthenticatedContent" class="hidden">
-        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white border-0 px-4 py-2 rounded cursor-pointer text-sm font-medium" id="signInBtn">
-            Sign In to Brandalyze
-        </button>
+      <button
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white border-0 px-4 py-2 rounded cursor-pointer text-sm font-medium"
+        id="signInBtn"
+      >
+        Sign In to Brandalyze
+      </button>
     </div>
 
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

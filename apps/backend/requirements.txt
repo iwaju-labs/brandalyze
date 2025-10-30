@@ -20,5 +20,6 @@ dj-database-url==2.1.0
 stripe==7.12.0
 # Social Media APIs
 tweepy==4.14.0
+python-linkedin-v2
 # Local packages (editable installations)
 -e ./packages/ai_core
