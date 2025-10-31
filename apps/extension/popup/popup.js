@@ -57,6 +57,72 @@ async function openBrandalyzeApp() {
   }
 }
 
+// Check if there's a saved analysis for the current platform
+async function checkSavedAnalysis(platform) {
+  try {
+    const stored = await chrome.storage.local.get('saved_analyses');
+    const savedAnalyses = stored.saved_analyses || [];
+    
+    // Find the most recent analysis for this platform
+    const platformAnalysis = savedAnalyses
+      .filter(item => item.platform === platform)
+      .sort((a, b) => new Date(b.analyzed_at) - new Date(a.analyzed_at))[0];
+    
+    return !!platformAnalysis; // Return true if analysis exists
+  } catch (error) {
+    console.error('Error checking saved analysis:', error);
+    return false;
+  }
+}
+
+// Update content alignment section visibility and functionality
+async function updateContentAlignmentSection(platformInfo) {
+  const contentSection = getElement('contentAlignmentSection');
+  const noAnalysisWarning = getElement('noAnalysisWarning');
+  const analyzeContentBtn = getElement('analyzeContentBtn');
+  const contentToAnalyze = getElement('contentToAnalyze');
+  
+  if (!platformInfo) {
+    // Hide content alignment section if not on a supported platform
+    hideElement(contentSection);
+    return;
+  }
+  
+  // Show content alignment section for supported platforms
+  showElement(contentSection);
+  
+  // Check if there's a saved analysis for this platform
+  const hasAnalysis = await checkSavedAnalysis(platformInfo.platform);
+  
+  if (hasAnalysis) {
+    // Hide warning - analysis is available
+    hideElement(noAnalysisWarning);
+    
+    // Enable content analysis if user has paid plan (will be handled by updateFeatureAccess)
+    if (analyzeContentBtn && !analyzeContentBtn.textContent.includes('Pro Feature')) {
+      analyzeContentBtn.disabled = false;
+      setText(analyzeContentBtn, 'Check Alignment');
+    }
+    if (contentToAnalyze && !contentToAnalyze.placeholder.includes('Pro feature')) {
+      contentToAnalyze.disabled = false;
+      contentToAnalyze.placeholder = 'Enter your post content to check alignment...';
+    }
+  } else {
+    // Show warning - no analysis available
+    showElement(noAnalysisWarning);
+    
+    // Disable content analysis regardless of subscription
+    if (analyzeContentBtn) {
+      analyzeContentBtn.disabled = true;
+      setText(analyzeContentBtn, 'Analyze Profile First');
+    }
+    if (contentToAnalyze) {
+      contentToAnalyze.disabled = true;
+      contentToAnalyze.placeholder = 'Profile analysis required first...';
+    }
+  }
+}
+
 // Platform detection function
 async function detectCurrentPlatform() {
   try {
@@ -184,8 +250,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText(elements.handleSuccess, "");
     hideElement(elements.handleError);
     hideElement(elements.handleSuccess);
-  }  // Update platform indicator
-  function updatePlatformIndicator(platformInfo) {
+  }
+
+  // Update platform indicator and content alignment section
+  async function updatePlatformIndicator(platformInfo) {
     currentPlatform = platformInfo;
 
     if (platformInfo) {
@@ -197,6 +265,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       hideElement(elements.platformIndicator);
     }
+    
+    // Update content alignment section based on platform and available analyses
+    await updateContentAlignmentSection(platformInfo);
   }
 
   // Analyze content alignment
@@ -210,7 +281,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const alignmentType = elements.alignmentType?.value || "brand";
+    const alignmentType = elements.alignmentType?.value || "profile";
     const referenceHandle = elements.referenceHandle?.value?.trim();
 
     if (alignmentType === "profile" && !referenceHandle) {
@@ -285,18 +356,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.analyzeContentBtn.disabled = false;
     }
   }
-  // Toggle reference handle visibility based on alignment type
-  if (elements.alignmentType) {
-    elements.alignmentType.addEventListener("change", () => {
-      const alignmentType = elements.alignmentType.value;
-      if (alignmentType === "profile") {
-        showElement(elements.referenceHandle);
-      } else {
-        hideElement(elements.referenceHandle);
-        if (elements.referenceHandle) elements.referenceHandle.value = "";
-      }
-    });
-  } // Check authentication - optimized to use cache when possible
+
+  // Check authentication - optimized to use cache when possible
   async function checkAuth() {
     // Only show loading for fresh auth checks
     const startTime = Date.now();
@@ -345,7 +406,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateAuthUI({ isAuthenticated: false });
       console.error("Force refresh error:", error);
     }
-  } // Update authentication UI - simplified and efficient
+  }
+
+  // Update authentication UI - simplified and efficient
   function updateAuthUI(authState) {
     hideLoading();
 
@@ -361,6 +424,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Authenticated - fetch user details
       if (authState.apiUrl && authState.jwt) {
         fetchUserInfo(authState.apiUrl, authState.jwt).then((userInfo) => {
+          currentUser = userInfo;
           setText(elements.userEmail, userInfo.email);
           updateSubscriptionUI(userInfo);
         });
@@ -391,7 +455,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       elements.subscriptionTier.className = `inline-block px-2 py-0.5 rounded text-xs font-medium uppercase border ${tierClasses}`;
       showElement(elements.subscriptionInfo);
-    }    // Handle free user restrictions
+    }
+
+    // Handle free user restrictions
     if (
       userInfo.requiresUpgrade ||
       userInfo.subscriptionTier?.toLowerCase() === "free"
@@ -416,7 +482,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       hideElement(elements.upgradeNotice);
 
-      // Enable features for paid users
+      // Enable features for paid users - but check if analysis is available
+      // This will be further refined by updateContentAlignmentSection
       if (elements.analyzeContentBtn) {
         elements.analyzeContentBtn.disabled = false;
         elements.analyzeContentBtn.className =
@@ -433,7 +500,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           "Enter your post content to check alignment...";
       }
     }
-  }  // Event listeners
+    
+    // Update content alignment section after subscription check
+    updateContentAlignmentSection(currentPlatform);
+  }
+
+  // Event listeners
   if (elements.signInBtn)
     elements.signInBtn.addEventListener("click", openBrandalyzeApp);
   if (elements.refreshAuthBtn)
@@ -464,6 +536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
+
   if (elements.upgradeLink) {
     elements.upgradeLink.addEventListener("click", (e) => {
       e.preventDefault();
@@ -474,6 +547,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initial setup
   const platformInfo = await detectCurrentPlatform();
-  updatePlatformIndicator(platformInfo);
+  await updatePlatformIndicator(platformInfo);
   await checkAuth();
 });
