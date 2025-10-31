@@ -5,7 +5,14 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
 import toast from "react-hot-toast";
-import { CheckCircle, CreditCard02, Zap, Laptop02, ArrowRight, Building07 } from "@untitledui/icons";
+import {
+  CheckCircle,
+  CreditCard02,
+  Zap,
+  Laptop02,
+  ArrowRight,
+  Building07,
+} from "@untitledui/icons";
 
 const pricingTiers = [
   {
@@ -18,33 +25,37 @@ const pricingTiers = [
       "5 brand samples",
       "Basic AI feedback",
       "Manual Input for brand samples",
-      "Community support"
+      "Community support",
     ],
     buttonText: "Get Started Free",
     popular: false,
     stripeId: null,
-    icon: Laptop02
+    icon: Laptop02,
   },
   {
     name: "Pro",
-    price: 19,
+    price: 9.49,
     billing: "month",
-    description: "For growing businesses and agencies",    features: [
+    description: "For growing businesses and agencies",
+    features: [
       "50 analyses per day",
       "Unlimited brand samples",
       "Advanced AI insights",
+      "Access to the browser extension",
+      "Social-media profile analysis",
+      "Results saved to extension storage",
       "Priority support",
-      "7-day free trial"
+      "7-day free trial",
     ],
     buttonText: "Start Free Trial",
     popular: true,
     stripeId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-    icon: Zap
+    icon: Zap,
   },
   {
     name: "Enterprise",
-    price: 99,
-    billing: "month", 
+    price: 49,
+    billing: "month",
     description: "For large teams and organizations",
     features: [
       "Unlimited analyses",
@@ -52,14 +63,15 @@ const pricingTiers = [
       "Custom AI models",
       "Dedicated support",
       "API access",
-      "Team management (coming soon)",
-      "Everything in previous tiers"
+      "Multi-account support",
+      "Export results to CSV/JSON/PDF",
+      "Everything in previous tiers",
     ],
     buttonText: "Get Started",
     popular: false,
     stripeId: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID,
-    icon: Building07
-  }
+    icon: Building07,
+  },
 ];
 
 export default function PricingPage() {
@@ -69,11 +81,11 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{
     show: boolean;
-    tier: typeof pricingTiers[0] | null;
-    type: 'trial' | 'subscription';
-  }>({ show: false, tier: null, type: 'subscription' });
+    tier: (typeof pricingTiers)[0] | null;
+    type: "trial" | "subscription";
+  }>({ show: false, tier: null, type: "subscription" });
 
-  const handleSubscribe = async (tier: typeof pricingTiers[0]) => {
+  const handleSubscribe = async (tier: (typeof pricingTiers)[0]) => {
     if (!isSignedIn) {
       toast.error("Please sign in to subscribe");
       router.push("/sign-in");
@@ -89,7 +101,7 @@ export default function PricingPage() {
     setShowConfirmDialog({
       show: true,
       tier,
-      type: 'subscription'
+      type: "subscription",
     });
   };
 
@@ -101,19 +113,22 @@ export default function PricingPage() {
     }
 
     setIsLoading(tier.name);
-    setShowConfirmDialog({ show: false, tier: null, type: 'subscription' });
+    setShowConfirmDialog({ show: false, tier: null, type: "subscription" });
 
     try {
-      const response = await authenticatedFetch("/payments/create-checkout-session/", getToken, {
-        method: "POST",
-        body: JSON.stringify({
-          price_id: tier.stripeId
-        })
-      });
+      const response = await authenticatedFetch(
+        "/payments/create-checkout-session/",
+        getToken,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            price_id: tier.stripeId,
+          }),
+        }
+      );
 
       // Redirect to Stripe Checkout
       window.location.href = response.data.checkout_url;
-
     } catch (error) {
       console.error("Subscription error:", error);
       toast.error("Failed to start subscription process");
@@ -132,18 +147,22 @@ export default function PricingPage() {
     // Show confirmation dialog for trial
     setShowConfirmDialog({
       show: true,
-      tier: pricingTiers.find(t => t.name === "Pro") || null,
-      type: 'trial'
+      tier: pricingTiers.find((t) => t.name === "Pro") || null,
+      type: "trial",
     });
   };
   const confirmTrial = async () => {
     setIsLoading("trial");
-    setShowConfirmDialog({ show: false, tier: null, type: 'subscription' });
+    setShowConfirmDialog({ show: false, tier: null, type: "subscription" });
 
     try {
-      const response = await authenticatedFetch("/payments/start-trial/", getToken, {
-        method: "POST"
-      });
+      const response = await authenticatedFetch(
+        "/payments/start-trial/",
+        getToken,
+        {
+          method: "POST",
+        }
+      );
 
       if (response.data?.checkout_url) {
         // Redirect to Stripe checkout
@@ -152,10 +171,11 @@ export default function PricingPage() {
         toast.success("🎉 Free trial started! Enjoy Pro features for 7 days.");
         router.push("/analyze");
       }
-
     } catch (error) {
       console.error("Trial error:", error);
-      toast.error("Failed to start trial. You may have already used your trial.");
+      toast.error(
+        "Failed to start trial. You may have already used your trial."
+      );
     } finally {
       setIsLoading(null);
     }
@@ -197,11 +217,11 @@ export default function PricingPage() {
                   <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto mb-4">
                     <IconComponent className="w-6 h-6 text-purple-600" />
                   </div>
-                  
+
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {tier.name}
                   </h3>
-                  
+
                   <div className="mb-4">
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">
                       ${tier.price}
@@ -212,7 +232,7 @@ export default function PricingPage() {
                       </span>
                     )}
                   </div>
-                  
+
                   <p className="text-gray-600 dark:text-gray-300">
                     {tier.description}
                   </p>
@@ -230,19 +250,21 @@ export default function PricingPage() {
                 </ul>
 
                 <button
-                  onClick={() => tier.name === "Pro" ? startTrial() : handleSubscribe(tier)}
+                  onClick={() =>
+                    tier.name === "Pro" ? startTrial() : handleSubscribe(tier)
+                  }
                   disabled={isLoading === tier.name || isLoading === "trial"}
                   className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center ${
                     tier.popular
                       ? "bg-purple-700 dark:bg-black text-white shadow-lg hover:shadow-xl"
                       : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
                   } ${
-                    (isLoading === tier.name || isLoading === "trial")
+                    isLoading === tier.name || isLoading === "trial"
                       ? "opacity-50 cursor-not-allowed"
                       : ""
                   }`}
                 >
-                  {(isLoading === tier.name || isLoading === "trial") ? (
+                  {isLoading === tier.name || isLoading === "trial" ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                       Processing...
@@ -274,7 +296,7 @@ export default function PricingPage() {
           <p className="text-gray-500 dark:text-gray-400 mb-8">
             All paid plans include a 7-day free trial. Cancel anytime.
           </p>
-          
+
           <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-400">
             <div className="flex items-center">
               <Laptop02 className="w-4 h-4 mr-2" />
@@ -286,12 +308,12 @@ export default function PricingPage() {
             </div>
             <div>Cancel Anytime</div>
           </div>
-          
+
           <div className="mt-8">
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Questions? Email me at{" "}
-              <a 
-                href="mailto:dom@brandalyze.io" 
+              Questions/Issues? Email me at{" "}
+              <a
+                href="mailto:dom@brandalyze.io"
                 className="text-purple-600 hover:text-purple-700"
               >
                 dom@brandalyze.io
@@ -307,7 +329,7 @@ export default function PricingPage() {
           <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mr-4">
-                {showConfirmDialog.type === 'trial' ? (
+                {showConfirmDialog.type === "trial" ? (
                   <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 ) : (
                   <CreditCard02 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -315,25 +337,25 @@ export default function PricingPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {showConfirmDialog.type === 'trial' 
-                    ? 'Start Free Trial' 
-                    : `Subscribe to ${showConfirmDialog.tier.name}`
-                  }
+                  {showConfirmDialog.type === "trial"
+                    ? "Start Free Trial"
+                    : `Subscribe to ${showConfirmDialog.tier.name}`}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {showConfirmDialog.type === 'trial' 
-                    ? 'Confirm your 7-day free trial'
-                    : 'Confirm your subscription'
-                  }
+                  {showConfirmDialog.type === "trial"
+                    ? "Confirm your 7-day free trial"
+                    : "Confirm your subscription"}
                 </p>
               </div>
             </div>
 
             <div className="mb-6">
-              {showConfirmDialog.type === 'trial' ? (
+              {showConfirmDialog.type === "trial" ? (
                 <div>
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    You&apos;re about to start a <strong>7-day free trial</strong> of the Pro plan. You&apos;ll get:
+                    You&apos;re about to start a{" "}
+                    <strong>7-day free trial</strong> of the Pro plan.
+                    You&apos;ll get:
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-4">
                     <li>50 analyses per day</li>
@@ -348,15 +370,20 @@ export default function PricingPage() {
               ) : (
                 <div>
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    You&apos;re about to subscribe to the <strong>{showConfirmDialog.tier.name} plan</strong> for <strong>${showConfirmDialog.tier.price}/month</strong>.
+                    You&apos;re about to subscribe to the{" "}
+                    <strong>{showConfirmDialog.tier.name} plan</strong> for{" "}
+                    <strong>${showConfirmDialog.tier.price}/month</strong>.
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    You&apos;ll be redirected to our secure payment processor to complete your subscription.
+                    You&apos;ll be redirected to our secure payment processor to
+                    complete your subscription.
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    {showConfirmDialog.tier.features.slice(0, 4).map((feature, index) => (
-                      <li key={index}>{feature}</li>
-                    ))}
+                    {showConfirmDialog.tier.features
+                      .slice(0, 4)
+                      .map((feature, index) => (
+                        <li key={index}>{feature}</li>
+                      ))}
                   </ul>
                 </div>
               )}
@@ -364,16 +391,26 @@ export default function PricingPage() {
 
             <div className="flex space-x-3">
               <button
-                onClick={() => setShowConfirmDialog({ show: false, tier: null, type: 'subscription' })}
+                onClick={() =>
+                  setShowConfirmDialog({
+                    show: false,
+                    tier: null,
+                    type: "subscription",
+                  })
+                }
                 className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={showConfirmDialog.type === 'trial' ? confirmTrial : confirmSubscription}
+                onClick={
+                  showConfirmDialog.type === "trial"
+                    ? confirmTrial
+                    : confirmSubscription
+                }
                 className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
               >
-                {showConfirmDialog.type === 'trial' ? (
+                {showConfirmDialog.type === "trial" ? (
                   <>
                     <Zap className="w-4 h-4 mr-2" />
                     Start Trial
