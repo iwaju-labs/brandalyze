@@ -60,65 +60,72 @@ async function openBrandalyzeApp() {
 // Check if there's a saved analysis for the current platform
 async function checkSavedAnalysis(platform) {
   try {
-    const stored = await chrome.storage.local.get('saved_analyses');
+    const stored = await chrome.storage.local.get("saved_analyses");
     const savedAnalyses = stored.saved_analyses || [];
-    
+
     // Find the most recent analysis for this platform
     const platformAnalysis = savedAnalyses
-      .filter(item => item.platform === platform)
+      .filter((item) => item.platform === platform)
       .sort((a, b) => new Date(b.analyzed_at) - new Date(a.analyzed_at))[0];
-    
+
     return !!platformAnalysis; // Return true if analysis exists
   } catch (error) {
-    console.error('Error checking saved analysis:', error);
+    console.error("Error checking saved analysis:", error);
     return false;
   }
 }
 
 // Update content alignment section visibility and functionality
 async function updateContentAlignmentSection(platformInfo) {
-  const contentSection = getElement('contentAlignmentSection');
-  const noAnalysisWarning = getElement('noAnalysisWarning');
-  const analyzeContentBtn = getElement('analyzeContentBtn');
-  const contentToAnalyze = getElement('contentToAnalyze');
-  
+  const contentSection = getElement("contentAlignmentSection");
+  const noAnalysisWarning = getElement("noAnalysisWarning");
+  const analyzeContentBtn = getElement("analyzeContentBtn");
+  const contentToAnalyze = getElement("contentToAnalyze");
+
   if (!platformInfo) {
     // Hide content alignment section if not on a supported platform
     hideElement(contentSection);
     return;
   }
-  
+
   // Show content alignment section for supported platforms
   showElement(contentSection);
-  
+
   // Check if there's a saved analysis for this platform
   const hasAnalysis = await checkSavedAnalysis(platformInfo.platform);
-  
+
   if (hasAnalysis) {
     // Hide warning - analysis is available
     hideElement(noAnalysisWarning);
-    
+
     // Enable content analysis if user has paid plan (will be handled by updateFeatureAccess)
-    if (analyzeContentBtn && !analyzeContentBtn.textContent.includes('Pro Feature')) {
+    if (
+      analyzeContentBtn &&
+      !analyzeContentBtn.textContent.includes("Pro Feature")
+    ) {
       analyzeContentBtn.disabled = false;
-      setText(analyzeContentBtn, 'Check Alignment');
+      setText(analyzeContentBtn, "Check Alignment");
     }
-    if (contentToAnalyze && !contentToAnalyze.placeholder.includes('Pro feature')) {
+    if (
+      contentToAnalyze &&
+      !contentToAnalyze.placeholder.includes("Pro feature")
+    ) {
       contentToAnalyze.disabled = false;
-      contentToAnalyze.placeholder = 'Enter your post content to check alignment...';
+      contentToAnalyze.placeholder =
+        "Enter your post content to check alignment...";
     }
   } else {
     // Show warning - no analysis available
     showElement(noAnalysisWarning);
-    
+
     // Disable content analysis regardless of subscription
     if (analyzeContentBtn) {
       analyzeContentBtn.disabled = true;
-      setText(analyzeContentBtn, 'Analyze Profile First');
+      setText(analyzeContentBtn, "Analyze Profile First");
     }
     if (contentToAnalyze) {
       contentToAnalyze.disabled = true;
-      contentToAnalyze.placeholder = 'Profile analysis required first...';
+      contentToAnalyze.placeholder = "Profile analysis required first...";
     }
   }
 }
@@ -265,7 +272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       hideElement(elements.platformIndicator);
     }
-    
+
     // Update content alignment section based on platform and available analyses
     await updateContentAlignmentSection(platformInfo);
   }
@@ -500,7 +507,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           "Enter your post content to check alignment...";
       }
     }
-    
+
     // Update content alignment section after subscription check
     updateContentAlignmentSection(currentPlatform);
   }

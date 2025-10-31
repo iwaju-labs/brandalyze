@@ -18,10 +18,13 @@
         class="text-xs text-blue-600 mt-1 hidden"
         id="platformIndicator"
       ></div>
-    </div>    <!-- User Info Card with Settings Button -->
+    </div>
+    <!-- User Info Card with Settings Button -->
     <div class="flex gap-2 mb-4">
       <div class="flex-1 bg-gray-50 border border-gray-200 rounded-md p-3">
-        <div class="text-xs text-gray-500" id="userEmail">Checking authentication...</div>
+        <div class="text-xs text-gray-500" id="userEmail">
+          Checking authentication...
+        </div>
         <div class="mt-1 text-xs hidden" id="subscriptionInfo">
           <span
             class="inline-block px-2 py-0.5 rounded text-xs font-medium uppercase"
@@ -113,15 +116,23 @@
           <div class="mt-2 text-xs text-gray-500 text-center">
             Look for the "Analyze Profile" button on profile pages
           </div>
-        </div>        <!-- Content Alignment Analysis - Only visible on supported platforms -->
-        <div id="contentAlignmentSection" class="bg-blue-50 border border-blue-200 rounded p-3 hidden">
+        </div>
+        <!-- Content Alignment Analysis - Only visible on supported platforms -->
+        <div
+          id="contentAlignmentSection"
+          class="bg-blue-50 border border-blue-200 rounded p-3 hidden"
+        >
           <h3 class="text-sm font-medium text-blue-900 mb-2">
             Content Alignment Check
           </h3>
-          
-          <div id="noAnalysisWarning" class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-xs text-yellow-800 hidden">
+
+          <div
+            id="noAnalysisWarning"
+            class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-xs text-yellow-800 hidden"
+          >
             <strong>No Profile Analysis Found</strong><br />
-            Please analyze your profile first to enable content alignment checking.
+            Please analyze your profile first to enable content alignment
+            checking.
           </div>
 
           <div class="space-y-2">
