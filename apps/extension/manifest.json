@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Brandalyze - Social Media Brand Analysis",
   "version": "1.0.0",
-  "description": "Real-time brand analysis for social media content. Analyse posts and comments for brand alignment while browsing Twitter, LinkedIn, and more.",
+  "description": "Real-time brand analysis for social media content. Analyse profiles and posts for detailed metrics while browsing your socials.",
   "permissions": ["activeTab", "storage", "identity", "scripting", "tabs"],
   "host_permissions": [
     "https://twitter.com/*",
