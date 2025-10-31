@@ -547,7 +547,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (elements.upgradeLink) {
     elements.upgradeLink.addEventListener("click", (e) => {
       e.preventDefault();
-      chrome.tabs.create({ url: "http://localhost:3000/pricing" });
+      chrome.tabs.create({ url: "http://brandalyze.io/pricing" });
       globalThis.close();
     });
   }
