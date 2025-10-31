@@ -36,10 +36,14 @@ const markdownComponents: Components = {
     </h3>
   ),
   p: ({ children }) => (
-    <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">{children}</p>
+    <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+      {children}
+    </p>
   ),
   strong: ({ children }) => (
-    <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>
+    <strong className="font-semibold text-gray-900 dark:text-white">
+      {children}
+    </strong>
   ),
   ul: ({ children }) => (
     <ul className="list-disc pl-6 mb-3 space-y-1">{children}</ul>
@@ -48,7 +52,9 @@ const markdownComponents: Components = {
     <ol className="list-decimal pl-6 mb-3 space-y-1">{children}</ol>
   ),
   li: ({ children }) => (
-    <li className="text-gray-700 dark:text-gray-300 leading-relaxed">{children}</li>
+    <li className="text-gray-700 dark:text-gray-300 leading-relaxed">
+      {children}
+    </li>
   ),
   blockquote: ({ children }) => (
     <blockquote className="border-l-4 border-purple-500 pl-4 italic text-gray-600 dark:text-gray-400 my-4">
@@ -110,11 +116,12 @@ export default function BrandAnalysis() {
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [brandSamples, setBrandSamples] = useState<string[]>([""]);
-  const [newTextForComparison, setNewTextForComparison] = useState("");  const [brandAnalysisResult, setBrandAnalysisResult] =
+  const [newTextForComparison, setNewTextForComparison] = useState("");
+  const [brandAnalysisResult, setBrandAnalysisResult] =
     useState<BrandAnalysisResponse | null>(null);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manual'>('manual');
+  const [activeTab, setActiveTab] = useState<"manual">("manual");
   const fetchUsageInfo = useCallback(async () => {
     try {
       const response = await authenticatedFetch("/user/usage", getToken);
@@ -286,11 +293,10 @@ export default function BrandAnalysis() {
             Analyze how well your content aligns with your brand voice.
           </p>
 
-        {/** Usage Dashboard */}
-        {!isLoadingUsage && (usageInfo?.usage.remaining_today === 0) && (
-          <UsageDashboard />
-        )}
-
+          {/** Usage Dashboard */}
+          {!isLoadingUsage && usageInfo?.usage.remaining_today === 0 && (
+            <UsageDashboard />
+          )}
         </div>
         <div className="space-y-6">
           <div>
@@ -300,86 +306,90 @@ export default function BrandAnalysis() {
             <p className="text-gray-500 mb-6">
               Add your brand samples below, then enter new content to see how
               well it aligns with your brand voice.
-            </p>          </div>
-          
+            </p>{" "}
+          </div>
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200 dark:border-gray-700 mb-6">            <nav className="-mb-px flex space-x-8">
+          <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+            {" "}
+            <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setActiveTab('manual')}
+                onClick={() => setActiveTab("manual")}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'manual'
-                    ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  activeTab === "manual"
+                    ? "border-purple-500 text-purple-600 dark:text-purple-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
               >
                 Content Input
               </button>
             </nav>
           </div>
-
           {/* Tab Content */}
-          {activeTab === 'manual' && (
-          <div>
-            <div className="block text-lg font-medium text-foreground mb-2">
-              Brand Samples
-            </div>{" "}
-            <p className="text-sm text-gray-500 mb-4">
-              Add 2-5 examples of your brand&apos;s writing style (marketing
-              copy, social posts, etc.)
-            </p>{" "}
-            {brandSamples.map((sample, index) => (
-              <div key={index} className="mb-4">
-                <div className="flex items-start space-x-2">
-                  <div className="flex-1">
-                    <textarea
-                      value={sample}
-                      onChange={(e) => updateBrandSample(index, e.target.value)}
-                      placeholder={`Brand sample ${index + 1}...`}
-                      className="w-full h-24 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none dark:bg-neutral-500"
-                      maxLength={2000}
-                    />
-                    <div className="text-xs text-gray-400 mt-1">
-                      {sample.length}/2000 characters
+          {activeTab === "manual" && (
+            <div>
+              <div className="block text-lg font-medium text-foreground mb-2">
+                Brand Samples
+              </div>{" "}
+              <p className="text-sm text-gray-500 mb-4">
+                Add 2-5 examples of your brand&apos;s writing style (marketing
+                copy, social posts, etc.)
+              </p>{" "}
+              {brandSamples.map((sample, index) => (
+                <div key={index} className="mb-4">
+                  <div className="flex items-start space-x-2">
+                    <div className="flex-1">
+                      <textarea
+                        value={sample}
+                        onChange={(e) =>
+                          updateBrandSample(index, e.target.value)
+                        }
+                        placeholder={`Brand sample ${index + 1}...`}
+                        className="w-full h-24 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-neutral-50 dark:bg-neutral-500"
+                        maxLength={2000}
+                      />
+                      <div className="text-xs text-gray-400 mt-1">
+                        {sample.length}/2000 characters
+                      </div>
                     </div>
+                    {brandSamples.length > 1 && (
+                      <button
+                        onClick={() => removeBrandSample(index)}
+                        className="p-2 text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
-                  {brandSamples.length > 1 && (
-                    <button
-                      onClick={() => removeBrandSample(index)}
-                      className="p-2 text-red-500 hover:text-red-700"
-                    >
-                      ×
-                    </button>
-                  )}
                 </div>
-              </div>
-            ))}
-            {(() => {
-              if (!usageInfo) return null;
+              ))}
+              {(() => {
+                if (!usageInfo) return null;
 
-              const limit = getBrandSampleLimit(usageInfo.subscription);
-              const canAddMore = !limit || brandSamples.length < limit;
+                const limit = getBrandSampleLimit(usageInfo.subscription);
+                const canAddMore = !limit || brandSamples.length < limit;
 
-              return canAddMore ? (
-                <button
-                  onClick={addBrandSample}
-                  className="flex flex-row px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                >
-                  <Plus /> Add Brand Sample
-                </button>
-              ) : (
-                <div className="text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded-md border">
-                  <AlertTriangle className="inline w-4 h-4 mr-2 text-yellow-500" />
-                  Free plan limited to {limit} samples.
-                  <Link
-                    href="/pricing"
-                    className="text-purple-600 hover:text-purple-700 ml-1 underline"
+                return canAddMore ? (
+                  <button
+                    onClick={addBrandSample}
+                    className="flex flex-row px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   >
-                    Upgrade for unlimited samples
-                  </Link>
-                </div>
-              );            })()}
-          </div>          )}
-
+                    <Plus /> Add Brand Sample
+                  </button>
+                ) : (
+                  <div className="text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded-md border">
+                    <AlertTriangle className="inline w-4 h-4 mr-2 text-yellow-500" />
+                    Free plan limited to {limit} samples.
+                    <Link
+                      href="/pricing"
+                      className="text-purple-600 hover:text-purple-700 ml-1 underline"
+                    >
+                      Upgrade for unlimited samples
+                    </Link>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
           <div>
             <label
               htmlFor="new-content-textarea"
@@ -396,7 +406,7 @@ export default function BrandAnalysis() {
               value={newTextForComparison}
               onChange={(e) => setNewTextForComparison(e.target.value)}
               placeholder="Enter your new content here..."
-              className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none dark:bg-neutral-500 dark:text-white"
+              className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-neutral-50 dark:bg-neutral-500 dark:text-white"
               maxLength={5000}
             />
             <div className="flex justify-between items-center mt-2">
@@ -460,7 +470,9 @@ export default function BrandAnalysis() {
                     );
                   })()}
                   <div className="text-right">
-                    <div className="text-sm text-gray-500 dark:gray-300">Alignment Score</div>
+                    <div className="text-sm text-gray-500 dark:gray-300">
+                      Alignment Score
+                    </div>
                     <div className="text-lg font-semibold text-gray-900 dark:text-gray-300">
                       out of 100
                     </div>
@@ -472,28 +484,30 @@ export default function BrandAnalysis() {
                   <div className="text-2xl font-bold text-purple-600">
                     {brandAnalysisResult.input_info.brand_samples_count}
                   </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-300">Brand Samples</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {brandAnalysisResult.input_info.new_text_length.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-300">
-                      Characters Analyzed
-                    </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-300">
+                    Brand Samples
                   </div>
                 </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
-                    AI Feedback
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-black text-black dark:text-white p-4 rounded-md prose prose-gray max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={markdownComponents}
-                    >
-                        {brandAnalysisResult.brand_analysis.feedback}
-                    </ReactMarkdown>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {brandAnalysisResult.input_info.new_text_length.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-300">
+                    Characters Analyzed
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                  AI Feedback
+                </h4>
+                <div className="bg-gray-50 dark:bg-black text-black dark:text-white p-4 rounded-md prose prose-gray max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >
+                    {brandAnalysisResult.brand_analysis.feedback}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>

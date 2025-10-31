@@ -714,171 +714,236 @@ document.addEventListener('DOMContentLoaded', async () => {
     const platformInfo = await detectCurrentPlatform();
     updatePlatformInfo(platformInfo);
     await checkAuth();
-    await loadRecentAnalyses(); // Load recent analyses
     
-    // Recent Analyses Management
-    async function loadRecentAnalyses() {
+    // Platform Analysis Management
+    async function viewPlatformAnalysis(platform) {
         try {
-            const stored = await chrome.storage.local.get(['recentAnalyses']);
-            const recentAnalyses = stored.recentAnalyses || [];
+            // Get saved analyses for the platform
+            const stored = await chrome.storage.local.get('saved_analyses');
+            const savedAnalyses = stored.saved_analyses || [];
             
-            const noAnalysesMessage = getElement('noAnalysesMessage');
-            const recentAnalysesList = getElement('recentAnalysesList');
+            // Find the most recent analysis for this platform
+            const platformAnalysis = savedAnalyses
+                .filter(item => item.platform === platform)
+                .sort((a, b) => new Date(b.analyzed_at) - new Date(a.analyzed_at))[0];
             
-            if (recentAnalyses.length === 0) {
-                showElement(noAnalysesMessage);
-                hideElement(recentAnalysesList);
+            if (!platformAnalysis) {
+                showPlatformAnalysisModal(platform, null);
                 return;
             }
             
-            hideElement(noAnalysesMessage);
-            showElement(recentAnalysesList);
+            // Get the full analysis data
+            const analysisData = await chrome.storage.local.get(platformAnalysis.storage_key);
+            const fullAnalysis = analysisData[platformAnalysis.storage_key];
             
-            recentAnalysesList.innerHTML = recentAnalyses.map(analysis => {
-                const date = new Date(analysis.timestamp).toLocaleDateString();
-                const time = new Date(analysis.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                let resultSummary = '';
-                if (analysis.type === 'voice_analysis' && analysis.result.voice_analysis) {
-                    const confidence = Math.round((analysis.result.confidence_score || 0) * 100);
-                    resultSummary = `Voice Analysis - ${confidence}% confidence`;
-                } else if (analysis.result.alignment_score !== undefined) {
-                    const score = Math.round(analysis.result.alignment_score * 100);
-                    resultSummary = `Brand Alignment - ${score}%`;
-                } else {
-                    resultSummary = 'Analysis completed';
-                }
-                
-                return `
-                    <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <div class="text-sm font-medium text-gray-800">@${analysis.handle}</div>
-                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${analysis.platform}</span>
-                            </div>
-                            <div class="text-xs text-gray-500">${date} ${time}</div>
-                        </div>
-                        <div class="text-sm text-gray-600 mb-3">${resultSummary}</div>
-                        <button 
-                            class="text-xs text-blue-600 hover:text-blue-800 underline" 
-                            onclick="viewAnalysisDetails(${analysis.id})"
-                        >
-                            View Details
-                        </button>
-                    </div>
-                `;
-            }).join('');
+            if (!fullAnalysis) {
+                showPlatformAnalysisModal(platform, null);
+                return;
+            }
+            
+            showPlatformAnalysisModal(platform, fullAnalysis);
             
         } catch (error) {
-            console.error('Failed to load recent analyses:', error);
-        }    }
-
-    async function clearAnalysisHistory() {
-        if (confirm('Are you sure you want to clear all analysis history?')) {
-            try {
-                await chrome.storage.local.remove(['recentAnalyses']);
-                await loadRecentAnalyses();
-            } catch (error) {
-                console.error('Failed to clear history:', error);
-            }
+            console.error('Failed to load platform analysis:', error);
+            showPlatformAnalysisModal(platform, null, 'Failed to load analysis data');
         }
-    }    // Add event listener for clear history button
-    if (getElement('clearHistoryBtn')) {
-        getElement('clearHistoryBtn').addEventListener('click', clearAnalysisHistory);
     }
-});
-
-// Make viewAnalysisDetails globally accessible for HTML onclick handlers
-globalThis.viewAnalysisDetails = async function(analysisId) {
-    try {
-        const stored = await chrome.storage.local.get(['recentAnalyses']);
-        const recentAnalyses = stored.recentAnalyses || [];
-        const analysis = recentAnalyses.find(a => a.id === analysisId);
-        
-        if (!analysis) {
-            alert('Analysis not found');
-            return;
-        }
-        
-        // Create a detailed view modal
-        const modal = document.createElement('div');
-        modal.style.cssText = `
+    
+    // Show platform analysis in a modal
+    function showPlatformAnalysisModal(platform, analysisData, errorMessage = null) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
         `;
         
-        const content = document.createElement('div');
-        content.style.cssText = `
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.style.cssText = `
             background: white;
-            padding: 24px;
             border-radius: 12px;
-            max-width: 500px;
+            max-width: 600px;
+            width: 90vw;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+            position: relative;
         `;
         
-        let detailsHtml = '';
-        if (analysis.type === 'voice_analysis' && analysis.result.voice_analysis) {
-            const voice = analysis.result.voice_analysis;
-            const confidence = Math.round((analysis.result.confidence_score || 0) * 100);
-            
-            detailsHtml = `
-                <h3>@${analysis.handle} Voice Analysis</h3>
-                <div>
-                    <div>
-                        <div>Confidence: ${confidence}%</div>
-                        <div>${analysis.result.posts_analyzed || 0} posts analyzed</div>
-                    </div>
-                    <div>
-                        <div>Tone & Style</div>
-                        <div>${voice.tone || 'Not specified'}</div>
-                        <div>${voice.style || 'Not specified'}</div>
-                    </div>
-                    ${voice.content_themes && voice.content_themes.length > 0 ? `
-                        <div>
-                            <div>Content Themes</div>
-                            <ul>
-                                ${voice.content_themes.slice(0, 3).map(theme => `<li>${theme}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
+        const platformDisplayName = platform === 'twitter' ? 'Twitter/X' : 'LinkedIn';
+        const platformColor = platform === 'twitter' ? '#1d9bf0' : '#0a66c2';
+        const platformIcon = platform === 'twitter' ? 
+            `<svg viewBox="0 0 24 24" class="w-6 h-6 fill-current text-white">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>` :
+            `<svg viewBox="0 0 24 24" class="w-6 h-6 fill-current text-white">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>`;
+        
+        let content = '';
+        
+        if (errorMessage) {
+            content = `
+                <div style="padding: 28px; text-align: center;">
+                    <div style="background: ${platformColor}; color: white; padding: 16px; border-radius: 12px 12px 0 0; margin: -28px -28px 24px -28px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        ${platformIcon}
+                        <h2 style="margin: 0; font-size: 24px; font-weight: 700;">${platformDisplayName} Analysis</h2>
+                    </div>                    <div style="color: #ef4444; font-size: 16px; margin-bottom: 16px;">⚠️ Error</div>
+                    <div style="color: #6b7280; margin-bottom: 24px;">${errorMessage}</div>
+                    <button class="modal-close-btn" style="background: ${platformColor}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
+                </div>
+            `;
+        } else if (!analysisData) {
+            content = `
+                <div style="padding: 28px; text-align: center;">
+                    <div style="background: ${platformColor}; color: white; padding: 16px; border-radius: 12px 12px 0 0; margin: -28px -28px 24px -28px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        ${platformIcon}
+                        <h2 style="margin: 0; font-size: 24px; font-weight: 700;">${platformDisplayName} Analysis</h2>
+                    </div>                    <div style="color: #6b7280; font-size: 16px; margin-bottom: 16px;">📊 No Analysis Found</div>
+                    <div style="color: #6b7280; margin-bottom: 24px;">No ${platformDisplayName} profile analysis has been run yet. Visit a profile on ${platformDisplayName} and click "Analyze Profile" to get started.</div>
+                    <button class="modal-close-btn" style="background: ${platformColor}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
                 </div>
             `;
         } else {
-            const score = Math.round((analysis.result.alignment_score || 0) * 100);
-            detailsHtml = `
-                <h3>@${analysis.handle} Brand Analysis</h3>
-                <div>Brand Alignment: ${score}%</div>
+            // Display the analysis data
+            const analysis = analysisData.analysis_data;
+            const analyzedDate = new Date(analysisData.analyzed_at).toLocaleDateString();
+            const analyzedTime = new Date(analysisData.analyzed_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            content = `
+                <div style="padding: 28px;">
+                    <div style="background: ${platformColor}; color: white; padding: 16px; border-radius: 12px 12px 0 0; margin: -28px -28px 24px -28px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            ${platformIcon}
+                            <div>
+                                <h2 style="margin: 0; font-size: 24px; font-weight: 700;">@${analysisData.profile_handle}</h2>
+                                <div style="opacity: 0.9; font-size: 14px;">${platformDisplayName} Profile Analysis</div>
+                            </div>
+                        </div>
+                        <button class="modal-close-x" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 18px;">×</button>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 20px; color: #6b7280; font-size: 14px;">
+                        Analyzed on ${analyzedDate} at ${analyzedTime}
+                    </div>
+            `;
+            
+            // Display voice analysis if available
+            if (analysis.voice_analysis) {
+                const voice = analysis.voice_analysis;
+                const confidence = Math.round((analysis.confidence_score || 0) * 100);
+                const confidenceColor = confidence >= 75 ? '#10b981' : confidence >= 50 ? '#f59e0b' : '#ef4444';
+                
+                content += `
+                    <div style="margin-bottom: 24px;">
+                        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 32px; font-weight: 700; color: ${confidenceColor};">${confidence}%</div>
+                                <div style="color: #6b7280; font-size: 14px;">Analysis Confidence</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div style="text-align: center;">
+                                    <div style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">TONE</div>
+                                    <div style="font-weight: 600; color: #1f2937;">${voice.tone || 'Not specified'}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">STYLE</div>
+                                    <div style="font-weight: 600; color: #1f2937;">${voice.style || 'Not specified'}</div>
+                                </div>
+                            </div>
+                        </div>
+                `;
+                
+                // Add content themes if available
+                if (voice.content_themes && voice.content_themes.length > 0) {
+                    content += `
+                        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <div style="font-weight: 600; color: #0369a1; margin-bottom: 8px; font-size: 14px;">Content Themes</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                ${voice.content_themes.slice(0, 5).map(theme => 
+                                    `<span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${theme}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add communication patterns if available
+                if (voice.communication_patterns && voice.communication_patterns.length > 0) {
+                    content += `
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <div style="font-weight: 600; color: #166534; margin-bottom: 8px; font-size: 14px;">Communication Patterns</div>
+                            <ul style="margin: 0; padding-left: 16px; color: #16a34a;">
+                                ${voice.communication_patterns.slice(0, 3).map(pattern => 
+                                    `<li style="font-size: 13px; margin-bottom: 4px;">${pattern}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                content += `</div>`;
+            } else {
+                // Legacy brand alignment display
+                const score = Math.round((analysis.average_score || 0) * 100);
+                const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+                
+                content += `
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; color: ${scoreColor}; margin-bottom: 8px;">${score}%</div>
+                        <div style="color: #6b7280; font-size: 14px;">Brand Alignment Score</div>
+                        <div style="color: #6b7280; font-size: 12px; margin-top: 8px;">
+                            Based on ${analysis.posts_analyzed || 0} analyzed posts
+                        </div>
+                    </div>
+                `;
+            }
+            
+            content += `                    <div style="text-align: center; margin-top: 24px;">
+                        <button class="modal-close-btn" style="background: ${platformColor}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
+                    </div>
+                </div>
             `;
         }
+          modal.innerHTML = content;
+        overlay.appendChild(modal);
+        overlay.className = 'modal-overlay';
+          // Add event listeners for close buttons
+        const closeButtons = modal.querySelectorAll('.modal-close-btn, .modal-close-x');
+        for (const button of closeButtons) {
+            button.addEventListener('click', () => {
+                overlay.remove();
+            });
+        }
         
-        content.innerHTML = `
-            ${detailsHtml}
-            <div style="margin-top: 24px; text-align: center;">
-                <button onclick="this.closest('div').remove()">Close</button>
-            </div>
-        `;
-        
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
             }
         });
         
-    } catch (error) {
-        console.error('Failed to view analysis details:', error);
-        alert('Failed to load analysis details');
+        document.body.appendChild(overlay);
     }
-};
+    
+    // Add event listeners for platform analysis buttons
+    const twitterAnalysisBtn = getElement('viewTwitterAnalysis');
+    const linkedinAnalysisBtn = getElement('viewLinkedInAnalysis');
+    
+    if (twitterAnalysisBtn) {
+        twitterAnalysisBtn.addEventListener('click', () => viewPlatformAnalysis('twitter'));
+    }
+    
+    if (linkedinAnalysisBtn) {
+        linkedinAnalysisBtn.addEventListener('click', () => viewPlatformAnalysis('linkedin'));
+    }
+});
