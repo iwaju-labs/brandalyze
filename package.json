@@ -5,12 +5,12 @@
   "main": "index.js",
   "directories": {
     "doc": "docs"
-  },
-  "scripts": {
+  },  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd apps/backend && call venv\\Scripts\\activate.bat && python manage.py runserver",
-    "dev:frontend": "cd apps/frontend && npm run dev"
+    "dev:frontend": "cd apps/frontend && npm run dev",
+    "package-extension": "node package-extension.js"
   },
   "repository": {
     "type": "git",

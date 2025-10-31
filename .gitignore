@@ -68,3 +68,6 @@ coverage/
 
 # docs
 .github/copilot-instructions.md
+
+# any zip files
+*.zip
