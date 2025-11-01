@@ -87,7 +87,6 @@ class StripeService:
                 metadata={'user_id': user.id}
             )
             return session
-        
         except stripe.StripeError as e:
             print(f"Error creating Stripe checkout session {e}")
             return None
@@ -96,6 +95,23 @@ class StripeService:
     def start_free_trial(user, days=7):
         """Start a free trial through Stripe checkout (requires payment method)"""
         print(f"[DEBUG] start_free_trial called for user: {user}")
+        
+        # Check environment variables first
+        if not settings.STRIPE_PRO_PRICE_ID:
+            print(f"[ERROR] STRIPE_PRO_PRICE_ID not set in environment: {settings.STRIPE_PRO_PRICE_ID}")
+            return False
+            
+        if not settings.STRIPE_SECRET_KEY:
+            print("[ERROR] STRIPE_SECRET_KEY not set in environment")
+            return False
+            
+        if not settings.FRONTEND_URL:
+            print(f"[ERROR] FRONTEND_URL not set in environment: {settings.FRONTEND_URL}")
+            return False
+            
+        print(f"[DEBUG] Environment check passed - STRIPE_PRO_PRICE_ID: {settings.STRIPE_PRO_PRICE_ID}")
+        print(f"[DEBUG] FRONTEND_URL: {settings.FRONTEND_URL}")
+        
         try:
             subscription, created = UserSubscription.objects.get_or_create(user=user)
             print(f"[DEBUG] subscription created: {created}, existing trial_start: {subscription.trial_start}")
@@ -116,6 +132,8 @@ class StripeService:
                 subscription.save()
 
             print(f"[DEBUG] Creating checkout session for trial with {days} day trial")
+            print(f"[DEBUG] Using customer_id: {subscription.stripe_customer_id}")
+            
             # Create checkout session with trial (requires payment method)
             session = stripe.checkout.Session.create(
                 customer=subscription.stripe_customer_id,
@@ -135,13 +153,16 @@ class StripeService:
             )
             
             print(f"[DEBUG] Trial checkout session created: {session.id}")
+            print(f"[DEBUG] trial session: {session}")
             return session  # Return session instead of True
             
         except stripe.StripeError as e:
-            print(f"[DEBUG] Stripe error in start_free_trial: {e}")
+            print(f"[ERROR] Stripe error in start_free_trial: {e}")
+            print(f"[ERROR] Stripe error type: {type(e).__name__}")
+            print(f"[ERROR] Stripe error code: {getattr(e, 'code', 'N/A')}")
             return False
         except Exception as e:
-            print(f"[DEBUG] Error in start_free_trial: {e}")
+            print(f"[ERROR] Error in start_free_trial: {e}")
             import traceback
             traceback.print_exc()
             return False
