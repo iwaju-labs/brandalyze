@@ -849,17 +849,34 @@
     };
 
     return button;
-  }
+  }  // Track if button is being added to prevent race conditions
+  let isAddingButton = false;
+
   // Add analyze button to LinkedIn profile
   async function addAnalyzeButtonToLinkedIn() {
     if (buttonAddedToProfile || !isLinkedInProfile()) {
       return;
     }
 
+    // Prevent concurrent button additions
+    if (isAddingButton) {
+      console.log("⏳ Button addition already in progress");
+      return;
+    }
+
+    // Check if button already exists
+    if (document.getElementById("brandalyze-analyze-btn-linkedin")) {
+      buttonAddedToProfile = true;
+      return;
+    }
+
+    isAddingButton = true;
+
     // Check if user has subscription access before adding analyze button
     const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
     if (!hasAccess) {
       console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      isAddingButton = false;
       return;
     }
     
@@ -870,12 +887,7 @@
       ".pv-s-profile-actions, .pvs-profile-actions__action, .ph5.pb5"
     );
     if (!actionContainer) {
-      return;
-    }
-
-    // Check if button already exists
-    if (document.getElementById("brandalyze-analyze-btn-linkedin")) {
-      buttonAddedToProfile = true;
+      isAddingButton = false;
       return;
     }
 
@@ -899,12 +911,12 @@
       connectButton.parentNode.insertBefore(
         analyzeButton,
         connectButton.nextSibling
-      );
-    } else {
+      );    } else {
       actionContainer.appendChild(analyzeButton);
     }
 
     buttonAddedToProfile = true;
+    isAddingButton = false;
     console.log("✅ LinkedIn analyze button added");
   }
 

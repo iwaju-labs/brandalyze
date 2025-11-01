@@ -75,15 +75,26 @@ async function processTweets() {
   }, 2000);
 }
 
+// Track if button is being added to prevent race conditions
+let isAddingButton = false;
+
 // Simplified function to add analyze button to profile
 async function addAnalyzeButtonToProfile(handle) {
   console.log(`🔍 Trying to add analyze button for @${handle}`);
+
+  // Prevent concurrent button additions
+  if (isAddingButton) {
+    console.log("⏳ Button addition already in progress");
+    return;
+  }
 
   // Check if button already exists
   if (document.querySelector(".brandalyze-analyze-profile-btn")) {
     console.log("✅ Analyze button already exists");
     return;
   }
+
+  isAddingButton = true;
 
   // Simple strategy: Look for the specific edit profile button
   const editProfileButton = document.querySelector(
@@ -102,14 +113,14 @@ async function addAnalyzeButtonToProfile(handle) {
     }
     
     console.log("✅ User has subscription access, adding analyze button");
-    console.log("🔍 Edit button container:", editProfileButton.parentElement);
-
-    // Insert analyze button directly before the edit profile button
+    console.log("🔍 Edit button container:", editProfileButton.parentElement);    // Insert analyze button directly before the edit profile button
     insertAnalyzeButton(editProfileButton.parentElement, handle);
+    isAddingButton = false;
     return;
   }
 
   console.log("❌ Edit profile button not found");
+  isAddingButton = false;
 }
 
 // Get the current profile handle from the URL or page
