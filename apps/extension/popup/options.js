@@ -1,6 +1,4 @@
-// Options page JavaScript for Brandalyze Extension Settings
 
-// Global variables
 let currentUser = null;
 let currentPlatform = null;
 
@@ -142,9 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         viewLastAnalysisBtn: getElement('viewLastAnalysisBtn'),        
         analysisResults: getElement('analysisResults'),
         analysisContent: getElement('analysisContent'),
-        platformInfo: getElement('platformInfo'),
-        handleError: getElement('handleError'),
-        handleSuccess: getElement('handleSuccess')
+        platformInfo: getElement('platformInfo'),        handleError: getElement('handleError'),
+        handleSuccess: getElement('handleSuccess'),
+        recentAnalysisSection: document.querySelector('.bg-white.border.border-gray-200.rounded-lg.p-6.mt-6'),
+        viewTwitterAnalysis: getElement('viewTwitterAnalysis'),
+        viewLinkedInAnalysis: getElement('viewLinkedInAnalysis')
     };
 
     // Utility functions
@@ -657,8 +657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             hideElement(elements.upgradeNotice);
             enableFeaturesForPaidUser();
-        }
-    }    
+        }    }    
     
     // Helper function to disable features for free users
     function disableFeaturesForFreeUser() {
@@ -668,6 +667,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (elements.twitterHandle) elements.twitterHandle.disabled = true;
         if (elements.linkedinHandle) elements.linkedinHandle.disabled = true;
+        
+        // Hide recent analysis section for free users
+        if (elements.recentAnalysisSection) hideElement(elements.recentAnalysisSection);
+        if (elements.viewTwitterAnalysis) elements.viewTwitterAnalysis.disabled = true;
+        if (elements.viewLinkedInAnalysis) elements.viewLinkedInAnalysis.disabled = true;
     }
 
     // Helper function to enable features for paid users
@@ -678,6 +682,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (elements.twitterHandle) elements.twitterHandle.disabled = false;
         if (elements.linkedinHandle) elements.linkedinHandle.disabled = false;
+        
+        // Show recent analysis section for paid users
+        if (elements.recentAnalysisSection) showElement(elements.recentAnalysisSection);
+        if (elements.viewTwitterAnalysis) elements.viewTwitterAnalysis.disabled = false;
+        if (elements.viewLinkedInAnalysis) elements.viewLinkedInAnalysis.disabled = false;
     }
     
     // Event listeners

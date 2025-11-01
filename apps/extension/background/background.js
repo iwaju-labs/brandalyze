@@ -1,7 +1,3 @@
-console.log(
-  "Brandalyze extension background script loaded with Clerk integration"
-);
-
 // API CONFIG - Environment-aware API URLs
 const DEV_API_BASE_URL = "http://localhost:8000/api";
 const PROD_API_BASE_URL = "https://brandalyze.onrender.com/api";
@@ -21,7 +17,6 @@ chrome.runtime.onStartup.addListener(checkClerkAuth);
 chrome.runtime.onInstalled.addListener(checkClerkAuth);
 
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log("Extension installed/updated:", details.reason);
 
   if (details.reason === "install") {
     chrome.tabs.create({
@@ -32,7 +27,6 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("Background received message:", request);
 
   switch (request.action) {
     case "checkClerkAuth":
@@ -53,18 +47,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "analyzeProfile":
       // Handle both Twitter and LinkedIn profile analysis
       if (request.platform === "linkedin") {
-        console.log("🔍 Processing LinkedIn profile analysis request");
         handleLinkedInProfileAnalysis(request.data, request.platform)
           .then((response) => {
-            console.log("✅ LinkedIn analysis response:", response);
             const responseData = { success: true, results: response };
-            console.log("📤 Sending back to content script:", responseData);
             sendResponse(responseData);
           })
           .catch((error) => {
             console.error("❌ LinkedIn analysis error:", error);
             const errorData = { success: false, message: error.message };
-            console.log("📤 Sending error back to content script:", errorData);
             sendResponse(errorData);
           });
       } else {
@@ -103,7 +93,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case "updateStoredToken":
       // Handle token updates from the main site
-      console.log("Updating stored token from main site...");
       updateStoredToken(request.data)
         .then((response) => sendResponse({ success: true, data: response }))
         .catch((error) =>
@@ -129,7 +118,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {  // If user navi
     if (brandalyzeTabs.has(tabId)) {
       brandalyzeTabs.delete(tabId);
       if (brandalyzeTabs.size === 0) {
-        console.log("All Brandalyze tabs closed, invalidating auth cache");
         invalidateAuthCache();
       }
     }
@@ -142,7 +130,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (brandalyzeTabs.has(tabId)) {
     brandalyzeTabs.delete(tabId);
     if (brandalyzeTabs.size === 0) {
-      console.log("Last Brandalyze tab closed, invalidating auth cache");
       invalidateAuthCache();
     }
   }
@@ -178,7 +165,6 @@ async function checkClerkAuth() {
           authState.userData = result.userData;
           authState.currentApiUrl = result.currentApiUrl || PROD_API_BASE_URL;
           authState.apiUrl = authState.currentApiUrl;
-          console.log("✅ Using valid stored token - no fetch needed");
           return authState;
         } else {
           console.log("Stored token invalid, will fetch new one");
@@ -192,7 +178,6 @@ async function checkClerkAuth() {
     }
 
     // Only fetch from main app if we don't have a valid stored token
-    console.log("Attempting to fetch token from main Brandalyze app...");
     const tokenData = await getClerkTokenFromBrandalyzeApp();
     if (tokenData && tokenData.token) {
       // Verify the new token
@@ -222,14 +207,10 @@ async function checkClerkAuth() {
         authState.apiUrl = tokenData.apiUrl;
         authState.currentApiUrl = tokenData.apiUrl;
         authState.userData = userData;
-        console.log(
-          `✅ Fetched and stored new token from main app (${tokenData.environment})`
-        );
         return authState;
       }
     }
 
-    console.log("❌ No valid authentication found");
     authState.isAuthenticated = false;
     return authState;
   } catch (error) {
@@ -253,50 +234,19 @@ async function getClerkTokenFromBrandalyzeApp() {
       ],
     });
 
-    console.log(
-      `Found ${tabs.length} Brandalyze tabs:`,
-      tabs.map((t) => t.url)
-    );
-
-    if (tabs.length === 0) {
-      console.log("No Brandalyze app tabs found");
-      return null;
-    }
-
-    // Try to execute script in the first Brandalyze tab to get Clerk token
     const tabId = tabs[0].id;
     const tabUrl = tabs[0].url;
 
-    console.log(`Executing script in tab: ${tabUrl}`);
 
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
-        console.log("Script executing in Brandalyze app context");
-        console.log("Current URL:", window.location.href);
-
-        // This function runs in the context of the Brandalyze app
-        // Try to get the Clerk session token using different methods
-
-        // Method 1: Check if window.Clerk is available and has a session
-        console.log("Checking window.Clerk...");
-        console.log("window.Clerk exists:", !!window.Clerk);
-        if (window.Clerk) {
-          console.log("Clerk object:", window.Clerk);
-          console.log("Clerk.session exists:", !!window.Clerk.session);
-        }
 
         if (window.Clerk && window.Clerk.session) {
           try {
-            console.log("Found Clerk session, trying to get token...");
             const session = window.Clerk.session;
-            console.log("Session object:", session);
             if (session.getToken) {
               const token = session.getToken();
-              console.log(
-                "Got token from Clerk.session:",
-                token ? "YES" : "NO"
-              );
               if (token) return token;
             }
           } catch (e) {
@@ -304,22 +254,17 @@ async function getClerkTokenFromBrandalyzeApp() {
           }
         }
 
-        // Method 2: Check localStorage for Clerk session data
-        console.log("Checking localStorage...");
         const allKeys = Object.keys(localStorage);
-        console.log("All localStorage keys:", allKeys);
 
         try {
           const clerkKeys = allKeys.filter(
             (key) => key.includes("clerk") || key.includes("__session")
           );
 
-          console.log("Found Clerk keys in localStorage:", clerkKeys);
 
           // Check the values of these keys
           for (const key of clerkKeys) {
             const value = localStorage.getItem(key);
-            console.log(`${key}:`, value);
             if (value) {
               try {
                 const parsed = JSON.parse(value);
@@ -346,12 +291,8 @@ async function getClerkTokenFromBrandalyzeApp() {
           console.log("Failed to check localStorage:", e);
         }
 
-        // Method 3: Check cookies for Clerk session
-        console.log("Checking cookies...");
-        console.log("document.cookie:", document.cookie);
         try {
           const cookies = document.cookie.split(";");
-          console.log("All cookies:", cookies);
 
           for (let cookie of cookies) {
             const [name, value] = cookie.trim().split("=");
@@ -363,8 +304,6 @@ async function getClerkTokenFromBrandalyzeApp() {
             ) {
               // Check if it looks like a JWT
               if (value.includes(".") && value.split(".").length === 3) {
-                console.log("Found JWT-like cookie:", name);
-                console.log("Returning token from cookie:", name);
                 return value;
               }
             }
@@ -373,17 +312,12 @@ async function getClerkTokenFromBrandalyzeApp() {
           console.log("Failed to check cookies:", e);
         }
 
-        // Method 4: Check if there's a way to get session from the app
-        console.log("Checking for other authentication methods...");
-
-        // Sometimes the session might be in a different format
         const possibleSessionKeys = Object.keys(localStorage).filter(
           (key) =>
             key.toLowerCase().includes("session") ||
             key.toLowerCase().includes("token") ||
             key.toLowerCase().includes("auth")
         );
-        console.log("Possible session keys:", possibleSessionKeys);
 
         for (const key of possibleSessionKeys) {
           const value = localStorage.getItem(key);
@@ -394,24 +328,15 @@ async function getClerkTokenFromBrandalyzeApp() {
             value.includes(".") &&
             value.split(".").length === 3
           ) {
-            console.log("Found potential JWT in:", key);
             return value;
           }
         }
 
-        console.log("No token found in any method");
         return null;
       },
     });
 
-    console.log("Script execution results:", results);
     const token = results[0]?.result;
-    console.log("Extracted token:", token ? "FOUND" : "NOT FOUND");
-    console.log("Token length:", token ? token.length : 0);
-    console.log(
-      "First 50 chars of token:",
-      token ? token.substring(0, 50) + "..." : "N/A"
-    );
 
     if (token) {
       console.log("Token found, determining API URL...");
@@ -422,11 +347,6 @@ async function getClerkTokenFromBrandalyzeApp() {
         environment: isLocalhost ? "development" : "production",
         apiUrl: isLocalhost ? DEV_API_BASE_URL : PROD_API_BASE_URL,
       };
-      console.log(
-        "Token data prepared:",
-        tokenData.environment,
-        tokenData.apiUrl
-      );
       return tokenData;
     }
 
@@ -438,10 +358,6 @@ async function getClerkTokenFromBrandalyzeApp() {
 }
 
 async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
-  console.log("Starting token verification...");
-  console.log("API URL:", apiUrl);
-  console.log("Token length:", token.length);
-
   try {
     // Try the specified API URL first
     let response;
@@ -455,12 +371,8 @@ async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
         },
       });
 
-      console.log("API response status:", response.status);
-      console.log("API response ok:", response.ok);
-
       if (response.ok) {
         authState.currentApiUrl = apiUrl;
-        console.log("Token verification successful!");
         return true;
       } else {
         const errorText = await response
@@ -595,22 +507,15 @@ async function getUserDataFromAPI(token, apiUrl) {
 // Profile analysis handler - simple version with basic 401 retry
 async function handleProfileAnalysis(analysisData) {
   try {
-    console.log("🔍 Starting profile analysis:", analysisData);
 
     // Ensure we have authentication
     if (!authState.isAuthenticated || !authState.clerkToken) {
-      console.log("⚠️ Not authenticated, checking auth...");
       await checkClerkAuth();
       if (!authState.isAuthenticated) {
         throw new Error("Please sign in to Brandalyze first");
       }
     }
 
-    console.log("✅ Authentication OK, making API request...");
-    console.log(
-      "🔗 API URL:",
-      `${authState.currentApiUrl}/extension/analyze/profile/voice/`
-    );
     const requestBody = {
       handle: analysisData.handle,
       platform: analysisData.platform || "twitter",
@@ -619,7 +524,6 @@ async function handleProfileAnalysis(analysisData) {
       extracted_bio: analysisData.extractedBio || null, // Include extracted bio data
       use_bio: analysisData.use_bio !== undefined ? analysisData.use_bio : true, // Default to bio analysis for better rate limits
     };
-    console.log("📤 Request body:", requestBody);
 
     // Make the API request
     const response = await fetch(
@@ -634,11 +538,9 @@ async function handleProfileAnalysis(analysisData) {
       }
     );
 
-    console.log("📥 Response status:", response.status);
 
     // If 401, try refreshing auth once
     if (response.status === 401) {
-      console.log("🔄 Got 401, refreshing auth and retrying once...");
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
@@ -664,7 +566,6 @@ async function handleProfileAnalysis(analysisData) {
         }
 
         const data = await retryResponse.json();
-        console.log("✅ Analysis completed after retry:", data);
 
         // Check if the backend returned an error in the data
         if (!data.success && data.message) {
@@ -685,7 +586,6 @@ async function handleProfileAnalysis(analysisData) {
     }
 
     const data = await response.json();
-    console.log("✅ Analysis completed:", data);
 
     // Check if the backend returned an error in the data
     if (!data.success && data.message) {
@@ -702,18 +602,14 @@ async function handleProfileAnalysis(analysisData) {
 // LinkedIn profile analysis handler using DOM-extracted data
 async function handleLinkedInProfileAnalysis(profileData, platform) {
   try {
-    console.log("🔍 Starting LinkedIn profile analysis:", profileData);
-
     // Ensure we have authentication
     if (!authState.isAuthenticated || !authState.clerkToken) {
-      console.log("⚠️ Not authenticated, checking auth...");
       await checkClerkAuth();
       if (!authState.isAuthenticated) {
         throw new Error("Please sign in to Brandalyze first");
       }
     }
 
-    console.log("✅ Authentication OK, making API request...");
 
     // Process LinkedIn profile data for analysis
     const requestBody = {
@@ -732,8 +628,6 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
       posts_count: 0, // No posts analysis for LinkedIn DOM extraction
     };
 
-    console.log("📤 LinkedIn analysis request:", requestBody);
-
     // Make the API request
     const response = await fetch(
       `${authState.currentApiUrl}/extension/analyze/profile/voice/`,
@@ -747,11 +641,8 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
       }
     );
 
-    console.log("📥 Response status:", response.status);
-
     // If 401, try refreshing auth once
     if (response.status === 401) {
-      console.log("🔄 Got 401, refreshing auth and retrying once...");
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
@@ -776,7 +667,6 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
         }
 
         const retryData = await retryResponse.json();
-        console.log("✅ LinkedIn analysis completed (retry):", retryData);
         return retryData.data || retryData;
       }
     }
@@ -789,7 +679,6 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
     }
 
     const data = await response.json();
-    console.log("✅ LinkedIn analysis completed:", data);
 
     // Check if the backend returned an error in the data
     if (!data.success && data.message) {
@@ -850,8 +739,6 @@ async function handleContentAnalysis(analysisData) {
 // Content alignment analysis handler - simple version with 401 retry
 async function handleContentAlignmentAnalysis(analysisData) {
   try {
-    console.log("🔍 Starting content alignment analysis:", analysisData);
-
     // Ensure we have authentication
     if (!authState.isAuthenticated || !authState.clerkToken) {
       console.log("⚠️ Not authenticated, checking auth...");
@@ -861,12 +748,6 @@ async function handleContentAlignmentAnalysis(analysisData) {
       }
     }
 
-    console.log("✅ Authentication OK, making API request...");
-    console.log(
-      "🔗 API URL:",
-      `${authState.currentApiUrl}/extension/analyze/content/alignment/`
-    );
-
     const requestBody = {
       content: analysisData.content,
       type: analysisData.type || "brand",
@@ -874,7 +755,6 @@ async function handleContentAlignmentAnalysis(analysisData) {
       reference_handle: analysisData.reference_handle,
       platform: analysisData.platform || "twitter",
     };
-    console.log("📤 Request body:", requestBody);
 
     const response = await fetch(
       `${authState.currentApiUrl}/extension/analyze/content/alignment/`,
@@ -888,11 +768,8 @@ async function handleContentAlignmentAnalysis(analysisData) {
       }
     );
 
-    console.log("📥 Response status:", response.status);
-
     // If 401, try refreshing auth once
     if (response.status === 401) {
-      console.log("🔄 Got 401, refreshing auth and retrying once...");
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
@@ -917,7 +794,6 @@ async function handleContentAlignmentAnalysis(analysisData) {
         }
 
         const data = await retryResponse.json();
-        console.log("✅ Analysis completed after retry:", data);
         return data.data || data;
       }
     }
@@ -932,7 +808,6 @@ async function handleContentAlignmentAnalysis(analysisData) {
     }
 
     const data = await response.json();
-    console.log("✅ Analysis completed:", data);
     return data.data || data;
   } catch (error) {
     console.error("Content alignment analysis error:", error);
@@ -978,8 +853,6 @@ function extractUserDataFromJWT(token) {  try {
     const tokenParts = token.split(".");
     if (tokenParts.length === 3) {
       const payload = JSON.parse(atob(tokenParts[1]));
-      console.log("JWT payload:", payload); // Debug log
-      console.log("JWT payload keys:", Object.keys(payload)); // Debug log - show all available fields
 
       // Try multiple ways to get email from Clerk JWT
       let email = "Unknown";
@@ -987,12 +860,10 @@ function extractUserDataFromJWT(token) {  try {
       // Direct email field
       if (payload.email) {
         email = payload.email;
-        console.log("Found email in 'email' field:", email);
       }
       // Email address field
       else if (payload.email_address) {
         email = payload.email_address;
-        console.log("Found email in 'email_address' field:", email);
       }
       // Primary email address
       else if (payload.primary_email_address_id && payload.email_addresses) {
@@ -1001,7 +872,6 @@ function extractUserDataFromJWT(token) {  try {
         );
         if (primaryEmail) {
           email = primaryEmail.email_address;
-          console.log("Found email in primary_email_address:", email);
         }
       }
       // First email in array
@@ -1009,21 +879,16 @@ function extractUserDataFromJWT(token) {  try {
         email =
           payload.email_addresses[0].email_address ||
           payload.email_addresses[0].email;
-        console.log("Found email in email_addresses array:", email);
       }
       // Alternative email fields
       else if (payload.primary_email_address) {
         email = payload.primary_email_address;
-        console.log("Found email in 'primary_email_address' field:", email);
       }
       // Email addresses as string
       else if (payload.emailAddresses) {
         email = payload.emailAddresses;
-        console.log("Found email in 'emailAddresses' field:", email);
       }
       
-      console.log("Final extracted email:", email);
-
       const userData = {
         email: email,
         userId: payload.sub || payload.user_id || payload.id,

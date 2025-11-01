@@ -17,10 +17,7 @@ iconsNeeded.forEach(iconName => {
     
     if (fs.existsSync(sourcePath)) {
         fs.copyFileSync(sourcePath, targetPath);
-        console.log(`Copied ${iconName}.svg`);
     } else {
-        console.log(`Warning: ${iconName}.svg not found in Lucide icons`);
     }
 });
 
-console.log('Icon copying complete!');

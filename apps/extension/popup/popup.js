@@ -13,9 +13,7 @@ async function fetchUserInfo(apiUrl, jwt) {
         Authorization: `Bearer ${jwt}`,
         "Content-Type": "application/json",
       },
-    });
-    const data = await response.json();
-    console.log("Backend response:", { status: response.status, ok: response.ok, data }); // Debug log
+    });    const data = await response.json();
     
     if (response.ok && data.success && data.data) {
       return {
@@ -232,9 +230,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshAuthBtn: getElement("refreshAuthBtn"),
     platformIndicator: getElement("platformIndicator"),
     openOptionsBtn: getElement("openOptionsBtn"),    handleError: getElement("handleError"),
-    handleSuccess: getElement("handleSuccess"),
-    // Platform navigation section
+    handleSuccess: getElement("handleSuccess"),    // Platform navigation section
     platformNavigationSection: getElement("platformNavigationSection"),
+    profileAnalysisSection: getElement("profileAnalysisSection"),
     // Content alignment elements
     contentToAnalyze: getElement("contentToAnalyze"),
     alignmentType: getElement("alignmentType"),
@@ -424,10 +422,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Show cache status for debugging
     if (authState.lastChecked) {
       const age = Math.round((Date.now() - authState.lastChecked) / 1000);
-      setText(elements.cacheText, `Cached (${age}s ago)`);
-    } else {
+      setText(elements.cacheText, `Cached (${age}s ago)`);    } else {
       setText(elements.cacheText, "Fresh check");
-    }    if (authState.isAuthenticated && authState.userData) {
+    }
+    
+    if (authState.isAuthenticated && authState.userData) {
       // Authenticated - fetch user details from backend API
       if (authState.apiUrl && authState.jwt) {
         // Show loading while fetching user info
@@ -478,10 +477,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       userInfo.subscriptionTier?.toLowerCase() === "free" ||
       userInfo.subscriptionTier?.toLowerCase() === "unknown" ||
       !userInfo.subscriptionTier) {
-      showElement(elements.upgradeNotice);
-
-      // Hide platform navigation for free users
+      showElement(elements.upgradeNotice);      // Hide platform navigation for free users
       hideElement(elements.platformNavigationSection);
+      hideElement(elements.profileAnalysisSection);
 
       // Disable content analysis for free users
       if (elements.analyzeContentBtn) {
@@ -498,10 +496,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.contentToAnalyze.disabled = true;
         elements.contentToAnalyze.placeholder = "Pro feature - upgrade to use";
       }    } else {
-      hideElement(elements.upgradeNotice);
-
-      // Show platform navigation for paid users
+      hideElement(elements.upgradeNotice);      // Show platform navigation for paid users
       showElement(elements.platformNavigationSection);
+      showElement(elements.profileAnalysisSection);
 
       // Enable features for paid users - but check if analysis is available
       // This will be further refined by updateContentAlignmentSection
