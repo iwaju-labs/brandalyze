@@ -850,12 +850,20 @@
 
     return button;
   }
-
   // Add analyze button to LinkedIn profile
-  function addAnalyzeButtonToLinkedIn() {
+  async function addAnalyzeButtonToLinkedIn() {
     if (buttonAddedToProfile || !isLinkedInProfile()) {
       return;
     }
+
+    // Check if user has subscription access before adding analyze button
+    const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
+    if (!hasAccess) {
+      console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      return;
+    }
+    
+    console.log("✅ User has subscription access, adding analyze button");
 
     // Wait for profile actions container to load
     const actionContainer = document.querySelector(
@@ -959,9 +967,8 @@
   // Initialize and monitor for changes
   function init() {
     // Initial setup
-    if (isLinkedInProfile()) {
-      console.log("🟦 LinkedIn profile detected, adding analyze button...");
-      setTimeout(() => addAnalyzeButtonToLinkedIn(), 1000);
+    if (isLinkedInProfile()) {      console.log("🟦 LinkedIn profile detected, adding analyze button...");
+      setTimeout(async () => await addAnalyzeButtonToLinkedIn(), 1000);
     }
 
     // Monitor for navigation changes (LinkedIn SPA)
@@ -969,13 +976,11 @@
     const observer = new MutationObserver(() => {
       if (globalThis.location.href !== currentUrl) {
         currentUrl = globalThis.location.href;
-        buttonAddedToProfile = false;
-
-        if (isLinkedInProfile()) {
+        buttonAddedToProfile = false;        if (isLinkedInProfile()) {
           console.log(
             "🟦 Navigated to LinkedIn profile, adding analyze button..."
           );
-          setTimeout(() => addAnalyzeButtonToLinkedIn(), 1500);
+          setTimeout(async () => await addAnalyzeButtonToLinkedIn(), 1500);
         }
       } else if (isLinkedInProfile() && !buttonAddedToProfile) {
         // Try to add button if it's missing on current profile
@@ -992,8 +997,7 @@
     setInterval(() => {
       if (
         isLinkedInProfile() &&
-        !document.getElementById("brandalyze-analyze-btn-linkedin")
-      ) {
+        !document.getElementById("brandalyze-analyze-btn-linkedin")      ) {
         buttonAddedToProfile = false;
         addAnalyzeButtonToLinkedIn();
       }

@@ -43,27 +43,21 @@ def verify_extension_auth(request):
         subscription = UserSubscription.objects.filter(user=user).first()
 
         # Check subscription requirements for extension access
-        if not subscription or subscription.tier == "free":
-            return error_response(
-                message=EXTENSION_REQUIRES_PAID_PLAN_MESSAGE,
-                code="EXTENSION_REQUIRES_PAID_PLAN",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        user_info = {
+        extension_enabled = subscription and subscription.tier in ["pro", "enterprise"]
+          # Always return user info for authenticated users, but indicate extension status
+        user_data = {
             "user_id": user.id,
-            "username": user.username,
-            "email": user.email,  # Add email to response
+            "email": user.email,
+            "display_name": f"{user.first_name} {user.last_name}".strip() or user.email,
             "subscription_tier": subscription.tier if subscription else "free",
-            "daily_limit": 50 if subscription and subscription.tier == "pro" else 200,
-            "extension_enabled": True,
+            "extension_enabled": extension_enabled,
         }
 
         return success_response(
-            data=user_info,
-            message="User data fetched successfully",
-            status_code=status.HTTP_200_OK,
+            data=user_data,
+            message="User authenticated successfully"
         )
+
     except Exception as e:
         return error_response(
             message=f"Extension authentication failed: {e}",

@@ -68,16 +68,15 @@ async function processTweets() {
 
   console.log(`✅ On profile page: @${currentProfile}`);
 
-  // Look for profile analysis section or add one
-  // Wait a bit for the page to fully load
-  setTimeout(() => {
+  // Look for profile analysis section or add one  // Wait a bit for the page to fully load
+  setTimeout(async () => {
     console.log("🔄 Attempting to add analyze button...");
-    addAnalyzeButtonToProfile(currentProfile);
+    await addAnalyzeButtonToProfile(currentProfile);
   }, 2000);
 }
 
 // Simplified function to add analyze button to profile
-function addAnalyzeButtonToProfile(handle) {
+async function addAnalyzeButtonToProfile(handle) {
   console.log(`🔍 Trying to add analyze button for @${handle}`);
 
   // Check if button already exists
@@ -90,11 +89,19 @@ function addAnalyzeButtonToProfile(handle) {
   const editProfileButton = document.querySelector(
     'a[href="/settings/profile"][data-testid="editProfileButton"]'
   );
-
   if (editProfileButton) {
     console.log(
-      "📝 Found edit profile button, adding analyze button to the left..."
+      "📝 Found edit profile button, checking subscription access..."
     );
+    
+    // Check if user has subscription access before adding analyze button
+    const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
+    if (!hasAccess) {
+      console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      return;
+    }
+    
+    console.log("✅ User has subscription access, adding analyze button");
     console.log("🔍 Edit button container:", editProfileButton.parentElement);
 
     // Insert analyze button directly before the edit profile button

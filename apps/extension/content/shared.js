@@ -1,6 +1,46 @@
 console.log('Brandalyze shared utilities loaded');
 
 globalThis.BrandalyzeUtils = {
+  // Check if user has required subscription for extension features
+  checkSubscriptionAccess: async function() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'checkClerkAuth'
+      });
+      
+      if (response.success && response.data.isAuthenticated) {
+        // Check if user has Pro or Enterprise subscription
+        const authState = response.data;
+        if (authState.apiUrl && authState.jwt) {
+          try {
+            const authResponse = await fetch(`${authState.apiUrl}/extension/auth/verify/`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${authState.jwt}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (authResponse.ok) {
+              const authData = await authResponse.json();
+              if (authData.success && authData.data) {
+                const tier = authData.data.subscription_tier?.toLowerCase();
+                return tier === 'pro' || tier === 'enterprise';
+              }
+            }
+          } catch (error) {
+            console.log('Error checking subscription:', error);
+          }
+        }
+      }
+      
+      return false; // Default to no access for free users
+    } catch (error) {
+      console.log('Error checking auth:', error);
+      return false;
+    }
+  },
+
   // Enhanced content extraction
   extractContent: function(element) {
     if (!element) return '';

@@ -11,7 +11,7 @@ let authState = {
   isAuthenticated: false,
   clerkToken: null,
   userData: null,
-  currentApiUrl: DEV_API_BASE_URL,
+  currentApiUrl: PROD_API_BASE_URL,
   lastChecked: null,
   cacheTimeout: 60 * 60 * 1000, // 1 hour cache for valid stored tokens
   activeBrandalyzeTabs: new Set(),
@@ -118,12 +118,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Listen for tab updates to invalidate cache when user navigates away from Brandalyze
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // If user navigates away from Brandalyze, invalidate auth cache
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {  // If user navigates away from Brandalyze, invalidate auth cache
   if (
     changeInfo.url &&
     !changeInfo.url.includes("localhost:3000") &&
-    !changeInfo.url.includes("brandalyze.io")
+    !changeInfo.url.includes("brandalyze.io") &&
+    !changeInfo.url.includes("www.brandalyze.io")
   ) {
     const brandalyzeTabs = authState.activeBrandalyzeTabs || new Set();
     if (brandalyzeTabs.has(tabId)) {
@@ -165,11 +165,10 @@ async function checkClerkAuth() {
       // Check if token is expired (if we have expiry info)
       if (result.tokenExpiry && Date.now() > result.tokenExpiry) {
         console.log("Stored token expired, will fetch new one");
-      } else {
-        // Verify the stored token is still valid
+      } else {        // Verify the stored token is still valid
         const isValid = await verifyClerkToken(
           result.clerkToken,
-          result.currentApiUrl || DEV_API_BASE_URL
+          result.currentApiUrl || PROD_API_BASE_URL
         );
         if (isValid) {
           // Token is valid, use it immediately
@@ -177,7 +176,7 @@ async function checkClerkAuth() {
           authState.clerkToken = result.clerkToken;
           authState.jwt = result.clerkToken;
           authState.userData = result.userData;
-          authState.currentApiUrl = result.currentApiUrl || DEV_API_BASE_URL;
+          authState.currentApiUrl = result.currentApiUrl || PROD_API_BASE_URL;
           authState.apiUrl = authState.currentApiUrl;
           console.log("✅ Using valid stored token - no fetch needed");
           return authState;
@@ -242,11 +241,16 @@ async function checkClerkAuth() {
 
 async function getClerkTokenFromBrandalyzeApp() {
   try {
-    console.log("Looking for Brandalyze app tabs...");
-
-    // Look for open Brandalyze tabs (dev and prod)
+    console.log("Looking for Brandalyze app tabs...");    // Look for open Brandalyze tabs (dev and prod)
     const tabs = await chrome.tabs.query({
-      url: ["http://localhost:3000/*", "https://brandalyze.io/*"],
+      url: [
+        "http://localhost:3000/*",
+        "https://localhost:3000/*",
+        "https://brandalyze.io/*",
+        "https://www.brandalyze.io/*",
+        "http://brandalyze.io/*",
+        "http://www.brandalyze.io/*"
+      ],
     });
 
     console.log(
@@ -433,7 +437,7 @@ async function getClerkTokenFromBrandalyzeApp() {
   }
 }
 
-async function verifyClerkToken(token, apiUrl = DEV_API_BASE_URL) {
+async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
   console.log("Starting token verification...");
   console.log("API URL:", apiUrl);
   console.log("Token length:", token.length);
@@ -507,7 +511,7 @@ async function clearAuthData() {
   authState.isAuthenticated = false;
   authState.clerkToken = null;
   authState.userData = null;
-  authState.currentApiUrl = DEV_API_BASE_URL;
+  authState.currentApiUrl = PROD_API_BASE_URL;
 }
 
 // Fetch user data by making a brands request and extracting user info from the auth verification
@@ -937,10 +941,16 @@ async function handleContentAlignmentAnalysis(analysisData) {
 }
 
 async function openBrandalyzeApp() {
-  try {
-    // Check if Brandalyze app is already open
+  try {    // Check if Brandalyze app is already open
     const tabs = await chrome.tabs.query({
-      url: ["http://localhost:3000/*", "https://brandalyze.io/*"],
+      url: [
+        "http://localhost:3000/*",
+        "https://localhost:3000/*",
+        "https://brandalyze.io/*",
+        "https://www.brandalyze.io/*",
+        "http://brandalyze.io/*",
+        "http://www.brandalyze.io/*"
+      ],
     });
 
     if (tabs.length > 0) {
@@ -949,11 +959,10 @@ async function openBrandalyzeApp() {
       await chrome.windows.update(tabs[0].windowId, { focused: true });
     } else {
       // Determine which URL to open based on current API preference
-      let appUrl;
-      if (authState.currentApiUrl === DEV_API_BASE_URL) {
-        appUrl = "http://localhost:3000/sign-in";
-      } else {
+      let appUrl;      if (authState.currentApiUrl === PROD_API_BASE_URL) {
         appUrl = "https://brandalyze.io/sign-in";
+      } else {
+        appUrl = "http://localhost:3000/sign-in";
       }
 
       await chrome.tabs.create({ url: appUrl });
@@ -965,12 +974,12 @@ async function openBrandalyzeApp() {
 }
 
 // Extract user data from Clerk JWT token
-function extractUserDataFromJWT(token) {
-  try {
+function extractUserDataFromJWT(token) {  try {
     const tokenParts = token.split(".");
     if (tokenParts.length === 3) {
       const payload = JSON.parse(atob(tokenParts[1]));
       console.log("JWT payload:", payload); // Debug log
+      console.log("JWT payload keys:", Object.keys(payload)); // Debug log - show all available fields
 
       // Try multiple ways to get email from Clerk JWT
       let email = "Unknown";
@@ -978,24 +987,42 @@ function extractUserDataFromJWT(token) {
       // Direct email field
       if (payload.email) {
         email = payload.email;
+        console.log("Found email in 'email' field:", email);
+      }
+      // Email address field
+      else if (payload.email_address) {
+        email = payload.email_address;
+        console.log("Found email in 'email_address' field:", email);
       }
       // Primary email address
       else if (payload.primary_email_address_id && payload.email_addresses) {
         const primaryEmail = payload.email_addresses.find(
           (e) => e.id === payload.primary_email_address_id
         );
-        if (primaryEmail) email = primaryEmail.email_address;
+        if (primaryEmail) {
+          email = primaryEmail.email_address;
+          console.log("Found email in primary_email_address:", email);
+        }
       }
       // First email in array
       else if (payload.email_addresses && payload.email_addresses.length > 0) {
         email =
           payload.email_addresses[0].email_address ||
           payload.email_addresses[0].email;
+        console.log("Found email in email_addresses array:", email);
       }
       // Alternative email fields
       else if (payload.primary_email_address) {
         email = payload.primary_email_address;
+        console.log("Found email in 'primary_email_address' field:", email);
       }
+      // Email addresses as string
+      else if (payload.emailAddresses) {
+        email = payload.emailAddresses;
+        console.log("Found email in 'emailAddresses' field:", email);
+      }
+      
+      console.log("Final extracted email:", email);
 
       const userData = {
         email: email,
@@ -1097,24 +1124,20 @@ async function updateStoredToken(tokenData) {
   try {
     if (!tokenData.token) {
       throw new Error("No token provided");
-    }
-
-    // Verify the new token
+    }    // Verify the new token
     const isValid = await verifyClerkToken(
       tokenData.token,
-      tokenData.apiUrl || DEV_API_BASE_URL
+      tokenData.apiUrl || PROD_API_BASE_URL
     );
     if (!isValid) {
       throw new Error("Invalid token provided");
     }
 
     // Calculate token expiry (24 hours from now as default)
-    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
-
-    // Store the new token
+    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;    // Store the new token
     await chrome.storage.local.set({
       clerkToken: tokenData.token,
-      currentApiUrl: tokenData.apiUrl || DEV_API_BASE_URL,
+      currentApiUrl: tokenData.apiUrl || PROD_API_BASE_URL,
       tokenExpiry: tokenExpiry,
     });
 
@@ -1122,7 +1145,7 @@ async function updateStoredToken(tokenData) {
     authState.isAuthenticated = true;
     authState.clerkToken = tokenData.token;
     authState.jwt = tokenData.token;
-    authState.currentApiUrl = tokenData.apiUrl || DEV_API_BASE_URL;
+    authState.currentApiUrl = tokenData.apiUrl || PROD_API_BASE_URL;
     authState.apiUrl = authState.currentApiUrl;
     authState.lastChecked = Date.now();
 

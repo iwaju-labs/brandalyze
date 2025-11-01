@@ -15,32 +15,33 @@ async function fetchUserInfo(apiUrl, jwt) {
       },
     });
     const data = await response.json();
+    console.log("Backend response:", { status: response.status, ok: response.ok, data }); // Debug log
+    
     if (response.ok && data.success && data.data) {
       return {
-        email: data.data.email,
-        subscriptionTier: data.data.subscription_tier,
-        extensionEnabled: data.data.extension_enabled,
-      };
-    } else if (
-      response.status === 403 &&
-      data.error?.code === "EXTENSION_REQUIRES_PAID_PLAN"
-    ) {
+        email: data.data.email || "Unknown user",
+        displayName: data.data.display_name || data.data.email || "Unknown user",
+        subscriptionTier: data.data.subscription_tier || "free",
+        extensionEnabled: data.data.extension_enabled || false,
+        requiresUpgrade: !data.data.extension_enabled
+      };    } else {
+      console.log("Backend response unsuccessful:", { status: response.status, ok: response.ok, data }); // Debug log
       return {
         email: "Unknown user",
-        subscriptionTier: "free",
-        extensionEnabled: false,
-        requiresUpgrade: true,
-        error: data.error.message,
+        displayName: "Unknown user",
+        subscriptionTier: "unknown",
+        extensionEnabled: false,        requiresUpgrade: true
       };
     }
-    console.log("❌ Backend auth failed:", response.status, data);
   } catch (e) {
     console.error("❌ Fetch error:", e.message);
   }
   return {
     email: "Unknown user",
+    displayName: "Unknown user",
     subscriptionTier: "unknown",
     extensionEnabled: false,
+    requiresUpgrade: true
   };
 }
 
@@ -230,9 +231,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     cacheText: getElement("cacheText"),
     refreshAuthBtn: getElement("refreshAuthBtn"),
     platformIndicator: getElement("platformIndicator"),
-    openOptionsBtn: getElement("openOptionsBtn"),
-    handleError: getElement("handleError"),
+    openOptionsBtn: getElement("openOptionsBtn"),    handleError: getElement("handleError"),
     handleSuccess: getElement("handleSuccess"),
+    // Platform navigation section
+    platformNavigationSection: getElement("platformNavigationSection"),
     // Content alignment elements
     contentToAnalyze: getElement("contentToAnalyze"),
     alignmentType: getElement("alignmentType"),
@@ -425,16 +427,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       setText(elements.cacheText, `Cached (${age}s ago)`);
     } else {
       setText(elements.cacheText, "Fresh check");
-    }
-
-    if (authState.isAuthenticated && authState.userData) {
-      // Authenticated - fetch user details
+    }    if (authState.isAuthenticated && authState.userData) {
+      // Authenticated - fetch user details from backend API
       if (authState.apiUrl && authState.jwt) {
+        // Show loading while fetching user info
+        setText(elements.userEmail, "Loading...");
+        
         fetchUserInfo(authState.apiUrl, authState.jwt).then((userInfo) => {
           currentUser = userInfo;
-          setText(elements.userEmail, userInfo.email);
+          // Prefer displayName over email for user display
+          const displayText = userInfo.displayName || userInfo.email;
+          setText(elements.userEmail, displayText);
           updateSubscriptionUI(userInfo);
+        }).catch((error) => {
+          console.error("Failed to fetch user info:", error);
+          setText(elements.userEmail, "Error loading user info");
         });
+      } else {
+        setText(elements.userEmail, "Authentication incomplete");
       }
 
       showElement(elements.authenticatedContent);
@@ -462,14 +472,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       elements.subscriptionTier.className = `inline-block px-2 py-0.5 rounded text-xs font-medium uppercase border ${tierClasses}`;
       showElement(elements.subscriptionInfo);
-    }
-
-    // Handle free user restrictions
+    }    // Handle free user restrictions (fail-closed: treat unknown as free)
     if (
       userInfo.requiresUpgrade ||
-      userInfo.subscriptionTier?.toLowerCase() === "free"
-    ) {
+      userInfo.subscriptionTier?.toLowerCase() === "free" ||
+      userInfo.subscriptionTier?.toLowerCase() === "unknown" ||
+      !userInfo.subscriptionTier) {
       showElement(elements.upgradeNotice);
+
+      // Hide platform navigation for free users
+      hideElement(elements.platformNavigationSection);
 
       // Disable content analysis for free users
       if (elements.analyzeContentBtn) {
@@ -485,9 +497,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (elements.contentToAnalyze) {
         elements.contentToAnalyze.disabled = true;
         elements.contentToAnalyze.placeholder = "Pro feature - upgrade to use";
-      }
-    } else {
+      }    } else {
       hideElement(elements.upgradeNotice);
+
+      // Show platform navigation for paid users
+      showElement(elements.platformNavigationSection);
 
       // Enable features for paid users - but check if analysis is available
       // This will be further refined by updateContentAlignmentSection
@@ -543,11 +557,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
-
   if (elements.upgradeLink) {
     elements.upgradeLink.addEventListener("click", (e) => {
       e.preventDefault();
-      chrome.tabs.create({ url: "http://brandalyze.io/pricing" });
+      chrome.tabs.create({ url: "https://brandalyze.io/pricing" });
       globalThis.close();
     });
   }

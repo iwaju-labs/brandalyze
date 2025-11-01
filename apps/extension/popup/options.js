@@ -50,30 +50,31 @@ async function fetchUserInfo(apiUrl, jwt) {
                 'Content-Type': 'application/json'
             }
         });
-        const data = await response.json();
-        if (response.ok && data.success && data.data) {
+        const data = await response.json();        if (response.ok && data.success && data.data) {
             return {
-                email: data.data.email,
-                subscriptionTier: data.data.subscription_tier,
-                extensionEnabled: data.data.extension_enabled
-            };
-        } else if (response.status === 403 && data.error?.code === 'EXTENSION_REQUIRES_PAID_PLAN') {
+                email: data.data.email || 'Unknown user',
+                displayName: data.data.display_name || data.data.email || 'Unknown user',
+                subscriptionTier: data.data.subscription_tier || 'free',
+                extensionEnabled: data.data.extension_enabled || false,
+                requiresUpgrade: !data.data.extension_enabled
+            };        } else {
             return {
                 email: 'Unknown user',
-                subscriptionTier: 'free',
+                displayName: 'Unknown user',
+                subscriptionTier: 'unknown',
                 extensionEnabled: false,
-                requiresUpgrade: true,
-                error: data.error.message
+                requiresUpgrade: true
             };
         }
-        console.log('❌ Backend auth failed:', response.status, data);
     } catch (e) {
         console.error('❌ Fetch error:', e.message);
     }
     return {
         email: 'Unknown user',
+        displayName: 'Unknown user',
         subscriptionTier: 'unknown',
-        extensionEnabled: false
+        extensionEnabled: false,
+        requiresUpgrade: true
     };
 }
 
@@ -687,10 +688,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (elements.testAnalysisBtn) elements.testAnalysisBtn.addEventListener('click', testAnalysis);
     if (elements.viewLastAnalysisBtn) elements.viewLastAnalysisBtn.addEventListener('click', viewLastAnalysis);
     
-    if (elements.upgradeLink) {
-        elements.upgradeLink.addEventListener('click', (e) => {
+    if (elements.upgradeLink) {        elements.upgradeLink.addEventListener('click', (e) => {
             e.preventDefault();
-                chrome.tabs.create({ url: 'http://brandalyze.io/pricing' });
+            chrome.tabs.create({ url: 'https://brandalyze.io/pricing' });
             globalThis.close();
         });
     }
