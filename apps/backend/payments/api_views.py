@@ -11,6 +11,26 @@ from brands.authentication import ClerkAuthentication
 from django.conf import settings
 from payments.stripe_service import StripeService
 
+@api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def check_trial_status(request):
+    user = request.user
+    try:
+        from analysis.models import UserSubscription
+        subscription = UserSubscription.objects.filter(user=user).first()
+        has_used_trial = bool(subscription and subscription.trial_start)
+        return success_response(
+            data={"has_used_trial": has_used_trial},
+            message="Fetched trial use status",
+            status_code=status.HTTP_200_OK
+        )
+    except Exception as e:
+        return error_response(
+            f"Could not fetch trial use status {e}",
+            code="TRIAL_STATUS_UNKNOWN",
+        )
+
 @api_view(['POST'])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])

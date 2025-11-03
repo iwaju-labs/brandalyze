@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
@@ -84,6 +84,26 @@ export default function PricingPage() {
     tier: (typeof pricingTiers)[0] | null;
     type: "trial" | "subscription";
   }>({ show: false, tier: null, type: "subscription" });
+  const [hasUsedTrial, setHasUsedTrial] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    const fetchTrialStatus = async () => {
+      try {
+        const response = await authenticatedFetch(
+          "/payments/check-trial-status",
+          getToken
+        );
+        setHasUsedTrial(response.data.has_used_trial);
+      } catch (error) {
+        console.error("Failed to fetch trial status:", error);
+        setHasUsedTrial(null);
+      }
+    };
+
+    fetchTrialStatus();
+  }, [isSignedIn, getToken]);
 
   const handleSubscribe = async (tier: (typeof pricingTiers)[0]) => {
     if (!isSignedIn) {
@@ -148,7 +168,7 @@ export default function PricingPage() {
     setShowConfirmDialog({
       show: true,
       tier: pricingTiers.find((t) => t.name === "Pro") || null,
-      type: "trial",
+      type: hasUsedTrial ? "subscription" : "trial",
     });
   };
   const confirmTrial = async () => {
@@ -212,7 +232,6 @@ export default function PricingPage() {
                     </span>
                   </div>
                 )}
-
                 <div className="text-center mb-8">
                   <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto mb-4">
                     <IconComponent className="w-6 h-6 text-purple-600" />
@@ -237,7 +256,6 @@ export default function PricingPage() {
                     {tier.description}
                   </p>
                 </div>
-
                 <ul className="space-y-4 mb-8">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
@@ -247,27 +265,44 @@ export default function PricingPage() {
                       </span>
                     </li>
                   ))}
-                </ul>
-
+                </ul>{" "}
                 <button
                   onClick={() =>
-                    tier.name === "Pro" ? startTrial() : handleSubscribe(tier)
+                    tier.name === "Pro"
+                      ? hasUsedTrial
+                        ? handleSubscribe(tier)
+                        : startTrial()
+                      : handleSubscribe(tier)
                   }
-                  disabled={isLoading === tier.name || isLoading === "trial"}
+                  disabled={
+                    isLoading === tier.name ||
+                    isLoading === "trial" ||
+                    (tier.name === "Pro" && isSignedIn && hasUsedTrial === null)
+                  }
                   className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center ${
                     tier.popular
                       ? "bg-purple-700 dark:bg-black text-white shadow-lg hover:shadow-xl"
                       : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
                   } ${
-                    isLoading === tier.name || isLoading === "trial"
+                    isLoading === tier.name ||
+                    isLoading === "trial" ||
+                    (tier.name === "Pro" && isSignedIn && hasUsedTrial === null)
                       ? "opacity-50 cursor-not-allowed"
                       : ""
                   }`}
                 >
+                  {" "}
                   {isLoading === tier.name || isLoading === "trial" ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                       Processing...
+                    </div>
+                  ) : tier.name === "Pro" &&
+                    isSignedIn &&
+                    hasUsedTrial === null ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      ...
                     </div>
                   ) : (
                     <>
@@ -279,7 +314,9 @@ export default function PricingPage() {
                       ) : (
                         <>
                           <CreditCard02 className="w-4 h-4 mr-2" />
-                          {tier.buttonText}
+                          {tier.name === "Pro" && hasUsedTrial
+                            ? "Get Started"
+                            : tier.buttonText}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       )}
@@ -372,6 +409,7 @@ export default function PricingPage() {
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
                     You&apos;re about to subscribe to the{" "}
                     <strong>{showConfirmDialog.tier.name} plan</strong> for{" "}
+                    <br />
                     <strong>${showConfirmDialog.tier.price}/month</strong>.
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">

@@ -7,10 +7,12 @@ from .api_views import (
     create_customer_portal,
     cancel_subscription,
     test_auth,
+    check_trial_status
 )
 
 urlpatterns = [
     # API endpoints
+    path('check-trial-status/', check_trial_status, name='check_trial_status'),
     path('create-checkout-session/', create_checkout_session, name='create_checkout_session'),
     path('start-trial/', start_trial, name='start_trial'),
     path('billing-info/', get_billing_info, name='get_billing_info'),
