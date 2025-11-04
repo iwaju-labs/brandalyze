@@ -24,7 +24,7 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
           <p className="text-sm mb-4 font-mono text-gray-600 dark:text-gray-400">
             {">"} AI-powered brand voice consistency analysis
           </p>
-          <div className="flex items-center justify-center space-x-6 text-xs text-gray-500 dark:text-gray-500">
+            <div className="flex items-center justify-center space-x-6 text-xs text-gray-500 dark:text-gray-500 mb-6">
             <span>© {new Date().getFullYear()} IWAJU LABS</span>
             <span>•</span>
             <Link
@@ -38,14 +38,38 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
               Terms of Service
             </Link>
             <span>•</span>
-            <Link
-              href="mailto:dom@brandalyze.io"
-            >
+            <Link href="mailto:dom@brandalyze.io">
               Support - dom@brandalyze.io
             </Link>
+          </div>          {/** Quick Links */}
+          <ul className="space-y-2 text-xs text-gray-500 dark:text-gray-500">
+            <li>
+              <Link
+                href="/pricing"
+                className="hover:opacity-80 transition-opacity"
+              >
+                Pricing
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
+                className="hover:opacity-80 transition-opacity"
+              >
+                Download Extension
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/analyze"
+                className="hover:opacity-80 transition-opacity"
+              >
+                Analyze
+              </Link>
+            </li>
+          </ul>
           </div>
         </div>
-      </div>
     </footer>
   );
 }

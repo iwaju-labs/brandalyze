@@ -31,7 +31,7 @@ export const Navbar = () => {
             pricing
           </Link>
           <Link 
-            href="https://chromewebstore.google.com"
+            href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
             className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
             download extension
