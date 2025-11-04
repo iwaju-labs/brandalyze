@@ -141,7 +141,7 @@ async function detectCurrentPlatform() {
     if (url.includes("twitter.com") || url.includes("x.com")) {
       return {
         platform: "twitter",
-        displayName: "Twitter/X",
+        displayName: "X",
         handleKey: "twitterHandle",
       };
     } else if (url.includes("linkedin.com")) {
