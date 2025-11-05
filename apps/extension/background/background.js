@@ -2,7 +2,244 @@
 const DEV_API_BASE_URL = "http://localhost:8000/api";
 const PROD_API_BASE_URL = "https://brandalyze.onrender.com/api";
 
-// AUTH STATE MANAGEMENT - Optimized for stored tokens
+// OAuth-style Extension Authentication Class
+class ExtensionAuth {
+  constructor() {
+    this.authState = {
+      isAuthenticated: false,
+      extensionToken: null,
+      userInfo: null,
+      apiUrl: PROD_API_BASE_URL,
+      lastChecked: null,
+      cacheTimeout: 60 * 60 * 1000, // 1 hour cache
+    };
+  }
+  getAppUrl() {
+    // Determine if we should use dev or prod based on stored preference or default to prod
+    return this.authState.apiUrl === DEV_API_BASE_URL 
+      ? "http://localhost:3000" 
+      : "https://brandalyze.io";
+  }
+
+  getApiUrl() {
+    return this.authState.apiUrl;
+  }
+
+  async detectEnvironment() {
+    try {
+      // Check if we have any Brandalyze tabs open to detect environment
+      const tabs = await chrome.tabs.query({
+        url: [
+          "http://localhost:3000/*",
+          "https://localhost:3000/*",
+          "https://brandalyze.io/*",
+          "https://www.brandalyze.io/*"
+        ],
+      });
+
+      if (tabs.length > 0) {
+        // If localhost tab exists, prefer dev environment
+        const hasLocalhost = tabs.some(tab => tab.url.includes("localhost"));
+        if (hasLocalhost) {
+          this.authState.apiUrl = DEV_API_BASE_URL;
+          return DEV_API_BASE_URL;
+        }
+      }
+
+      // Default to production
+      this.authState.apiUrl = PROD_API_BASE_URL;
+      return PROD_API_BASE_URL;
+    } catch (error) {
+      console.log('Environment detection failed, defaulting to prod:', error);
+      this.authState.apiUrl = PROD_API_BASE_URL;
+      return PROD_API_BASE_URL;
+    }
+  }  async initiateAuth() {
+    try {
+      // Detect environment based on open tabs
+      await this.detectEnvironment();
+      
+      // Get the extension ID dynamically
+      const extensionId = chrome.runtime.id;
+      
+      const appUrl = this.getAppUrl();
+      const authUrl = `${appUrl}/extension-auth?source=chrome&extension_id=${extensionId}`;
+      
+      console.log(`Initiating OAuth auth with: ${authUrl}`);
+      console.log(`Environment detected: ${this.authState.apiUrl === DEV_API_BASE_URL ? 'Development' : 'Production'}`);
+      
+      await chrome.tabs.create({ url: authUrl });
+      return true;
+    } catch (error) {
+      console.error('Failed to initiate auth:', error);
+      return false;
+    }
+  }
+
+  async handleAuthCallback(authCode) {
+    try {
+      console.log('Exchanging auth code for extension token...');
+      
+      const response = await fetch(`${this.getApiUrl()}/extension/auth/exchange-code/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_code: authCode })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.data.extension_token) {
+        throw new Error('Invalid response from auth exchange');
+      }
+
+      const { extension_token, user_info, expires_at } = data.data;
+
+      // Store long-lived token
+      await chrome.storage.local.set({
+        extensionToken: extension_token,
+        userInfo: user_info,
+        tokenExpiry: new Date(expires_at).getTime(),
+        lastAuth: Date.now(),
+        apiUrl: this.getApiUrl()
+      });
+
+      this.authState = {
+        isAuthenticated: true,
+        extensionToken: extension_token,
+        userInfo: user_info,
+        apiUrl: this.getApiUrl(),
+        lastChecked: Date.now()
+      };
+
+      console.log('Extension authentication successful!');
+      return true;
+
+    } catch (error) {
+      console.error('Auth exchange failed:', error);
+      return false;
+    }
+  }
+
+  async checkAuth() {
+    try {
+      // Check cache first
+      const now = Date.now();
+      if (this.authState.lastChecked && 
+          (now - this.authState.lastChecked) < this.authState.cacheTimeout &&
+          this.authState.isAuthenticated) {
+        return this.authState;
+      }
+
+      // Check stored token
+      const stored = await chrome.storage.local.get([
+        'extensionToken', 'userInfo', 'tokenExpiry', 'apiUrl'
+      ]);
+
+      if (stored.extensionToken) {
+        // Check if token is expired
+        if (stored.tokenExpiry && Date.now() > stored.tokenExpiry) {
+          console.log('Extension token expired');
+          await this.clearAuth();
+          return { isAuthenticated: false };
+        }
+
+        // Validate token with backend
+        const isValid = await this.validateToken(stored.extensionToken, stored.apiUrl);
+        
+        if (isValid) {
+          this.authState = {
+            isAuthenticated: true,
+            extensionToken: stored.extensionToken,
+            userInfo: stored.userInfo,
+            apiUrl: stored.apiUrl || PROD_API_BASE_URL,
+            lastChecked: now
+          };
+          return this.authState;
+        } else {
+          console.log('Extension token validation failed');
+          await this.clearAuth();
+        }
+      }
+
+      return { isAuthenticated: false };
+
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      return { isAuthenticated: false };
+    }
+  }
+
+  async validateToken(token, apiUrl = null) {
+    try {
+      const url = apiUrl || this.getApiUrl();
+      const response = await fetch(`${url}/extension/auth/verify-token/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `ExtensionToken ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Update user info if provided
+          if (data.data) {
+            this.authState.userInfo = data.data;
+            await chrome.storage.local.set({ userInfo: data.data });
+          }
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
+  }
+
+  async clearAuth() {
+    await chrome.storage.local.remove([
+      'extensionToken', 'userInfo', 'tokenExpiry', 'lastAuth'
+    ]);
+    
+    this.authState = {
+      isAuthenticated: false,
+      extensionToken: null,
+      userInfo: null,
+      apiUrl: this.authState.apiUrl, // Preserve API URL preference
+      lastChecked: null
+    };
+  }
+
+  async makeAuthenticatedRequest(endpoint, options = {}) {
+    if (!this.authState.isAuthenticated || !this.authState.extensionToken) {
+      throw new Error('Not authenticated');
+    }
+
+    const headers = {
+      'Authorization': `ExtensionToken ${this.authState.extensionToken}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+
+    return fetch(`${this.getApiUrl()}${endpoint}`, {
+      ...options,
+      headers
+    });
+  }
+}
+
+// Create global instance
+const extensionAuth = new ExtensionAuth();
+
+// LEGACY AUTH STATE - Keep for backward compatibility during transition
 let authState = {
   isAuthenticated: false,
   clerkToken: null,
@@ -29,12 +266,51 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   switch (request.action) {
-    case "checkClerkAuth":
-      getAuthState()
+    // NEW OAuth-style authentication actions
+    case "checkExtensionAuth":
+      extensionAuth.checkAuth()
         .then((response) => sendResponse({ success: true, data: response }))
-        .catch((error) =>
-          sendResponse({ success: false, error: error.message })
-        );
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case "initiateAuth":
+      extensionAuth.initiateAuth()
+        .then((success) => sendResponse({ success }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case "handleAuthCallback":
+      extensionAuth.handleAuthCallback(request.authCode)
+        .then((success) => sendResponse({ success }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case "clearAuth":
+      extensionAuth.clearAuth()
+        .then(() => sendResponse({ success: true }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    // LEGACY actions - maintain backward compatibility during transition
+    case "checkClerkAuth":
+      // Try new auth first, fallback to legacy
+      extensionAuth.checkAuth()
+        .then((newAuthResponse) => {
+          if (newAuthResponse.isAuthenticated) {
+            sendResponse({ success: true, data: newAuthResponse });
+          } else {
+            // Fallback to legacy auth
+            getAuthState()
+              .then((response) => sendResponse({ success: true, data: response }))
+              .catch((error) => sendResponse({ success: false, error: error.message }));
+          }
+        })
+        .catch((error) => {
+          // If new auth fails, try legacy
+          getAuthState()
+            .then((response) => sendResponse({ success: true, data: response }))
+            .catch((legacyError) => sendResponse({ success: false, error: legacyError.message }));
+        });
       return true;
 
     case "analyzeContent":
@@ -89,18 +365,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch((error) =>
           sendResponse({ success: false, error: error.message })
         );
-      return true;
-
-    case "updateStoredToken":
+      return true;    case "updateStoredToken":
       // Handle token updates from the main site
       updateStoredToken(request.data)
         .then((response) => sendResponse({ success: true, data: response }))
         .catch((error) =>
           sendResponse({ success: false, error: error.message })
         );
-      return true;
-
-    default:
+      return true;    default:
       console.warn("Unknown action:", request.action);
       sendResponse({ success: false, error: "Unknown action" });
   }
@@ -222,7 +494,9 @@ async function checkClerkAuth() {
 
 async function getClerkTokenFromBrandalyzeApp() {
   try {
-    console.log("Looking for Brandalyze app tabs...");    // Look for open Brandalyze tabs (dev and prod)
+    console.log("Looking for Brandalyze app tabs...");
+    
+    // Look for open Brandalyze tabs (dev and prod)
     const tabs = await chrome.tabs.query({
       url: [
         "http://localhost:3000/*",
@@ -233,6 +507,12 @@ async function getClerkTokenFromBrandalyzeApp() {
         "http://www.brandalyze.io/*"
       ],
     });
+
+    // Check if any Brandalyze tabs were found
+    if (!tabs || tabs.length === 0) {
+      console.log("No Brandalyze app tabs found");
+      return null;
+    }
 
     const tabId = tabs[0].id;
     const tabUrl = tabs[0].url;

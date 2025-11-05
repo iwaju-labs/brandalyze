@@ -29,3 +29,28 @@ class ExtensionAnalysis(models.Model):
             models.Index(fields=['user', 'created_at']),
             models.Index(fields=['content_hash'])
         ]
+
+class ExtensionToken(models.Model):
+    """Long-lived tokens for extension authentication"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, unique=True)
+    auth_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'extension_tokens'
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['auth_code']),
+            models.Index(fields=['user', 'is_active'])
+        ]
+
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.expires_at
+
+    def is_valid(self):
+        return self.is_active and not self.is_expired()

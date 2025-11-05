@@ -4,23 +4,28 @@ from rest_framework.decorators import (
     permission_classes,
     authentication_classes,
 )
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from brands.utils.responses import error_response, success_response
 from brands.permissions import ClerkAuthenticated
 from brands.views import ClerkAuthentication
 from django.core.cache import cache
 from django.utils import timezone
+from datetime import timedelta
 import hashlib
 import uuid
+import secrets
+import string
+import random
 
 from brands.models import Brand
 from analysis.models import UserSubscription
-from .models import ExtensionAnalysis, ExtensionSession
+from .models import ExtensionAnalysis, ExtensionSession, ExtensionToken
 from .serializers import (
     ExtensionBrandSerializer,
     ExtensionAnalysisRequestSerializer,
 )
 
-# Import refactored modules
 from .analyzers.voice_analysis import (
     perform_profile_voice_analysis,
     perform_brand_alignment_analysis,
@@ -32,6 +37,147 @@ from .utils.helpers import extract_key_insights
 # Constants
 EXTENSION_REQUIRES_PAID_PLAN_MESSAGE = "Browser extension requires Pro or Enterprise subscription"
 
+
+class ExtensionTokenAuthentication(BaseAuthentication):
+    """Authentication for extension using long-lived tokens"""
+    
+    def authenticate(self, request):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        
+        if not auth_header.startswith('ExtensionToken '):
+            return None
+            
+        token = auth_header.split(' ', 1)[1]
+        
+        try:
+            token_obj = ExtensionToken.objects.get(
+                token=token,
+                is_active=True,
+                expires_at__gt=timezone.now()
+            )
+            
+            # Update last used
+            token_obj.last_used = timezone.now()
+            token_obj.save(update_fields=['last_used'])
+            
+            return (token_obj.user, token_obj)
+            
+        except ExtensionToken.DoesNotExist:
+            raise AuthenticationFailed('Invalid or expired extension token')
+
+
+def generate_short_code():
+    """Generate a short 8-character auth code"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
+@api_view(["POST"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def create_extension_token(request):
+    """Exchange Clerk JWT for long-lived extension token"""
+    try:
+        user = request.user
+        subscription = UserSubscription.objects.filter(user=user).first()
+
+        # Check subscription requirements for extension access
+        extension_enabled = subscription and subscription.tier in ["pro", "enterprise"]
+        
+        if not extension_enabled:
+            return error_response(
+                message=EXTENSION_REQUIRES_PAID_PLAN_MESSAGE,
+                code="SUBSCRIPTION_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+
+        # Generate tokens
+        extension_token = secrets.token_urlsafe(32)
+        auth_code = generate_short_code()
+        expiry = timezone.now() + timedelta(days=30)
+
+        # Deactivate any existing tokens for this user
+        ExtensionToken.objects.filter(user=user, is_active=True).update(is_active=False)
+
+        # Create new token
+        token_obj = ExtensionToken.objects.create(
+            user=user,
+            token=extension_token,
+            auth_code=auth_code,
+            expires_at=expiry,
+            is_active=True
+        )
+
+        return success_response(data={
+            'auth_code': auth_code,
+            'expires_at': expiry.isoformat(),
+            'message': 'Extension token created successfully'
+        })
+
+    except Exception as e:
+        return error_response(
+            message=f"Failed to create extension token: {str(e)}",
+            code="TOKEN_CREATION_FAILED",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["POST"])
+@permission_classes([])  # No auth required for code exchange
+def exchange_auth_code(request):
+    """Exchange auth code for extension token"""
+    try:
+        auth_code = request.data.get('auth_code')
+        
+        if not auth_code:
+            return error_response(
+                message="Auth code is required",
+                code="MISSING_AUTH_CODE",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Find valid token by auth code
+        try:
+            token_obj = ExtensionToken.objects.get(
+                auth_code=auth_code,
+                is_active=True,
+                expires_at__gt=timezone.now()
+            )
+        except ExtensionToken.DoesNotExist:
+            return error_response(
+                message="Invalid or expired auth code",
+                code="INVALID_AUTH_CODE",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get user info
+        user = token_obj.user
+        subscription = UserSubscription.objects.filter(user=user).first()
+
+        # Clear the auth code (one-time use)
+        token_obj.auth_code = None
+        token_obj.last_used = timezone.now()
+        token_obj.save()
+
+        user_info = {
+            "user_id": user.id,
+            "email": user.email,
+            "display_name": f"{user.first_name} {user.last_name}".strip() or user.email,
+            "subscription_tier": subscription.tier if subscription else "free",
+            "extension_enabled": True,  # They must have pro/enterprise to get here
+        }
+
+        return success_response(data={
+            'extension_token': token_obj.token,
+            'user_info': user_info,
+            'expires_at': token_obj.expires_at.isoformat()
+        })
+
+    except Exception as e:
+        return error_response(
+            message=f"Failed to exchange auth code: {str(e)}",
+            code="CODE_EXCHANGE_FAILED",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(["POST"])
 @authentication_classes([ClerkAuthentication])
@@ -62,6 +208,46 @@ def verify_extension_auth(request):
         return error_response(
             message=f"Extension authentication failed: {e}",
             code="AUTH_VERIFICATION_FAILED",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@api_view(["POST"])
+@authentication_classes([ExtensionTokenAuthentication])
+@permission_classes([])  # Token auth handles permission
+def verify_extension_token(request):
+    """Verify extension token and return user info"""
+    try:
+        user = request.user
+        subscription = UserSubscription.objects.filter(user=user).first()
+
+        # Check subscription requirements for extension access
+        extension_enabled = subscription and subscription.tier in ["pro", "enterprise"]
+        
+        if not extension_enabled:
+            return error_response(
+                message=EXTENSION_REQUIRES_PAID_PLAN_MESSAGE,
+                code="SUBSCRIPTION_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+
+        user_data = {
+            "user_id": user.id,
+            "email": user.email,
+            "display_name": f"{user.first_name} {user.last_name}".strip() or user.email,
+            "subscription_tier": subscription.tier if subscription else "free",
+            "extension_enabled": extension_enabled,
+        }
+
+        return success_response(
+            data=user_data,
+            message="Extension token verified successfully"
+        )
+
+    except Exception as e:
+        return error_response(
+            message=f"Extension token verification failed: {e}",
+            code="TOKEN_VERIFICATION_FAILED",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 

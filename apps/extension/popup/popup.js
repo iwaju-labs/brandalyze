@@ -363,15 +363,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.analyzeContentBtn.disabled = false;
     }
   }
-
-  // Check authentication - optimized to use cache when possible
+  // Check authentication - try new OAuth auth first, fallback to legacy
   async function checkAuth() {
-    // Only show loading for fresh auth checks
     const startTime = Date.now();
 
     try {
+      // Try new OAuth-style authentication first
       const response = await chrome.runtime.sendMessage({
-        action: "checkClerkAuth",
+        action: "checkExtensionAuth",
       });
 
       // Only show loading spinner if this takes more than 100ms (i.e., fresh check)
@@ -379,16 +378,54 @@ document.addEventListener("DOMContentLoaded", async () => {
         showLoading();
       }
 
-      if (response.success) {
-        updateAuthUI(response.data);
+      if (response.success && response.data.isAuthenticated) {
+        updateAuthUI(response.data, 'oauth');
       } else {
-        updateAuthUI({ isAuthenticated: false });
-        console.error("Auth check failed:", response.error);
+        // Fallback to legacy Clerk auth for backward compatibility
+        try {
+          const legacyResponse = await chrome.runtime.sendMessage({
+            action: "checkClerkAuth",
+          });
+          
+          if (legacyResponse.success && legacyResponse.data.isAuthenticated) {
+            updateAuthUI(legacyResponse.data, 'clerk');
+          } else {
+            updateAuthUI({ isAuthenticated: false }, 'none');
+          }
+        } catch (legacyError) {
+          console.log('Legacy auth also failed:', legacyError);
+          updateAuthUI({ isAuthenticated: false }, 'none');
+        }
       }
     } catch (error) {
       hideLoading();
-      updateAuthUI({ isAuthenticated: false });
+      updateAuthUI({ isAuthenticated: false }, 'none');
       console.error("Auth check error:", error);
+    }
+  }
+
+  // Initiate OAuth-style authentication
+  async function initiateAuth() {
+    try {
+      showLoading();
+      setText(elements.cacheText, "Opening authentication...");
+      
+      const response = await chrome.runtime.sendMessage({
+        action: "initiateAuth"
+      });
+
+      if (response.success) {
+        // Auth window opened, check auth status after a delay
+        setTimeout(async () => {
+          await checkAuth();
+        }, 2000);
+      } else {
+        hideLoading();
+        console.error("Failed to initiate auth:", response.error);
+      }
+    } catch (error) {
+      hideLoading();
+      console.error("Auth initiation error:", error);
     }
   }
 
@@ -414,19 +451,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("Force refresh error:", error);
     }
   }
-
-  // Update authentication UI - simplified and efficient
-  function updateAuthUI(authState) {
+  // Update authentication UI - handles both OAuth and legacy auth
+  function updateAuthUI(authState, authType = 'legacy') {
     hideLoading();
 
     // Show cache status for debugging
     if (authState.lastChecked) {
       const age = Math.round((Date.now() - authState.lastChecked) / 1000);
-      setText(elements.cacheText, `Cached (${age}s ago)`);    } else {
-      setText(elements.cacheText, "Fresh check");
+      setText(elements.cacheText, `Cached (${age}s ago) - ${authType}`);
+    } else {
+      setText(elements.cacheText, `Fresh check - ${authType}`);
     }
     
-    if (authState.isAuthenticated && authState.userData) {
+    // Handle OAuth-style authentication
+    if (authType === 'oauth' && authState.isAuthenticated && authState.userInfo) {
+      const userInfo = authState.userInfo;
+      const displayText = userInfo.display_name || userInfo.email;
+      setText(elements.userEmail, displayText);
+      
+      // Update subscription UI
+      updateSubscriptionUI({
+        subscriptionTier: userInfo.subscription_tier,
+        extensionEnabled: userInfo.extension_enabled,
+        requiresUpgrade: !userInfo.extension_enabled
+      });
+      
+      showElement(elements.authenticatedContent);
+      hideElement(elements.unauthenticatedContent);
+      currentUser = userInfo;
+      
+      return;
+    }
+    
+    // Handle legacy Clerk authentication
+    if (authType === 'clerk' && authState.isAuthenticated && authState.userData) {
       // Authenticated - fetch user details from backend API
       if (authState.apiUrl && authState.jwt) {
         // Show loading while fetching user info
@@ -522,10 +580,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Update content alignment section after subscription check
     updateContentAlignmentSection(currentPlatform);
   }
-
   // Event listeners
-  if (elements.signInBtn)
-    elements.signInBtn.addEventListener("click", openBrandalyzeApp);
+  if (elements.signInBtn) {
+    elements.signInBtn.addEventListener("click", initiateAuth);
+  }
   if (elements.refreshAuthBtn)
     elements.refreshAuthBtn.addEventListener("click", forceRefreshAuth);
   if (elements.openOptionsBtn)
