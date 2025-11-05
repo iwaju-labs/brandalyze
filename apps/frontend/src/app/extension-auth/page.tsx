@@ -1,17 +1,29 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs"
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { authenticatedFetch } from "../../../lib/api";
 
 export default function ExtensionAuthPage() {
     const { getToken } = useAuth();
+    const { isSignedIn, isLoaded } = useUser();
 
     useEffect(() => {
         const handleExtensionAuth = async () => {
+            // Wait for user data to load
+            if (!isLoaded) return;
+
+            // Check if user is signed in
+            if (!isSignedIn) {
+                // Redirect to sign in with return URL
+                const currentUrl = encodeURIComponent(globalThis.location.href);
+                globalThis.location.href = `/sign-in?redirect_url=${currentUrl}`;
+                return;
+            }
+
             try {
                 // Get extension ID from URL params or use a default
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = new URLSearchParams(globalThis.location.search);
                 const extensionId = urlParams.get('extension_id') || 'chnffppbmnlchenodfkbldobgmfgpbph';
                 
                 const response = await authenticatedFetch(
@@ -22,7 +34,7 @@ export default function ExtensionAuthPage() {
 
                 if (response.data?.auth_code) {
                     // Redirect to extension with auth code
-                    window.location.href = `chrome-extension://${extensionId}/auth-callback.html?code=${response.data.auth_code}`;
+                    globalThis.location.href = `chrome-extension://${extensionId}/auth-callback.html?code=${response.data.auth_code}`;
                 } else {
                     console.error('No auth code received:', response);
                     // Show error message to user
@@ -36,14 +48,15 @@ export default function ExtensionAuthPage() {
                                     <p class="text-gray-600 mb-4">
                                         Unable to connect to the extension. Please try again.
                                     </p>
-                                    <button onclick="window.close()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                    <button onclick="globalThis.close()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
                                         Close
                                     </button>
                                 </div>
                             </div>
                         </div>
                     `;
-                }            } catch (error) {
+                }
+            } catch (error) {
                 console.error('Extension auth failed:', error);
                 // Show error message to user
                 const errorMessage = error instanceof Error ? error.message : 'Failed to connect to extension. Please ensure you have a Pro or Enterprise subscription.';
@@ -57,7 +70,7 @@ export default function ExtensionAuthPage() {
                                 <p class="text-gray-600 mb-4">
                                     ${errorMessage}
                                 </p>
-                                <button onclick="window.close()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                <button onclick="globalThis.close()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
                                     Close
                                 </button>
                             </div>
@@ -68,7 +81,7 @@ export default function ExtensionAuthPage() {
         };
 
         handleExtensionAuth();
-    }, [getToken]);
+    }, [getToken, isLoaded, isSignedIn]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
