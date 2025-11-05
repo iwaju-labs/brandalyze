@@ -43,10 +43,10 @@ export default function ExtensionAuthPage() {
                             </div>
                         </div>
                     `;
-                }
-            } catch (error) {
+                }            } catch (error) {
                 console.error('Extension auth failed:', error);
                 // Show error message to user
+                const errorMessage = error instanceof Error ? error.message : 'Failed to connect to extension. Please ensure you have a Pro or Enterprise subscription.';
                 document.body.innerHTML = `
                     <div class="min-h-screen bg-gray-50 flex items-center justify-center">
                         <div class="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
@@ -55,7 +55,7 @@ export default function ExtensionAuthPage() {
                                     Connection Error
                                 </h1>
                                 <p class="text-gray-600 mb-4">
-                                    ${error.message || 'Failed to connect to extension. Please ensure you have a Pro or Enterprise subscription.'}
+                                    ${errorMessage}
                                 </p>
                                 <button onclick="window.close()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
                                     Close
