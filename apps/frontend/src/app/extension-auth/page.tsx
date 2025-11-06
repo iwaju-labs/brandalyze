@@ -19,9 +19,7 @@ export default function ExtensionAuthPage() {
                 const currentUrl = encodeURIComponent(globalThis.location.href);
                 globalThis.location.href = `/sign-in?redirect_url=${currentUrl}`;
                 return;
-            }
-
-            try {
+            }            try {
                 // Get extension ID from URL params or use a default
                 const urlParams = new URLSearchParams(globalThis.location.search);
                 const extensionId = urlParams.get('extension_id') || 'chnffppbmnlchenodfkbldobgmfgpbph';
