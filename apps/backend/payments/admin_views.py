@@ -46,6 +46,22 @@ def is_admin_user(user):
 @api_view(['GET'])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
+def check_admin_status(request):
+    """Check if current user has admin privileges"""
+    try:
+        is_admin = is_admin_user(request.user)
+        return success_response({
+            'is_admin': is_admin
+        })
+    except Exception as e:
+        return error_response(
+            message=f"Error checking admin status: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def list_users(request):
     """List all users with their subscription information"""
     if not is_admin_user(request.user):

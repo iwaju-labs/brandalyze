@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
 import { Shield01 } from "@untitledui/icons";
+import { useAdminStatus } from "@/hooks/useAdminStatus";
 
 export function AdminLink() {
-  const { user } = useUser();
+  const { isAdmin, isLoading } = useAdminStatus();
   
-  // Check if user has admin role
-  const isAdmin = user?.publicMetadata?.role === "admin";
-  
-  if (!isAdmin) {
+  if (isLoading || !isAdmin) {
     return null;
   }
   

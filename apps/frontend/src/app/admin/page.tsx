@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
+import { useAdminStatus } from "@/hooks/useAdminStatus";
 import toast from "react-hot-toast";
 import {
   Users01,
@@ -51,9 +52,10 @@ interface AdminStats {
 }
 
 export default function AdminDashboard() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const { isAdmin, isLoading: adminLoading } = useAdminStatus();
   
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -62,29 +64,9 @@ export default function AdminDashboard() {
   const [tierFilter, setTierFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showTrialFields, setShowTrialFields] = useState(false);
-  // Check admin access
-  useEffect(() => {
-    if (!isLoaded) return;
-    
-    if (!isSignedIn) {
-      router.push("/sign-in");
-      return;
-    }    // Check if user has admin role in Clerk metadata or try to access admin anyway
-    const userMetadata = user?.publicMetadata as { role?: string } | undefined;
-    const hasAdminRole = userMetadata?.role === "admin";
-    
-    // For development, we'll try to load the admin data regardless
-    // In production, you'd want to enforce this more strictly
-    if (!hasAdminRole) {
-      console.warn("No admin role found in public metadata, attempting to access admin endpoints...");
-    }
+  const [isUpdating, setIsUpdating] = useState(false);  const [showTrialFields, setShowTrialFields] = useState(false);
 
-    fetchAdminData();
-  }, [isLoaded, isSignedIn, user, router]);
-
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -106,12 +88,26 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getToken, searchTerm, tierFilter, currentPage]);
+  
+  // Check admin access
+  useEffect(() => {
+    if (!isLoaded || adminLoading) return;
+    
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+
+    if (!isAdmin) {
+      router.push("/");
+      return;
+    }    fetchAdminData();  }, [isLoaded, isSignedIn, isAdmin, adminLoading, router, fetchAdminData]);
 
   const handleSearch = () => {
     setCurrentPage(1);
     fetchAdminData();
-  };  const handleUpdateSubscription = async (userId: number, newTier: string, isActive: boolean, subscriptionData: {
+  };const handleUpdateSubscription = async (userId: number, newTier: string, isActive: boolean, subscriptionData: {
     subscription_start?: string | null;
     subscription_end?: string | null;
     trial_start?: string | null;
