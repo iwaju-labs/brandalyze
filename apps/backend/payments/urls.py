@@ -9,6 +9,12 @@ from .api_views import (
     test_auth,
     check_trial_status
 )
+from .admin_views import (
+    list_users,
+    update_user_subscription,
+    sync_stripe_subscription,
+    admin_stats
+)
 
 urlpatterns = [
     # API endpoints
@@ -19,6 +25,12 @@ urlpatterns = [
     path('portal/', create_customer_portal, name='create_customer_portal'),
     path('cancel/', cancel_subscription, name='cancel_subscription'),
     path('test-auth/', test_auth, name='test_auth'),
+    
+    # Admin endpoints
+    path('admin/users/', list_users, name='admin_list_users'),
+    path('admin/update-subscription/', update_user_subscription, name='admin_update_subscription'),
+    path('admin/sync-stripe/', sync_stripe_subscription, name='admin_sync_stripe'),
+    path('admin/stats/', admin_stats, name='admin_stats'),
 
     # Webhook endpoint
     path('webhook/', stripe_webhook, name='stripe_webhook'),

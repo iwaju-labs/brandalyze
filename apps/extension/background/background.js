@@ -24,36 +24,10 @@ class ExtensionAuth {
   getApiUrl() {
     return this.authState.apiUrl;
   }
-
   async detectEnvironment() {
-    try {
-      // Check if we have any Brandalyze tabs open to detect environment
-      const tabs = await chrome.tabs.query({
-        url: [
-          "http://localhost:3000/*",
-          "https://localhost:3000/*",
-          "https://brandalyze.io/*",
-          "https://www.brandalyze.io/*",
-        ],
-      });
-
-      if (tabs.length > 0) {
-        // If localhost tab exists, prefer dev environment
-        const hasLocalhost = tabs.some((tab) => tab.url.includes("localhost"));
-        if (hasLocalhost) {
-          this.authState.apiUrl = DEV_API_BASE_URL;
-          return DEV_API_BASE_URL;
-        }
-      }
-
-      // Default to production
-      this.authState.apiUrl = PROD_API_BASE_URL;
-      return PROD_API_BASE_URL;
-    } catch (error) {
-      console.log("Environment detection failed, defaulting to prod:", error);
-      this.authState.apiUrl = PROD_API_BASE_URL;
-      return PROD_API_BASE_URL;
-    }
+    // Force production environment
+    this.authState.apiUrl = PROD_API_BASE_URL;
+    return PROD_API_BASE_URL;
   }
   async initiateAuth() {
     try {

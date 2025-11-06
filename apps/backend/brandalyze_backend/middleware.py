@@ -35,8 +35,7 @@ class ClerkAuthMiddleware:
                     email = first_addr.get("email_address") or first_addr.get("email")
                 elif isinstance(first_addr, str):
                     email = first_addr
-        
-        # If no email found in JWT, fetch from Clerk API
+          # If no email found in JWT, fetch from Clerk API
         if not email or not isinstance(email, str) or "@" not in email:
             email = self._fetch_email_from_clerk_api(clerk_id)
         
@@ -116,12 +115,12 @@ class ClerkAuthMiddleware:
                     audience=None,
                     options={"verify_exp": True}
                 )
-                
                 request.clerk_user = payload
                 
-                # Debug: Print JWT payload to understand structure
-                logger.info(f"Clerk JWT payload: {payload}")
-                print(f"[DEBUG] Clerk JWT payload: {payload}")
+                # Only log in debug mode
+                if settings.DEBUG:
+                    logger.info(f"Clerk JWT payload: {payload}")
+                    print(f"[DEBUG] Clerk JWT payload: {payload}")
                 
                 user_model = get_user_model()
                 clerk_id = payload.get("sub")
@@ -130,23 +129,41 @@ class ClerkAuthMiddleware:
                     logger.error(f"No 'sub' field found in payload keys: {list(payload.keys())}")
                     print(f"[DEBUG] No 'sub' field found in payload keys: {list(payload.keys())}")
                     return JsonResponse({"error": "Invalid token: missing subject"}, status=401)
-                
-                # Extract email from Clerk JWT payload
+                  # Extract email from Clerk JWT payload
                 email = self._extract_email_from_payload(payload, clerk_id)
                 logger.info(f"Extracted email: {email}")
                 print(f"[DEBUG] Extracted email: {email}")
                 
+                # Extract metadata from JWT payload
+                public_metadata = payload.get('public_metadata', {})
+                private_metadata = payload.get('private_metadata', {})
+                
+                # Combine metadata
+                clerk_metadata = {
+                    'role': public_metadata.get('role', private_metadata.get('role')),
+                    'subscription_tier': public_metadata.get('subscription_tier', 'free'),
+                    'stripe_customer_id': public_metadata.get('stripe_customer_id', ''),
+                    'stripe_subscription_id': public_metadata.get('stripe_subscription_id', ''),
+                }
+                
                 user, created = user_model.objects.get_or_create(
-                    username=clerk_id,
-                    defaults={"email": email}
+                    clerk_id=clerk_id,
+                    defaults={
+                        "email": email,
+                        "username": email,
+                        "clerk_metadata": clerk_metadata
+                    }
                 )
                 
-                # Update email if it's different (e.g., from fake @clerk.local to real email)
-                if not created and user.email != email and "@clerk.local" in user.email:
+                # Update user if not created
+                if not created:
                     user.email = email
+                    if not user.username:
+                        user.username = email
+                    user.clerk_metadata = clerk_metadata
                     user.save()
-                    logger.info(f"Updated user email from {user.email} to {email}")
-                    print(f"[DEBUG] Updated user email from {user.email} to {email}")
+                    logger.info(f"Updated user email and metadata")
+                    print(f"[DEBUG] Updated user email and metadata")
                 
                 logger.info(f"User created/retrieved: {user} (created: {created})")
                 print(f"[DEBUG] User created/retrieved: {user} (created: {created})")

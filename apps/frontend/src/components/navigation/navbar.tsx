@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Settings01 } from "@untitledui/icons";
+import { AdminLink } from "./admin-link";
 
 export const Navbar = () => {
   return (
@@ -58,8 +59,8 @@ export const Navbar = () => {
                 },
               }}
               userProfileMode="navigation"
-              userProfileUrl="/user-profile"
-            />
+              userProfileUrl="/user-profile"            />
+                <AdminLink />
                 <Link
                   href="/settings"
                   className="text-black dark:text-white hover:text-purple-700 dark:hover:text-purple-300 transition-colors"

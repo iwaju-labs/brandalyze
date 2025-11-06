@@ -499,4 +499,123 @@ class StripeService:
         
         except stripe.StripeError as e:
             print(f"Error reactivating subscription: {e}")
-            return None
+            return None    @staticmethod
+    def sync_subscription_from_stripe(stripe_customer_id):
+        """Sync subscription data from Stripe for a given customer"""
+        try:
+            # Get all subscriptions for this customer from Stripe
+            subscriptions = stripe.Subscription.list(
+                customer=stripe_customer_id,
+                status='all',
+                limit=10
+            )
+            
+            if not subscriptions.data:
+                print(f"No Stripe subscriptions found for customer {stripe_customer_id}")
+                return False
+            
+            # Get the local subscription record
+            local_subscription = UserSubscription.objects.filter(
+                stripe_customer_id=stripe_customer_id
+            ).first()
+            
+            if not local_subscription:
+                print(f"No local subscription found for Stripe customer {stripe_customer_id}")
+                return False
+            
+            # Find the most relevant subscription
+            active_subscription = StripeService._find_active_subscription(subscriptions.data)
+            
+            if not active_subscription:
+                print(f"No suitable Stripe subscription found for customer {stripe_customer_id}")
+                return False
+            
+            # Update the local subscription
+            StripeService._update_local_subscription(local_subscription, active_subscription)
+            
+            print(f"Successfully synced subscription for customer {stripe_customer_id}")
+            print(f"New status: tier={local_subscription.tier}, status={local_subscription.payment_status}")
+            
+            return True
+            
+        except stripe.StripeError as e:
+            print(f"Stripe error in sync_subscription_from_stripe: {e}")
+            return False
+        except Exception as e:
+            print(f"Error in sync_subscription_from_stripe: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    @staticmethod
+    def _find_active_subscription(subscriptions):
+        """Find the most relevant subscription from a list"""
+        active_subscription = None
+        for sub in subscriptions:
+            if sub.status in ['active', 'trialing', 'past_due']:
+                active_subscription = sub
+                break
+            elif sub.status == 'canceled' and not active_subscription:
+                # If no active subscription, use the most recent canceled one
+                active_subscription = sub
+        return active_subscription
+
+    @staticmethod
+    def _update_local_subscription(local_subscription, stripe_subscription):
+        """Update local subscription based on Stripe data"""
+        local_subscription.stripe_subscription_id = stripe_subscription.id
+        local_subscription.payment_status = stripe_subscription.status
+        
+        # Update subscription dates
+        if stripe_subscription.current_period_end:
+            local_subscription.next_billing_date = datetime.fromtimestamp(
+                stripe_subscription.current_period_end
+            )
+        
+        # Update tier and limits based on price
+        StripeService._update_tier_from_stripe(local_subscription, stripe_subscription)
+        
+        # Update active status
+        StripeService._update_active_status(local_subscription, stripe_subscription)
+        
+        local_subscription.save()
+
+    @staticmethod
+    def _update_tier_from_stripe(local_subscription, stripe_subscription):
+        """Update subscription tier based on Stripe price"""
+        if stripe_subscription.items.data:
+            price_id = stripe_subscription.items.data[0].price.id
+            local_subscription.stripe_price_id = price_id
+            
+            if price_id == settings.STRIPE_PRO_PRICE_ID:
+                local_subscription.tier = 'pro'
+                local_subscription.daily_analysis_limit = 50
+                local_subscription.brand_sample_limit = None
+            elif hasattr(settings, 'STRIPE_ENTERPRISE_PRICE_ID') and price_id == settings.STRIPE_ENTERPRISE_PRICE_ID:
+                local_subscription.tier = 'enterprise'
+                local_subscription.daily_analysis_limit = None
+                local_subscription.brand_sample_limit = None
+            else:
+                print(f"Unknown price ID: {price_id}, defaulting to free")
+                local_subscription.tier = 'free'
+                local_subscription.daily_analysis_limit = 3
+                local_subscription.brand_sample_limit = 5
+
+    @staticmethod
+    def _update_active_status(local_subscription, stripe_subscription):
+        """Update subscription active status based on Stripe status"""
+        if stripe_subscription.status in ['active', 'trialing']:
+            local_subscription.is_active = True
+            local_subscription.is_trial_active = (stripe_subscription.status == 'trialing')
+        else:
+            local_subscription.is_active = False
+            local_subscription.is_trial_active = False
+            
+            # If canceled, downgrade to free
+            if stripe_subscription.status == 'canceled':
+                local_subscription.tier = 'free'
+                local_subscription.daily_analysis_limit = 3
+                local_subscription.brand_sample_limit = 5
+                local_subscription.stripe_subscription_id = None
+                local_subscription.stripe_price_id = None
+                local_subscription.next_billing_date = None
