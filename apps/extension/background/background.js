@@ -49,12 +49,79 @@ class ExtensionAuth {
         }`
       );
 
-      await chrome.tabs.create({ url: authUrl });
+      // Create tab and monitor for auth completion
+      const tab = await chrome.tabs.create({ url: authUrl });
+
+      // Set up a listener to monitor for auth completion
+      this.monitorAuthTab(tab.id);
+
       return true;
     } catch (error) {
       console.error("Failed to initiate auth:", error);
       return false;
     }
+  }
+
+  async monitorAuthTab(tabId) {
+    const checkAuthCompletion = async () => {
+      try {
+        // Inject script to check for auth code in the page
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          func: () => {
+            // Look for auth success indicators
+            const successElements = document.querySelectorAll(
+              '[class*="green"], [class*="success"]'
+            );
+            const authCodeElements = document.querySelectorAll(
+              '[class*="auth"], [class*="code"]'
+            );
+
+            // Check if page shows success message
+            const hasSuccessMessage = Array.from(successElements).some(
+              (el) =>
+                el.textContent.toLowerCase().includes("success") ||
+                el.textContent.toLowerCase().includes("connected")
+            );
+
+            // Look for auth code in the page
+            const authCodeMatch = document.body.textContent.match(
+              /Auth Code: ([a-zA-Z0-9-]+)/
+            );
+
+            return {
+              hasSuccess: hasSuccessMessage,
+              authCode: authCodeMatch ? authCodeMatch[1] : null,
+            };
+          },
+        });
+
+        const result = results[0]?.result;
+
+        if (result?.hasSuccess && result?.authCode) {
+          console.log(
+            "Auth success detected, processing auth code:",
+            result.authCode
+          );
+          const success = await this.handleAuthCallback(result.authCode);
+
+          if (success) {
+            // Close the auth tab
+            chrome.tabs.remove(tabId);
+            return true;
+          }
+        }
+
+        // Continue monitoring if auth not complete
+        setTimeout(checkAuthCompletion, 2000);
+      } catch (error) {
+        console.log("Auth monitoring error:", error);
+        // Tab might be closed or inaccessible, stop monitoring
+      }
+    };
+
+    // Start monitoring after a short delay
+    setTimeout(checkAuthCompletion, 3000);
   }
   async handleAuthCallback(authCode) {
     try {
