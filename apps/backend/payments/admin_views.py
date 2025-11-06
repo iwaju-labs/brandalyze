@@ -26,8 +26,11 @@ def parse_iso_date(date_string):
         return None
     try:
         from datetime import datetime
-        return datetime.fromisoformat(date_string.replace('Z', UTC_SUFFIX))
-    except (ValueError, TypeError):
+        # Handle different ISO formats including microseconds
+        date_string = str(date_string).replace('Z', '+00:00')
+        return datetime.fromisoformat(date_string)
+    except (ValueError, TypeError) as e:
+        print(f"[DEBUG] Date parsing error for '{date_string}': {e}")
         raise ValueError(f"Invalid date format: {date_string}. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
 
 def is_admin_user(user):
@@ -163,8 +166,11 @@ def update_user_subscription(request):
             code="ADMIN_ACCESS_REQUIRED",
             status_code=status.HTTP_403_FORBIDDEN
         )
+    
     try:
         data = json.loads(request.body)
+        print(f"[DEBUG] Received data: {data}")  # Debug logging
+        
         user_id = data.get('user_id')
         new_tier = data.get('tier')
         is_active = data.get('is_active')
@@ -172,6 +178,15 @@ def update_user_subscription(request):
         subscription_end = data.get('subscription_end')
         trial_start = data.get('trial_start')
         trial_end = data.get('trial_end')
+        
+        print(f"[DEBUG] Parsed values:")  # Debug logging
+        print(f"  user_id: {user_id}")
+        print(f"  new_tier: {new_tier}")
+        print(f"  is_active: {is_active}")
+        print(f"  subscription_start: {subscription_start}")
+        print(f"  subscription_end: {subscription_end}")
+        print(f"  trial_start: {trial_start}")
+        print(f"  trial_end: {trial_end}")
         
         if not user_id or not new_tier:
             return error_response(
@@ -195,36 +210,61 @@ def update_user_subscription(request):
         old_tier = subscription.tier
         subscription.tier = new_tier
         if is_active is not None:
-            subscription.is_active = is_active
-              # Update subscription dates if provided
+            subscription.is_active = is_active        # Update subscription dates if provided
         try:
+            print(f"[DEBUG] Updating subscription dates...")
             if subscription_start:
+                print(f"[DEBUG] Parsing subscription_start: {subscription_start}")
                 subscription.subscription_start = parse_iso_date(subscription_start)
+                print(f"[DEBUG] Parsed subscription_start: {subscription.subscription_start}")
             if subscription_end:
+                print(f"[DEBUG] Parsing subscription_end: {subscription_end}")
                 subscription.subscription_end = parse_iso_date(subscription_end)
             elif subscription_end == "":
                 subscription.subscription_end = None
             if trial_start:
+                print(f"[DEBUG] Parsing trial_start: {trial_start}")
                 subscription.trial_start = parse_iso_date(trial_start)
             elif trial_start == "":
                 subscription.trial_start = None
             if trial_end:
+                print(f"[DEBUG] Parsing trial_end: {trial_end}")
                 subscription.trial_end = parse_iso_date(trial_end)
             elif trial_end == "":
                 subscription.trial_end = None
+            print(f"[DEBUG] Date parsing completed successfully")
         except ValueError as e:
+            print(f"[DEBUG] Date parsing ValueError: {e}")
             return error_response(
                 str(e),
                 code="INVALID_DATE_FORMAT",
                 status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Update limits based on tier
+            )        # Update limits based on tier
+        print(f"[DEBUG] Getting tier limits for: {new_tier}")
         tier_limits = UserSubscription.get_tier_limits(new_tier)
-        subscription.daily_analysis_limit = tier_limits['daily_analysis_limit']
-        subscription.brand_sample_limit = tier_limits['brand_sample_limit']
-        
-        subscription.save()
+        print(f"[DEBUG] Tier limits: {tier_limits}")
+        # Handle unlimited limits (None) by using high numbers to represent unlimited
+        if tier_limits['daily_analysis_limit'] is None:
+            subscription.daily_analysis_limit = 999999  # Represents unlimited
+        else:
+            subscription.daily_analysis_limit = tier_limits['daily_analysis_limit']
+        if tier_limits['brand_sample_limit'] is None:
+            subscription.brand_sample_limit = 999999  # Represents unlimited
+        else:
+            subscription.brand_sample_limit = tier_limits['brand_sample_limit']
+        print(f"[DEBUG] Saving subscription...")
+
+        try:
+            subscription.save()
+            print(f"[DEBUG] Subscription saved successfully")
+        except Exception as save_error:
+            print(f"[DEBUG] Error saving subscription: {save_error}")
+            print(f"[DEBUG] Error type: {type(save_error)}")
+            return error_response(
+                f"Failed to save subscription: {str(save_error)}",
+                code="SUBSCRIPTION_SAVE_ERROR",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
           # Update Clerk metadata to reflect the change
         try:
             from django.conf import settings
