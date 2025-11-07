@@ -22,7 +22,6 @@ from ai_core.analysis import BrandAnalyzer
 from analysis.models import DailyUsage, AnalysisLog, UserSubscription
 from .permissions import ClerkAuthenticated
 
-
 class ClerkAuthentication(BaseAuthentication):
     """Custom DRF authentication that retrieves middleware-created user"""
 
