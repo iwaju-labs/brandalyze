@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Brandalyze - Social Media Brand Analysis",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Real-time brand analysis for social media content. Analyse posts/profiles for brand alignment while browsing social media.",
   "permissions": ["activeTab", "storage", "identity", "scripting", "tabs"],
   "host_permissions": [
