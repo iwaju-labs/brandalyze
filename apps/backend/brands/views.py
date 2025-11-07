@@ -8,8 +8,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import ValidationError
 from django.conf import settings
+from django.http import StreamingHttpResponse
 import tempfile
 import os
+import json
 from .models import Brand, BrandSample
 from .serializers import BrandSerializer, BrandSampleSerializer
 from .utils.utils import validate_uploaded_file
@@ -25,25 +27,15 @@ class ClerkAuthentication(BaseAuthentication):
     """Custom DRF authentication that retrieves middleware-created user"""
 
     def authenticate(self, request):
-        print("[DEBUG] ClerkAuthentication.authenticate() called")
-
         # Check if middleware stored an authenticated user
         if hasattr(request, "clerk_authenticated_user"):
             user = request.clerk_authenticated_user
-            print(f"[DEBUG] ClerkAuthentication found stored user: {user}")
-            print(
-                f"[DEBUG] ClerkAuthentication user.is_authenticated: {user.is_authenticated}"
-            )
-
             # Set the backend for proper authentication
             user.backend = "django.contrib.auth.backends.ModelBackend"
             return (user, None)
 
         # Fallback: if middleware decoded JWT but didn't store user, try to retrieve it
         if hasattr(request, "clerk_user") and request.clerk_user is not None:
-            print(
-                "[DEBUG] ClerkAuthentication fallback: retrieving user from clerk_user"
-            )
             from django.contrib.auth import get_user_model
 
             user_model = get_user_model()
@@ -52,18 +44,11 @@ class ClerkAuthentication(BaseAuthentication):
             if clerk_id:
                 try:
                     user = user_model.objects.get(username=clerk_id)
-                    print(f"[DEBUG] ClerkAuthentication fallback found user: {user}")
                     user.backend = "django.contrib.auth.backends.ModelBackend"
                     return (user, None)
                 except user_model.DoesNotExist:
-                    print(
-                        f"[DEBUG] ClerkAuthentication: User with username {clerk_id} does not exist"
-                    )
                     return None
 
-        print(
-            "[DEBUG] ClerkAuthentication: No clerk_user or clerk_authenticated_user found"
-        )
         # Return None to let other authentication methods try
         return None
 
@@ -263,61 +248,62 @@ def analyze_brand_alignment(request):
             return error_response("AI service not configured", "AI_SERVICE_ERROR")
 
         analyzer = BrandAnalyzer(api_key)
-        # Perform AI analysis
-        analysis_result = analyzer.analyze_brand_alignment(text, filtered_samples)
+        
+        def generate_streaming_response():
+            """Generator function for streaming analysis results"""
+            try:
+                # Get embeddings and alignment score first
+                analysis_result = analyzer.analyze_brand_alignment(text, filtered_samples)
+                
+                # Check for analysis errors
+                if "error" in analysis_result:
+                    yield json.dumps({"error": analysis_result["error"]}) + "\n"
+                    return
+                
+                alignment_score = analysis_result.get("alignment_score", 0)
+                
+                # Stream the feedback generation
+                feedback_generator = analyzer._generate_feedback_stream(text, filtered_samples, alignment_score)
+                for json_line in feedback_generator:
+                    # Add alignment_score and other metadata to each streaming chunk
+                    try:
+                        chunk_data = json.loads(json_line.strip())
+                        chunk_data.update({
+                            "alignment_score": alignment_score,
+                            "brand_samples_analyzed": analysis_result.get("brand_samples_analyzed", len(filtered_samples))
+                        })
+                        final_chunk = json.dumps(chunk_data) + "\n"
+                        yield final_chunk
+                    except json.JSONDecodeError:
+                        yield json_line
+                
+                # Update usage tracking after streaming completes
+                try:
+                    daily_usage = DailyUsage.get_today_usage(request.user)
+                    daily_usage.analysis_count += 1
+                    daily_usage.save()
 
-        # Check for analysis errors
-        if "error" in analysis_result:
-            return error_response(
-                f"Analysis failed: {analysis_result['error']}", "ANALYSIS_ERROR"
-            )
+                    AnalysisLog.objects.create(
+                        user=request.user,
+                        text_length=len(text),
+                        brand_samples_count=len(filtered_samples),
+                        alignment_score=alignment_score,
+                        success=analysis_result.get("analysis_successful", False),
+                    )
+                except Exception:
+                    pass
+                    
+            except Exception as e:
+                yield json.dumps({"error": f"Analysis failed: {str(e)}"}) + "\n"
 
-        try:
-            # Increment daily usage count
-            daily_usage = DailyUsage.get_today_usage(request.user)
-            daily_usage.analysis_count += 1
-            daily_usage.save()
-
-            # Log the analysis
-            AnalysisLog.objects.create(
-                user=request.user,
-                text_length=len(text),
-                brand_samples_count=len(filtered_samples),
-                alignment_score=analysis_result.get("alignment_score", 0),
-                success=analysis_result.get("analysis_successful", False),
-            )
-        except Exception as e:
-            print(f"[WARNING] Failed to update usage tracking: {e}")
-
-        # Use success_response to match other authenticated endpoints
-        return success_response(
-            data={
-                "brand_analysis": {
-                    "alignment_score": analysis_result.get("alignment_score", 0),
-                    "feedback": analysis_result.get("feedback", {}).get(
-                        "ai_feedback", "No feedback available"
-                    ),
-                    "brand_samples_analyzed": analysis_result.get(
-                        "brand_samples_analyzed", len(filtered_samples)
-                    ),
-                    "analysis_successful": analysis_result.get(
-                        "analysis_successful", False
-                    ),
-                },
-                "input_info": {
-                    "new_text_length": len(text),
-                    "brand_samples_count": len(filtered_samples),
-                    "analysis_type": "brand_alignment",
-                },
-            },
-            message="Brand alignment analysis completed successfully",
+        response = StreamingHttpResponse(
+            generate_streaming_response(),
+            content_type='application/x-ndjson'
         )
+        response['Cache-Control'] = 'no-cache'
+        return response
 
     except Exception as e:
-        print(f"[DEBUG] Exception in analyze_brand_alignment: {e}")
-        import traceback
-
-        traceback.print_exc()
         return error_response(
             str(e), "INTERNAL_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

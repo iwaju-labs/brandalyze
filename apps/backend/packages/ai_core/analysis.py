@@ -1,4 +1,5 @@
 import openai
+import json
 from typing import Dict, List, Any
 from .embeddings import EmbeddingGenerator, calculate_brand_alignment_score
 
@@ -45,19 +46,70 @@ class BrandAnalyzer:
                 new_text_embedding, brand_embeddings
             )
 
-            feedback = self._generate_feedback(new_text, brand_samples, alignment_score)
-
+            # For non-streaming analysis, we'll return a placeholder for feedback
+            # The actual feedback will be generated via streaming in the view
             return {
                 "alignment_score": alignment_score,
-                "feedback": feedback,
                 "brand_samples_analyzed": len(brand_embeddings),
                 "analysis_successful": True
             }
         
         except Exception as e:
             return {"error": f"Analysis failed: {str(e)}"}
+    
+    def _generate_feedback_sync(self, new_text: str, brand_samples: List[str], score: float) -> Dict[str, Any]:
+        """Generate AI feedback synchronously (for non-streaming use)"""
+        brand_context = "\n".join([f"Brand Sample {i+1}: {sample[:200]}..."
+                                   for i, sample in enumerate(brand_samples[:3])])
         
-    def _generate_feedback(self, new_text: str, brand_samples: List[str], score: float) -> Dict[str, Any]:
+        prompt = f"""
+        Analyze the brand alignment of the new text against the brand samples.
+
+        Brand Samples:
+        {brand_context}
+
+        New Text to Analyze:
+        {new_text}
+
+        Alignment Score: {score}/100
+
+        Provide feedback in this format:
+        1. Key tone differences (if any)
+        2. Style consistency analysis
+        3. Specific suggestions for improvements
+        4. What's working well
+
+        Keep feedback concise and actionable. Focus on tone, voice, and style.
+        """
+
+        ai_feedback = ""
+
+        try:
+            with self.client.chat.completions.stream(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=300,
+                temperature=0.3
+            ) as stream:
+
+                for event in stream:
+                    if event.type == "message.delta" and event.delta:
+                        delta_text = event.delta.get("content", "")
+                        ai_feedback += delta_text
+
+            return {
+                "ai_feedback": ai_feedback.strip(),
+                "tone_analysis": self._extract_tone_score(score),
+                "suggestions_count": ai_feedback.count("\n") + 1
+            }
+        except Exception as e:
+            return {
+                "ai_feedback": f"AI feedback unavailable {str(e)}",
+                "tone_analysis": self._extract_tone_score(score), 
+                "suggestions_count": 0
+            }
+        
+    def _generate_feedback_stream(self, new_text: str, brand_samples: List[str], score: float):
         """Generate AI feedback about brand alignment"""
         brand_context = "\n".join([f"Brand Sample {i+1}: {sample[:200]}..."
                                    for i, sample in enumerate(brand_samples[:3])])
@@ -81,26 +133,33 @@ class BrandAnalyzer:
 
         Keep feedback concise and actionable. Focus on tone, voice, and style.
         """
-        
+
+        ai_feedback = ""        
         try:
-            response = self.client.chat.completions.create(
+            stream = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300,
-                temperature=0.3
+                temperature=0.3,
+                stream=True
             )
 
-            return {
-                "ai_feedback": response.choices[0].message.content,
-                "tone_analysis": self._extract_tone_score(score),
-                "suggestions_count": response.choices[0].message.content.count('\n') + 1
-            }
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    delta_text = chunk.choices[0].delta.content
+                    ai_feedback += delta_text
+
+                    yield json.dumps({
+                        "ai_feedback": ai_feedback.strip(),
+                        "tone_analysis": self._extract_tone_score(score),
+                        "suggestions_count": ai_feedback.count("\n") + 1
+                    }) + "\n"
         except Exception as e:
-            return {
+            yield json.dumps({
                 "ai_feedback": f"AI feedback unavailable {str(e)}",
-                "tone_analysis": self._extract_tone_score(score), 
+                "tone_analysis": self._extract_tone_score(score),
                 "suggestions_count": 0
-            }
+            }) + "\n"
     
     def _extract_tone_score(self, alignment_score: float) -> str:
         """Convert alignment score to tone description"""

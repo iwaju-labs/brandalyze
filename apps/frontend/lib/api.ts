@@ -48,6 +48,40 @@ export async function authenticatedFetch(
   return apiFetch(path, options, token);
 }
 
+// Helper for authenticated streaming API calls - returns raw Response for streaming
+export async function authenticatedFetchStream(
+  path: string,
+  getToken: () => Promise<string | null>,
+  options: RequestInit = {},
+) {
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error("User not authenticated");
+  }
+
+  const headers: Record<string, string> = {};
+
+  // Only set Content-Type for non-FormData requests
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  // Add authorization header
+  headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  // Return raw response for streaming, don't parse as JSON
+  return res;
+}
+
 // Authenticated brand alignment function
 export async function analyzeBrandAlignment(
   text: string,

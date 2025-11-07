@@ -16,21 +16,16 @@ export function useAdminStatus() {
     }
 
     const checkAdminStatus = async () => {
-      console.log('🔍 Checking admin status...');
       try {
         const token = await getToken();
-        console.log('🎫 Got token:', token ? 'Token exists' : 'No token');
         
         if (!token) {
-          console.log('❌ No token available');
           setIsAdmin(false);
           setIsLoading(false);
           return;
         }
 
         const url = `${process.env.NEXT_PUBLIC_API_URL}/payments/admin/check-status/`;
-        console.log('📡 Calling:', url);
-        
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -38,17 +33,12 @@ export function useAdminStatus() {
           },
         });
 
-        console.log('📨 Response status:', response.status);
-        console.log('📨 Response ok:', response.ok);        if (response.ok) {
+        if (response.ok) {
           const data = await response.json();
-          console.log('✅ Admin check result:', data);
           // Handle nested response structure
           const isAdmin = data.data?.is_admin || data.is_admin || false;
-          console.log('✅ Final admin status:', isAdmin);
           setIsAdmin(isAdmin);
         } else {
-          const errorText = await response.text();
-          console.log('❌ Admin check failed:', errorText);
           setIsAdmin(false);
         }
       } catch (error) {

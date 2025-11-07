@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { authenticatedFetch } from "../../../lib/api";
+import { authenticatedFetch, authenticatedFetchStream } from "../../../lib/api";
 import toast from "react-hot-toast";
 import {
   AlertTriangle,
@@ -119,9 +119,11 @@ export default function BrandAnalysis() {
   const [newTextForComparison, setNewTextForComparison] = useState("");
   const [brandAnalysisResult, setBrandAnalysisResult] =
     useState<BrandAnalysisResponse | null>(null);
+  const [streamingFeedback, setStreamingFeedback] = useState<string>("");
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
   const [activeTab, setActiveTab] = useState<"manual">("manual");
+
   const fetchUsageInfo = useCallback(async () => {
     try {
       const response = await authenticatedFetch("/user/usage", getToken);
@@ -200,8 +202,9 @@ export default function BrandAnalysis() {
       return;
     }
     setIsAnalyzing(true);
+
     try {
-      const response = await authenticatedFetch(
+      const response = await authenticatedFetchStream(
         "/analyze/brand-alignment",
         getToken,
         {
@@ -213,15 +216,159 @@ export default function BrandAnalysis() {
         }
       );
 
-      setBrandAnalysisResult(response.data);
+      // Check if this is an error response
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[DEBUG] Non-OK response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+        throw new Error(
+          `Backend error: ${response.status} ${response.statusText}: ${errorText}`
+        );
+      }
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // Initialize with empty result to show progress
+      setBrandAnalysisResult(null);
+      setStreamingFeedback("");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        // Split by newlines to process complete JSON lines
+        const lines = buffer.split("\n");
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            try {
+              // Skip empty lines
+              if (trimmedLine.length === 0) continue;
+
+              const streamData = JSON.parse(trimmedLine);
+
+              // Check for errors first
+              if (streamData.error) {
+                console.error("Analysis error from backend:", streamData.error);
+                toast.error(`Analysis failed: ${streamData.error}`);
+                continue;
+              }
+
+              // Update streaming feedback in real-time
+              if (streamData.ai_feedback) {
+                setStreamingFeedback(streamData.ai_feedback);
+              }
+
+              // If this looks like a complete result, set the full result
+              if (
+                streamData.ai_feedback &&
+                streamData.alignment_score !== undefined
+              ) {
+                setBrandAnalysisResult({
+                  brand_analysis: {
+                    alignment_score: streamData.alignment_score || 0,
+                    feedback: streamData.ai_feedback,
+                    brand_samples_analyzed:
+                      streamData.brand_samples_analyzed ||
+                      brandSamples.filter((s) => s.trim()).length,
+                    analysis_successful: true,
+                  },
+                  input_info: {
+                    new_text_length: newTextForComparison.length,
+                    brand_samples_count: brandSamples.filter((s) => s.trim())
+                      .length,
+                    analysis_type: "brand_alignment",
+                  },
+                });
+              }
+            } catch (error) {
+              // Log the actual content that failed to parse
+              if (trimmedLine.length > 0) {
+                console.error("[DEBUG] Failed to parse JSON line:", {
+                  line: trimmedLine,
+                  error: error,
+                  lineLength: trimmedLine.length,
+                  rawLine: JSON.stringify(line),
+                  buffer: JSON.stringify(buffer),
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Handle any remaining buffer content
+      let finalResult = null;
+      if (buffer.trim()) {
+        try {
+          const finalData = JSON.parse(buffer.trim());
+          finalResult = {
+            brand_analysis: {
+              alignment_score: finalData.alignment_score || 0,
+              feedback: finalData.ai_feedback || streamingFeedback,
+              brand_samples_analyzed:
+                finalData.brand_samples_analyzed ||
+                brandSamples.filter((s) => s.trim()).length,
+              analysis_successful: true,
+            },
+            input_info: {
+              new_text_length: newTextForComparison.length,
+              brand_samples_count: brandSamples.filter((s) => s.trim()).length,
+              analysis_type: "brand_alignment",
+            },
+          };
+          setBrandAnalysisResult(finalResult);
+        } catch (error) {
+          console.warn("[DEBUG] Failed to parse final JSON:", buffer, error);
+          // If we have streaming feedback but couldn't parse final JSON, create a result anyway
+          if (streamingFeedback) {
+            finalResult = {
+              brand_analysis: {
+                alignment_score: 0,
+                feedback: streamingFeedback,
+                brand_samples_analyzed: brandSamples.filter((s) => s.trim())
+                  .length,
+                analysis_successful: true,
+              },
+              input_info: {
+                new_text_length: newTextForComparison.length,
+                brand_samples_count: brandSamples.filter((s) => s.trim())
+                  .length,
+                analysis_type: "brand_alignment",
+              },
+            };
+            setBrandAnalysisResult(finalResult);
+          }
+        }
+      }
 
       await fetchUsageInfo();
-      toast.success(
-        `Analysis complete - Alignment: ${response.data.brand_analysis.alignment_score}/100`,
-        {
+
+      // Show success toast with the final result
+      const resultToCheck = finalResult || brandAnalysisResult;
+      if (resultToCheck) {
+        toast.success(
+          `Analysis complete - Alignment: ${resultToCheck.brand_analysis.alignment_score}/100`,
+          {
+            icon: <CheckCircle />,
+          }
+        );
+      } else if (streamingFeedback) {
+        toast.success("Analysis complete", {
           icon: <CheckCircle />,
-        }
-      );
+        });
+      }
     } catch (error) {
       console.error("Brand analysis failed:", error);
       if (error instanceof Error && error.message.includes("rate limit")) {
@@ -439,10 +586,30 @@ export default function BrandAnalysis() {
                 : "bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl"
             }`}
           >
+            {" "}
             {isAnalyzing
               ? "Analyzing Brand Alignment..."
               : "Analyze Brand Alignment"}
           </button>
+          {/* Streaming feedback display */}
+          {isAnalyzing && streamingFeedback && (
+            <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  Analysis in Progress
+                </h4>
+              </div>
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={markdownComponents}
+                >
+                  {streamingFeedback}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
           {brandAnalysisResult && (
             <div className="mt-8 bg-white dark:bg-inherit border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
