@@ -1,6 +1,239 @@
 """
 AI-powered analysis functions for brand voice, alignment, and content analysis.
 """
+import re
+import string
+from collections import Counter
+from textstat import flesch_reading_ease, flesch_kincaid_grade
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+# Download required NLTK data if not already present
+try:
+    nltk.data.find('vader_lexicon')
+except LookupError:
+    nltk.download('vader_lexicon', quiet=True)
+
+try:
+    nltk.data.find('punkt')
+except LookupError:
+    nltk.download('punkt', quiet=True)
+
+
+def calculate_emotional_indicators(text):
+    """Calculate real emotional indicators based on text analysis"""
+    if not text or not text.strip():
+        return {
+            "enthusiasm": 5.0,
+            "professionalism": 5.0,
+            "approachability": 5.0,
+            "authority": 5.0,
+        }
+    
+    # Initialize sentiment analyzer
+    sia = SentimentIntensityAnalyzer()
+    
+    # Calculate enthusiasm score (0-10)
+    enthusiasm = calculate_enthusiasm_score(text, sia)
+    
+    # Calculate professionalism score (0-10)  
+    professionalism = calculate_professionalism_score(text)
+    
+    # Calculate approachability score (0-10)
+    approachability = calculate_approachability_score(text, sia)
+    
+    # Calculate authority score (0-10)
+    authority = calculate_authority_score(text)
+    
+    return {
+        "enthusiasm": round(enthusiasm, 1),
+        "professionalism": round(professionalism, 1),
+        "approachability": round(approachability, 1), 
+        "authority": round(authority, 1),
+    }
+
+
+def calculate_enthusiasm_score(text, sia):
+    """Calculate enthusiasm based on positive sentiment, exclamation marks, and energetic words"""
+    # Get sentiment scores
+    sentiment_scores = sia.polarity_scores(text)
+    positive_sentiment = sentiment_scores['pos']
+    
+    # Count exclamation marks
+    exclamation_count = text.count('!')
+    total_sentences = len([s for s in text.split('.') if s.strip()])
+    exclamation_ratio = exclamation_count / max(total_sentences, 1)
+    
+    # Count enthusiastic words
+    enthusiastic_words = [
+        'amazing', 'awesome', 'fantastic', 'incredible', 'wonderful', 'brilliant',
+        'excited', 'thrilled', 'love', 'passionate', 'energy', 'dynamic',
+        'innovative', 'breakthrough', 'revolutionary', 'outstanding', 'excellent',
+        'superb', 'magnificent', 'spectacular', 'phenomenal', 'extraordinary'
+    ]
+    
+    text_lower = text.lower()
+    enthusiastic_word_count = sum(1 for word in enthusiastic_words if word in text_lower)
+    word_count = len(text.split())
+    enthusiastic_word_ratio = enthusiastic_word_count / max(word_count, 1)
+    
+    # Count ALL CAPS words (excluding single letters and common abbreviations)
+    caps_words = re.findall(r'\b[A-Z]{2,}\b', text)
+    caps_ratio = len(caps_words) / max(word_count, 1)
+    
+    # Calculate composite score
+    enthusiasm_score = (
+        positive_sentiment * 4.0 +  # 0-4 points from sentiment
+        min(exclamation_ratio * 20, 3.0) +  # 0-3 points from exclamations
+        min(enthusiastic_word_ratio * 50, 2.0) +  # 0-2 points from enthusiastic words
+        min(caps_ratio * 20, 1.0)  # 0-1 points from caps
+    )
+    
+    return min(max(enthusiasm_score, 0), 10)
+
+
+def calculate_professionalism_score(text):
+    """Calculate professionalism based on language complexity, formal words, and writing style"""
+    if not text or len(text.strip()) < 10:
+        return 5.0
+        
+    # Reading level analysis
+    try:
+        reading_ease = flesch_reading_ease(text)
+        # Convert to 0-10 scale (lower reading ease = higher professionalism)
+        reading_professionalism = max(0, (100 - reading_ease) / 10)
+    except Exception:
+        reading_professionalism = 5.0
+    
+    # Professional vocabulary
+    professional_words = [
+        'strategy', 'implement', 'analyze', 'optimize', 'leverage', 'facilitate',
+        'collaborate', 'expertise', 'experience', 'professional', 'industry',
+        'solution', 'development', 'management', 'leadership', 'objective',
+        'achievement', 'performance', 'quality', 'excellence', 'innovation',
+        'results', 'growth', 'success', 'organizational', 'strategic'
+    ]
+    
+    text_lower = text.lower()
+    professional_word_count = sum(1 for word in professional_words if word in text_lower)
+    word_count = len(text.split())
+    professional_ratio = professional_word_count / max(word_count, 1)
+    
+    # Sentence structure complexity
+    avg_sentence_length = word_count / max(len([s for s in text.split('.') if s.strip()]), 1)
+    sentence_complexity = min(avg_sentence_length / 20 * 3, 3.0)  # 0-3 points
+    
+    # Avoid casual language markers
+    casual_markers = ['lol', 'omg', 'tbh', 'btw', 'imo', 'fyi', 'asap', 'etc']
+    casual_count = sum(1 for marker in casual_markers if marker in text_lower)
+    casual_penalty = min(casual_count * 0.5, 2.0)
+    
+    # Calculate composite score
+    professionalism_score = (
+        min(reading_professionalism * 0.4, 2.5) +  # 0-2.5 points from reading level
+        min(professional_ratio * 40, 3.0) +  # 0-3 points from professional vocabulary
+        sentence_complexity +  # 0-3 points from sentence complexity
+        1.5 -  # Base professionalism
+        casual_penalty  # Penalty for casual language
+    )
+    
+    return min(max(professionalism_score, 0), 10)
+
+
+def calculate_approachability_score(text, sia):
+    """Calculate approachability based on friendly language, questions, and inclusive tone"""
+    # Sentiment analysis for friendliness
+    sentiment_scores = sia.polarity_scores(text)
+    positive_sentiment = sentiment_scores['pos']
+    
+    # Question marks (engaging with audience)
+    question_count = text.count('?')
+    total_sentences = len([s for s in text.split('.') if s.strip()])
+    question_ratio = question_count / max(total_sentences, 1)
+    
+    # Friendly/approachable words
+    friendly_words = [
+        'welcome', 'thanks', 'please', 'help', 'share', 'join', 'together',
+        'community', 'team', 'support', 'friendly', 'open', 'happy', 'glad',
+        'appreciate', 'grateful', 'kind', 'warm', 'inviting', 'accessible',
+        'inclusive', 'collaborative', 'understanding', 'empathetic'
+    ]
+    
+    text_lower = text.lower()
+    friendly_word_count = sum(1 for word in friendly_words if word in text_lower)
+    word_count = len(text.split())
+    friendly_ratio = friendly_word_count / max(word_count, 1)
+    
+    # Personal pronouns (you, we, us, our)
+    personal_pronouns = ['you', 'we', 'us', 'our', 'your', 'ourselves', 'together']
+    pronoun_count = sum(1 for pronoun in personal_pronouns if pronoun in text_lower.split())
+    pronoun_ratio = pronoun_count / max(word_count, 1)
+    
+    # Contractions (more conversational/approachable)
+    contractions = ["'re", "'ve", "'ll", "'d", "n't", "'m", "'s"]
+    contraction_count = sum(1 for contraction in contractions if contraction in text)
+    contraction_ratio = contraction_count / max(word_count, 1)
+    
+    # Calculate composite score
+    approachability_score = (
+        positive_sentiment * 3.0 +  # 0-3 points from positive sentiment
+        min(question_ratio * 15, 2.0) +  # 0-2 points from questions
+        min(friendly_ratio * 30, 2.5) +  # 0-2.5 points from friendly words
+        min(pronoun_ratio * 20, 1.5) +  # 0-1.5 points from personal pronouns
+        min(contraction_ratio * 10, 1.0)  # 0-1 points from contractions
+    )
+    
+    return min(max(approachability_score, 0), 10)
+
+
+def calculate_authority_score(text):
+    """Calculate authority based on expertise indicators, confidence markers, and credentials"""
+    # Authority/expertise words
+    authority_words = [
+        'expert', 'expertise', 'experience', 'proven', 'established', 'leading',
+        'recognized', 'award', 'certified', 'qualified', 'specialist', 'authority',
+        'pioneering', 'renowned', 'accomplished', 'distinguished', 'respected',
+        'industry', 'leader', 'executive', 'director', 'founder', 'ceo', 'president',
+        'research', 'study', 'analysis', 'data', 'evidence', 'results', 'findings'
+    ]
+    
+    text_lower = text.lower()
+    authority_word_count = sum(1 for word in authority_words if word in text_lower)
+    word_count = len(text.split())
+    authority_ratio = authority_word_count / max(word_count, 1)
+    
+    # Confidence markers vs uncertainty
+    confidence_words = ['will', 'should', 'must', 'clearly', 'obviously', 'certainly', 'definitely']
+    uncertainty_words = ['maybe', 'perhaps', 'possibly', 'might', 'could', 'probably', 'seems']
+    
+    confidence_count = sum(1 for word in confidence_words if word in text_lower.split())
+    uncertainty_count = sum(1 for word in uncertainty_words if word in text_lower.split())
+    
+    confidence_ratio = confidence_count / max(word_count, 1)
+    uncertainty_penalty = uncertainty_count / max(word_count, 1)
+    
+    # Numbers and statistics (data-driven authority)
+    number_pattern = r'\b\d+(?:\.\d+)?%?|\$\d+|\d+k\b|\d+m\b'
+    number_matches = re.findall(number_pattern, text, re.IGNORECASE)
+    number_ratio = len(number_matches) / max(word_count, 1)
+    
+    # Industry jargon and technical terms (indicate expertise)
+    technical_indicators = text_lower.count('technology') + text_lower.count('solution') + \
+                          text_lower.count('platform') + text_lower.count('system') + \
+                          text_lower.count('framework') + text_lower.count('methodology')
+    technical_ratio = technical_indicators / max(word_count, 1)
+    
+    # Calculate composite score  
+    authority_score = (
+        min(authority_ratio * 35, 3.0) +  # 0-3 points from authority words
+        min(confidence_ratio * 25, 2.0) +  # 0-2 points from confidence
+        min(number_ratio * 20, 1.5) +  # 0-1.5 points from data/numbers
+        min(technical_ratio * 15, 1.5) +  # 0-1.5 points from technical terms
+        2.0 -  # Base authority score
+        min(uncertainty_penalty * 15, 1.5)  # Penalty for uncertainty
+    )
+    
+    return min(max(authority_score, 0), 10)
 
 
 def perform_profile_voice_analysis(
@@ -191,10 +424,10 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
                 "Third content theme"
             ],
             "emotional_indicators": {{
-                "enthusiasm": 7.5,
-                "professionalism": 8.0,
-                "approachability": 7.0,
-                "authority": 8.5
+                "enthusiasm": 0.0,
+                "professionalism": 0.0,
+                "approachability": 0.0,
+                "authority": 0.0
             }}
         }}
 
@@ -212,8 +445,8 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
         ai_response = response.choices[0].message.content
         print(f"🎯 AI Response for @{handle}: {ai_response}")
 
-        # Parse the AI response into structured format
-        bio_analysis = parse_voice_analysis_response(ai_response)
+        # Parse the AI response into structured format with text content for emotional indicators
+        bio_analysis = parse_voice_analysis_response(ai_response, profile_text)
         
         # Add bio-specific metadata
         bio_analysis['analysis_source'] = 'profile_bio'
@@ -227,6 +460,9 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
     except Exception as e:
         print(f"AI bio analysis error: {e}")
         # Return structured fallback analysis based on basic profile info
+        # Calculate real emotional indicators even for fallback
+        fallback_emotional_indicators = calculate_emotional_indicators(profile_text)
+        
         return {
             "tone": "Professional based on profile setup",
             "style": "Personal brand communication",
@@ -245,12 +481,7 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
                 "Industry-related content",
                 "Personal insights",
             ],
-            "emotional_indicators": {
-                "enthusiasm": 7.0,
-                "professionalism": 8.0,
-                "approachability": 7.0,
-                "authority": 7.5,
-            },
+            "emotional_indicators": fallback_emotional_indicators,
             "analysis_source": "profile_bio",
             "bio_length": len(profile_data.get('bio', '')),
             "has_location": bool(profile_data.get('location')),
@@ -289,12 +520,13 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
 
         ai_response = response.choices[0].message.content
 
-        # Parse the AI response into structured format
-        return parse_voice_analysis_response(ai_response)
+        # Parse the AI response into structured format with text content for emotional indicators
+        return parse_voice_analysis_response(ai_response, posts_text)
 
     except Exception as e:
         print(f"AI voice analysis error: {e}")
-        # Return structured fallback analysis
+        # Return structured fallback analysis with real emotional indicators
+        fallback_emotional_indicators = calculate_emotional_indicators(posts_text)
         return {
             "tone": "Professional and engaging",
             "style": "Thought leadership with personal insights",
@@ -313,16 +545,11 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
                 "Industry trends",
                 "Team collaboration",
             ],
-            "emotional_indicators": {
-                "enthusiasm": 7.5,
-                "professionalism": 8.5,
-                "approachability": 7.0,
-                "authority": 8.0,
-            },
+            "emotional_indicators": fallback_emotional_indicators,
         }
 
 
-def parse_voice_analysis_response(ai_response):
+def parse_voice_analysis_response(ai_response, text_content=None):
     """Parse AI response into structured voice analysis data using JSON parsing"""
     try:
         print(f"🔍 Parsing AI response: {ai_response[:200]}...")
@@ -353,12 +580,16 @@ def parse_voice_analysis_response(ai_response):
                     voice_data["communication_patterns"] = ["Clear messaging", "Consistent tone"]
                 if "content_themes" not in voice_data or not voice_data["content_themes"]:
                     voice_data["content_themes"] = ["Professional content", "Industry insights"]
-                if "emotional_indicators" not in voice_data:
+                
+                # Always calculate real emotional indicators if we have text content
+                if text_content and text_content.strip():
+                    voice_data["emotional_indicators"] = calculate_emotional_indicators(text_content)
+                elif "emotional_indicators" not in voice_data:
                     voice_data["emotional_indicators"] = {
-                        "enthusiasm": 7.0,
-                        "professionalism": 8.0,
-                        "approachability": 7.5,
-                        "authority": 7.5,
+                        "enthusiasm": 5.0,
+                        "professionalism": 5.0,
+                        "approachability": 5.0,
+                        "authority": 5.0,
                     }
                 
                 return voice_data
@@ -370,11 +601,22 @@ def parse_voice_analysis_response(ai_response):
         
         # Fallback to text parsing for older format responses
         print("📝 Falling back to text parsing...")
-        return parse_text_response_fallback(ai_response)
+        return parse_text_response_fallback(ai_response, text_content)
 
     except Exception as e:
         print(f"❌ Error parsing voice analysis: {e}")
         # Return enhanced fallback with better defaults
+        fallback_emotional_indicators = (
+            calculate_emotional_indicators(text_content) 
+            if text_content and text_content.strip() 
+            else {
+                "enthusiasm": 5.0,
+                "professionalism": 5.0,
+                "approachability": 5.0,
+                "authority": 5.0,
+            }
+        )
+        
         return {
             "tone": "Professional and engaging",
             "style": "Thoughtful communication with industry focus",
@@ -395,12 +637,7 @@ def parse_voice_analysis_response(ai_response):
                 "Leadership perspectives",
                 "Business strategy"
             ],
-            "emotional_indicators": {
-                "enthusiasm": 7.5,
-                "professionalism": 9.0,
-                "approachability": 7.0,
-                "authority": 8.0,
-            },
+            "emotional_indicators": fallback_emotional_indicators,
         }
     try:
         print(f"🔍 Parsing AI response: {ai_response[:200]}...")
@@ -482,21 +719,27 @@ def parse_voice_analysis_response(ai_response):
         }
 
 
-def parse_text_response_fallback(ai_response):
+def parse_text_response_fallback(ai_response, text_content=None):
     """Fallback parsing for text-based AI responses"""
-    # Initialize default structure
+    # Initialize default structure with real emotional indicators if possible
+    fallback_emotional_indicators = (
+        calculate_emotional_indicators(text_content) 
+        if text_content and text_content.strip() 
+        else {
+            "enthusiasm": 5.0,
+            "professionalism": 5.0,
+            "approachability": 5.0,
+            "authority": 5.0,
+        }
+    )
+    
     voice_data = {
         "tone": "Not specified",
         "style": "Not specified", 
         "personality_traits": [],
         "communication_patterns": [],
         "content_themes": [],
-        "emotional_indicators": {
-            "enthusiasm": 7.0,
-            "professionalism": 8.0,
-            "approachability": 7.5,
-            "authority": 7.5,
-        },
+        "emotional_indicators": fallback_emotional_indicators,
     }
 
     # Enhanced parsing logic with multiple approaches

@@ -200,6 +200,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function saveAllHandles() {
         clearMessages();
         
+        // Show loading state
+        setButtonState(elements.saveAllHandlesBtn, true, 'Saving...');
+        
         const handles = {};
         let hasValidHandle = false;
         
@@ -210,6 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!/^\w{1,15}$/.test(twitterVal)) {
                     setText(elements.handleError, 'Invalid Twitter handle format (1-15 characters, letters/numbers/underscore only)');
                     showElement(elements.handleError);
+                    setButtonState(elements.saveAllHandlesBtn, false, 'Save All Handles');
                     return;
                 }
                 handles.twitterHandle = twitterVal;
@@ -229,6 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!hasValidHandle) {
             setText(elements.handleError, 'Please enter at least one handle');
             showElement(elements.handleError);
+            setButtonState(elements.saveAllHandlesBtn, false, 'Save All Handles');
             return;
         }
         
@@ -236,6 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await chrome.storage.local.set(handles);
             setText(elements.handleSuccess, 'All handles saved successfully!');
             showElement(elements.handleSuccess);
+            setButtonState(elements.saveAllHandlesBtn, false, 'Save All Handles');
             
             // Auto-hide success message after 3 seconds
             setTimeout(() => {
@@ -244,6 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             setText(elements.handleError, 'Failed to save handles');
             showElement(elements.handleError);
+            setButtonState(elements.saveAllHandlesBtn, false, 'Save All Handles');
             console.error('Save handles error:', error);
         }
     }    
@@ -954,5 +961,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (linkedinAnalysisBtn) {
         linkedinAnalysisBtn.addEventListener('click', () => viewPlatformAnalysis('linkedin'));
+    }
+
+    const navItems = document.querySelectorAll('.nav-item');
+    const contentSections = document.querySelectorAll('.content-section');
+    const contentTitle = document.getElementById('contentTitle');
+    const contentSubtitle = document.getElementById('contentSubtitle');
+    
+    // Section content mapping
+    const sectionData = {
+        'account': {
+            title: 'Account Status',
+            subtitle: 'View your authentication status and subscription details'
+        },
+        'social-handles': {
+            title: 'Social Media Handles',
+            subtitle: 'Configure your handles for different social media platforms'
+        },
+        'analysis-history': {
+            title: 'Analysis History',
+            subtitle: 'View your most recent analyses for each platform'
+        }
+    };
+
+    for (const item of navItems) {
+        item.addEventListener('click', function() {
+            const targetSection = this.dataset.section;
+            
+            // Update nav item styles
+            for (const nav of navItems) {
+                nav.style.background = 'transparent';
+                nav.style.color = '#6b7280';
+            }
+            this.style.background = '#dbeafe';
+            this.style.color = '#1e40af';
+
+            // Show target section, hide others
+            for (const section of contentSections) {
+                section.classList.add('hidden');
+            }
+            const targetElement = document.getElementById(targetSection + '-section');
+            if (targetElement) {
+                targetElement.classList.remove('hidden');
+            }
+
+            // Update header
+            if (sectionData[targetSection]) {
+                contentTitle.textContent = sectionData[targetSection].title;
+                contentSubtitle.textContent = sectionData[targetSection].subtitle;
+            }
+        });
     }
 });
