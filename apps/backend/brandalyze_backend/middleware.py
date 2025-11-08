@@ -52,7 +52,6 @@ class ClerkAuthMiddleware:
             clerk_secret = getattr(settings, 'CLERK_SECRET_KEY', None)
             if not clerk_secret:
                 logger.error("No CLERK_SECRET_KEY found in settings")
-                print("[DEBUG] No CLERK_SECRET_KEY found in settings")
                 return None
             
             # Fetch user details from Clerk API
@@ -62,7 +61,6 @@ class ClerkAuthMiddleware:
             }
             
             logger.info(f"Fetching user email from Clerk API for user: {clerk_id}")
-            print(f"[DEBUG] Fetching user email from Clerk API for user: {clerk_id}")
             
             response = requests.get(
                 f'https://api.clerk.dev/v1/users/{clerk_id}',
@@ -75,30 +73,25 @@ class ClerkAuthMiddleware:
                 email_addresses = user_data.get('email_addresses', [])
                 
                 logger.info(f"Clerk API response - found {len(email_addresses)} email addresses")
-                print(f"[DEBUG] Clerk API response - found {len(email_addresses)} email addresses")
                 
                 # Find primary email (first one that's verified)
                 for email_obj in email_addresses:
                     if email_obj.get('verification', {}).get('status') == 'verified':
                         email = email_obj.get('email_address')
                         logger.info(f"Found verified email: {email}")
-                        print(f"[DEBUG] Found verified email: {email}")
                         return email
                 
                 # If no verified email, use the first one
                 if email_addresses:
                     email = email_addresses[0].get('email_address')
                     logger.info(f"Using first email address: {email}")
-                    print(f"[DEBUG] Using first email address: {email}")
                     return email
                     
             else:
                 logger.error(f"Clerk API error: {response.status_code} - {response.text}")
-                print(f"[DEBUG] Clerk API error: {response.status_code} - {response.text}")
                 
         except Exception as e:
             logger.error(f"Failed to fetch email from Clerk API: {e}")
-            print(f"[DEBUG] Failed to fetch email from Clerk API: {e}")
         
         return None
 
@@ -120,19 +113,18 @@ class ClerkAuthMiddleware:
                 # Only log in debug mode
                 if settings.DEBUG:
                     logger.info(f"Clerk JWT payload: {payload}")
-                    print(f"[DEBUG] Clerk JWT payload: {payload}")
+                else:
+                    logger.debug(f"Clerk JWT payload: {payload}")
                 
                 user_model = get_user_model()
                 clerk_id = payload.get("sub")
                 
                 if not clerk_id:
                     logger.error(f"No 'sub' field found in payload keys: {list(payload.keys())}")
-                    print(f"[DEBUG] No 'sub' field found in payload keys: {list(payload.keys())}")
                     return JsonResponse({"error": "Invalid token: missing subject"}, status=401)
                   # Extract email from Clerk JWT payload
                 email = self._extract_email_from_payload(payload, clerk_id)
                 logger.info(f"Extracted email: {email}")
-                print(f"[DEBUG] Extracted email: {email}")
                 
                 # Extract metadata from JWT payload
                 public_metadata = payload.get('public_metadata', {})
@@ -146,48 +138,49 @@ class ClerkAuthMiddleware:
                     'stripe_subscription_id': public_metadata.get('stripe_subscription_id', ''),
                 }
                 
-                user, created = user_model.objects.get_or_create(
-                    clerk_id=clerk_id,
-                    defaults={
-                        "email": email,
-                        "username": email,
-                        "clerk_metadata": clerk_metadata
-                    }
-                )
-                
-                # Update user if not created
-                if not created:
+                # Try to get existing user by clerk_id first
+                try:
+                    user = user_model.objects.get(clerk_id=clerk_id)
+                    created = False
+                    # Update existing user
                     user.email = email
-                    if not user.username:
-                        user.username = email
                     user.clerk_metadata = clerk_metadata
                     user.save()
-                    logger.info(f"Updated user email and metadata")
-                    print(f"[DEBUG] Updated user email and metadata")
+                    logger.info(f"Updated existing user: {user}")
+                except user_model.DoesNotExist:
+                    # Create new user - handle username conflicts
+                    username = email
+                    counter = 1
+                    while user_model.objects.filter(username=username).exists():
+                        username = f"{email.split('@')[0]}_{counter}@{email.split('@')[1]}"
+                        counter += 1
+                    
+                    user = user_model.objects.create(
+                        clerk_id=clerk_id,
+                        email=email,
+                        username=username,
+                        clerk_metadata=clerk_metadata
+                    )
+                    created = True
+                    logger.info(f"Created new user: {user} with username: {username}")
                 
                 logger.info(f"User created/retrieved: {user} (created: {created})")
-                print(f"[DEBUG] User created/retrieved: {user} (created: {created})")
                 logger.info(f"User is_authenticated: {user.is_authenticated}")
-                print(f"[DEBUG] User is_authenticated: {user.is_authenticated}")
                 
                 # Store the authenticated user for our custom authentication class to retrieve
                 # Don't set request.user here as AuthenticationMiddleware will override it
                 request.clerk_authenticated_user = user
                 
                 logger.info(f"Set request.clerk_authenticated_user to: {user}")
-                print(f"[DEBUG] Set request.clerk_authenticated_user to: {user}")
                 
             except jwt.ExpiredSignatureError:
                 logger.warning("JWT token expired")
-                print("[DEBUG] JWT token expired")
                 return JsonResponse({"error": "Token expired"}, status=401)
             except jwt.InvalidTokenError:
                 logger.warning("Invalid JWT token")
-                print("[DEBUG] Invalid JWT token")
                 return JsonResponse({"error": "Invalid token"}, status=401)
             except Exception as e:
                 logger.error(f"Authentication error: {str(e)}")
-                print(f"[DEBUG] Authentication error: {str(e)}")
                 return JsonResponse({"error": f"Authentication error: {str(e)}"}, status=401)
         else:
             request.clerk_user = None
