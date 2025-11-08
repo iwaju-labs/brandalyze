@@ -26,6 +26,10 @@ services:
         value: HTTP_X_FORWARDED_PROTO,https
       - key: USE_TLS
         value: True
+      - key: DATABASE_URL
+        fromDatabase:
+          name: brandalyze-postgres
+          property: connectionString
 
 databases:
   - name: brandalyze-postgres

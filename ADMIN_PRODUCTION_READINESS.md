@@ -17,10 +17,12 @@
   - `DEBUG=False` - Must be False in production
 - **Status**: ⚠️ Verify all environment variables are set in production
 
-### 3. **Database Considerations** ✅ SHOULD WORK
+### 3. **Database Considerations** ✅ PRODUCTION READY
+- **PostgreSQL Database**: ✅ Configured in render.yaml with persistent storage
 - **Custom User Model**: ✅ Properly configured with migrations
-- **Admin Superuser Setup**: ✅ Scripts provided (`set_admin.py`, `set_user_admin.py`)
-- **Status**: ✅ Ready for production
+- **Admin Superuser Setup**: ✅ Production script provided (`create_admin_user.py`)
+- **Database Connection**: ✅ Connected via DATABASE_URL environment variable
+- **Status**: ✅ Production ready with persistent database
 
 ### 4. **Security Considerations** ✅ SECURE
 - **Admin Access Control**: ✅ Django superuser + Clerk metadata check
@@ -53,9 +55,9 @@ STRIPE_SECRET_KEY=sk_live_your_production_stripe_key
 ### 2. **Create Admin User in Production**
 ```bash
 # After deployment, run this to create admin user:
-python manage.py shell
-exec(open('set_user_admin.py').read())
-# Enter your production admin email when prompted
+cd apps/backend
+python create_admin_user.py
+# Follow the interactive prompts to enter admin email
 ```
 
 ### 3. **Frontend Environment**
