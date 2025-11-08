@@ -23,6 +23,5 @@ tweepy==4.14.0
 python-linkedin-v2
 # Text analysis and NLP
 nltk==3.8.1
-textstat==0.7.3
 # Local packages (editable installations)
 -e ./packages/ai_core

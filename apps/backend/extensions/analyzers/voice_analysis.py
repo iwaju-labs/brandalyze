@@ -4,9 +4,15 @@ AI-powered analysis functions for brand voice, alignment, and content analysis.
 import re
 import string
 from collections import Counter
-from textstat import flesch_reading_ease, flesch_kincaid_grade
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
+
+# Optional textstat import with fallback
+try:
+    from textstat import flesch_reading_ease, flesch_kincaid_grade
+    TEXTSTAT_AVAILABLE = True
+except ImportError:
+    TEXTSTAT_AVAILABLE = False
 
 # Download required NLTK data if not already present
 try:
@@ -98,12 +104,22 @@ def calculate_professionalism_score(text):
         return 5.0
         
     # Reading level analysis
-    try:
-        reading_ease = flesch_reading_ease(text)
-        # Convert to 0-10 scale (lower reading ease = higher professionalism)
-        reading_professionalism = max(0, (100 - reading_ease) / 10)
-    except Exception:
-        reading_professionalism = 5.0
+    if TEXTSTAT_AVAILABLE:
+        try:
+            reading_ease = flesch_reading_ease(text)
+            # Convert to 0-10 scale (lower reading ease = higher professionalism)
+            reading_professionalism = max(0, (100 - reading_ease) / 10)
+        except Exception:
+            reading_professionalism = 5.0
+    else:
+        # Fallback reading level calculation based on sentence and word complexity
+        words = text.split()
+        sentences = [s for s in text.split('.') if s.strip()]
+        avg_word_length = sum(len(word) for word in words) / max(len(words), 1)
+        avg_sentence_length = len(words) / max(len(sentences), 1)
+        
+        # Simple complexity score (longer words and sentences = more professional)
+        reading_professionalism = min(10, (avg_word_length - 3) * 2 + (avg_sentence_length - 10) * 0.2)
     
     # Professional vocabulary
     professional_words = [
