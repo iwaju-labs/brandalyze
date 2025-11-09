@@ -208,6 +208,20 @@ class StripeService:
             subscription.is_trial_active = False
             subscription.save()
 
+            # Send Telegram notification for new subscription
+            try:
+                from utils.telegram_client import send_telegram_message_async, escape_html
+                message = (
+                    f"💳 <b>New Subscription</b>\n\n"
+                    f"👤 User: <code>{escape_html(user.email)}</code>\n"
+                    f"📦 Tier: <code>{subscription.tier}</code>\n"
+                    f"🆔 Subscription: <code>{stripe_subscription.id}</code>\n"
+                    f"📅 Date: {timezone.now().strftime('%Y-%m-%d %H:%M UTC')}"
+                )
+                send_telegram_message_async(message)
+            except Exception as e:
+                print(f"Failed to send subscription notification: {e}")
+
             return True
         except Exception as e:
             print(f"Error handling subscription created: {e}")
@@ -284,6 +298,20 @@ class StripeService:
             subscription.save()
 
             print(f"User {subscription.user.id} downgraded from {old_tier} to free (subscription canceled)")
+
+            # Send Telegram notification for subscription cancellation
+            try:
+                from utils.telegram_client import send_telegram_message_async, escape_html
+                message = (
+                    f"❌ <b>Subscription Cancelled</b>\n\n"
+                    f"👤 User: <code>{escape_html(subscription.user.email)}</code>\n"
+                    f"📦 Was: <code>{old_tier}</code> → <code>free</code>\n"
+                    f"🆔 Subscription: <code>{stripe_subscription.id}</code>\n"
+                    f"📅 Date: {timezone.now().strftime('%Y-%m-%d %H:%M UTC')}"
+                )
+                send_telegram_message_async(message)
+            except Exception as e:
+                print(f"Failed to send cancellation notification: {e}")
 
             # TODO: send cancellation email to user
             # EmailService.send_cancellation_email(subscription.user)
