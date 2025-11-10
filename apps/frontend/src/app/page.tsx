@@ -10,10 +10,9 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title:
-    "Brandalyze - AI Brand Voice Analysis | Ensure Consistent Brand Messaging",
+  title: "Brandalyze - AI Brand Voice Analysis",
   description:
-    "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, messaging alignment, and brand coherence across all your content. Start your free trial today.",
+    "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, and brand alignment across all your content.",
   keywords: [
     "AI brand analysis",
     "brand voice consistency",
@@ -47,79 +46,84 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white transition-colors">
-      <main className="mx-auto max-w-7xl px-4 py-16 min-h-screen flex items-center">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 min-h-screen flex items-center">
         <div className="w-full">
           {/* Two Column Hero Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 lg:mb-16">
             {/* Left Column - Title and Subtext */}
-            <div className="text-center lg:text-left">
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 select-none">
+            <div className="text-center lg:text-left space-y-6">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none">
                 <span className="text-gray-900 dark:text-white">
                   brandalyze
                 </span>
                 <span className="text-purple-600 dark:text-purple-400">.</span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono mb-4">
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono">
                 &gt; Ensure your content stays on-brand
-              </p>{" "}
+              </p>
+
               {/* Get started button call to action */}
-              <Link
-                className="flex flex-row border border-black dark:border-[#f8f8ff] rounded-lg ml-6 px-4 py-2 mb-2 text-black dark:text-[#f8f8ff] w-full text-2xl items-center justify-center hover:bg-neutral-300 dark:hover:bg-neutral-600/80 transition-colors"
-                href={"/analyze"}
-              >
-                Get Started For Free <ArrowSquareRight className="ml-2" />
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto lg:mx-0">
+                <Link
+                  className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-6 py-3 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium hover:bg-neutral-300 dark:hover:bg-neutral-600/80 transition-colors w-full sm:flex-1"
+                  href={"/analyze"}
+                >
+                  Get Started For Free
+                  <ArrowSquareRight className="ml-2 h-5 w-5" />
+                </Link>
+              </div>
+
               {/* Chrome Extension plug */}
-              <Link
-                className="flex flex-row ml-6 text-xs text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-500 items-center"
-                href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
-              >
-                <Award03 size={20} /> &nbsp; Featured on Chrome Webstore
-              </Link>
+              <div className="flex justify-center lg:justify-start">
+                <Link
+                  className="inline-flex items-center text-sm text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
+                >
+                  <Award03 size={18} className="mr-2" />
+                  Featured on Chrome Webstore
+                </Link>
+              </div>
             </div>
 
             {/* Right Column - Description and Image Space */}
             <div className="text-center lg:text-left space-y-6">
-              <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
                 Upload your brand samples, analyze new content, and get
                 AI-powered feedback on tone, style, and messaging consistency.
                 Keep your brand voice unified across all channels.
               </p>
 
               {/* Image placeholder space */}
-              <Image
-                src="/assets/landing/profile-analysis.png"
-                alt="example profile analysis results"
-                width={580}
-                height={296}
-                priority
-                style={{
-                  width: "100%",
-                  height: "auto",
-                }}
-                className="rounded-md mx-auto lg:mx-0 mb-2"
-              />
+              <div className="w-full max-w-2xl mx-auto lg:mx-0">
+                <Image
+                  src="/assets/landing/profile-analysis.png"
+                  alt="example profile analysis results"
+                  width={580}
+                  height={296}
+                  priority
+                  className="w-full h-auto rounded-lg shadow-lg"
+                />
+              </div>
             </div>
           </div>
 
           {/* Demo Videos Section */}
-          <div className="mt-20 max-w-5xl mx-auto">
-            {" "}
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
+          <div className="mt-16 sm:mt-20 max-w-5xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
                 &gt; See Brandalyze in Action
               </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4">
                 Watch how our AI-powered brand analysis works to ensure your
                 content stays perfectly on-brand
               </p>
             </div>
-            <div className="space-y-16">
+            <div className="space-y-12 sm:space-y-16">
               {/* First Demo Placeholder */}
               <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">
+                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl sm:shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center px-4">
+                    <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
                       Demo Video Coming Soon
                     </div>
                     <div className="text-gray-400 dark:text-gray-500 text-sm">
@@ -127,11 +131,11 @@ export default async function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="max-w-3xl mx-auto">
-                  <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
+                <div className="max-w-3xl mx-auto px-4">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
                     &gt; Upload Brand Samples & Get Instant Analysis
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
                     Upload your existing brand content samples, and our AI
                     instantly learns your unique voice, tone, and messaging
                     style. Get detailed insights into what makes your brand
@@ -143,9 +147,9 @@ export default async function HomePage() {
 
               {/* Second Demo Placeholder */}
               <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">
+                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl sm:shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center px-4">
+                    <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
                       Demo Video Coming Soon
                     </div>
                     <div className="text-gray-400 dark:text-gray-500 text-sm">
@@ -153,11 +157,11 @@ export default async function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="max-w-3xl mx-auto">
-                  <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
+                <div className="max-w-3xl mx-auto px-4">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
                     &gt; Real-Time Social Media Profile Analysis
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
                     Analyze social media profiles based on previously set
                     handles. Get feedback on tone, style, and messaging to
                     ensure every piece of content perfectly matches your brand
@@ -168,46 +172,47 @@ export default async function HomePage() {
             </div>
           </div>
           {/* Feature highlights */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
-              <div className="flex justify-center mb-3">
+          <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto px-4">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md">
+              <div className="flex justify-center mb-4">
                 <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-2 font-mono">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
                 AI Analysis
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
                 Advanced AI compares your content against brand samples using
                 semantic understanding
               </p>
             </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
-              <div className="flex justify-center mb-3">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md">
+              <div className="flex justify-center mb-4">
                 <BarChart02 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-2 font-mono">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
                 Alignment Score
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
                 Get precise 0-100 brand alignment scores with detailed feedback
                 and reasoning
               </p>
             </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
-              <div className="flex justify-center mb-3">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md sm:col-span-2 lg:col-span-1">
+              <div className="flex justify-center mb-4">
                 <Target01 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-2 font-mono">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
                 Actionable Insights
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
                 Receive specific suggestions to improve brand consistency and
                 messaging
               </p>
             </div>
           </div>
+
           {/* Tech stack indicator */}
-          <div className="mt-16 text-center">
+          <div className="mt-12 sm:mt-16 text-center">
             <p className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2">
               POWERED BY
             </p>
