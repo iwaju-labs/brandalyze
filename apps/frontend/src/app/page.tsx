@@ -5,7 +5,6 @@ import {
   ArrowSquareRight,
   Award03,
 } from "@untitledui/icons";
-import { Vortex } from "@/components/ui/vortex";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,21 +46,8 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white relative overflow-hidden transition-colors">
-      <div className="fixed inset-0 z-0">
-        <Vortex
-          backgroundColor="transparent"
-          baseHue={280}
-          particleCount={50}
-          className="opacity-10 dark:opacity-50"
-          baseSpeed={0.1}
-          rangeY={3000}
-          baseRadius={0.5}
-        />
-      </div>
-      {/* Dark overlay with gradient for better text readability - only in dark mode */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black/70 z-10 dark:block hidden" />{" "}
-      <main className="relative z-20 mx-auto max-w-7xl px-4 py-16 min-h-screen flex items-center">
+    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white transition-colors">
+      <main className="mx-auto max-w-7xl px-4 py-16 min-h-screen flex items-center">
         <div className="w-full">
           {/* Two Column Hero Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mb-16">
@@ -106,6 +92,7 @@ export default async function HomePage() {
                 alt="example profile analysis results"
                 width={580}
                 height={296}
+                priority
                 style={{
                   width: "100%",
                   height: "auto",
@@ -128,24 +115,18 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="space-y-16">
-              {/* First Demo Video */}
+              {/* First Demo Placeholder */}
               <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6">
-                  <video
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                  >
-                    <source
-                      src="/assets/landing/landing page demos_1.webm"
-                      type="video/webm"
-                    />
-                    Your browser does not support this video format.
-                  </video>
-                </div>{" "}
+                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">
+                      Demo Video Coming Soon
+                    </div>
+                    <div className="text-gray-400 dark:text-gray-500 text-sm">
+                      Brand Analysis Demo
+                    </div>
+                  </div>
+                </div>
                 <div className="max-w-3xl mx-auto">
                   <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
                     &gt; Upload Brand Samples & Get Instant Analysis
@@ -160,24 +141,18 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* Second Demo Video */}
+              {/* Second Demo Placeholder */}
               <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6">
-                  <video
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                  >
-                    <source
-                      src="/assets/landing/landing page demos_2.webm"
-                      type="video/webm"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>{" "}
+                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">
+                      Demo Video Coming Soon
+                    </div>
+                    <div className="text-gray-400 dark:text-gray-500 text-sm">
+                      Social Media Analysis Demo
+                    </div>
+                  </div>
+                </div>
                 <div className="max-w-3xl mx-auto">
                   <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
                     &gt; Real-Time Social Media Profile Analysis
@@ -194,7 +169,7 @@ export default async function HomePage() {
           </div>
           {/* Feature highlights */}
           <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900/30 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
               <div className="flex justify-center mb-3">
                 <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
@@ -206,7 +181,7 @@ export default async function HomePage() {
                 semantic understanding
               </p>
             </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900/30 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
               <div className="flex justify-center mb-3">
                 <BarChart02 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
@@ -218,7 +193,7 @@ export default async function HomePage() {
                 and reasoning
               </p>
             </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900/30 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors">
               <div className="flex justify-center mb-3">
                 <Target01 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>

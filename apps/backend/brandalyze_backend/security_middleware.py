@@ -14,6 +14,18 @@ class SecurityHeadersMiddleware:
         response = self.get_response(request)
         
         # Add Content Security Policy
-        response['Content-Security-Policy'] = "default-src 'self'"
+        response['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://*.clerk.accounts.dev https://challenges.cloudflare.com; "
+            "worker-src 'self' blob:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' http://localhost:3000 http://localhost:8000 https://*.clerk.accounts.dev https://tally.so wss://*.clerk.accounts.dev; "
+            "frame-src https://tally.so https://*.clerk.accounts.dev https://challenges.cloudflare.com; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         
         return response
