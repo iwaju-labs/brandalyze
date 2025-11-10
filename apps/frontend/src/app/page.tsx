@@ -108,7 +108,7 @@ export default async function HomePage() {
           </div>
 
           {/* Demo Videos Section */}
-          <div className="mt-16 sm:mt-20 max-w-5xl mx-auto">
+          <div className="mt-16 sm:mt-20 max-w-6xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
                 &gt; See Brandalyze in Action
@@ -118,21 +118,12 @@ export default async function HomePage() {
                 content stays perfectly on-brand
               </p>
             </div>
-            <div className="space-y-12 sm:space-y-16">
-              {/* First Demo Placeholder */}
-              <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl sm:shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                  <div className="text-center px-4">
-                    <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
-                      Demo Video Coming Soon
-                    </div>
-                    <div className="text-gray-400 dark:text-gray-500 text-sm">
-                      Brand Analysis Demo
-                    </div>
-                  </div>
-                </div>
-                <div className="max-w-3xl mx-auto px-4">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
+            <div className="space-y-8 sm:space-y-12">
+              {/* First Demo - Brand Analysis */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                {/* Left Column - Title and Description */}
+                <div className="text-center lg:text-left px-4 order-2 lg:order-1">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
                     &gt; Upload Brand Samples & Get Instant Analysis
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
@@ -143,22 +134,39 @@ export default async function HomePage() {
                     content.
                   </p>
                 </div>
-              </div>
-
-              {/* Second Demo Placeholder */}
-              <div className="text-center">
-                <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl sm:shadow-2xl mb-6 bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                  <div className="text-center px-4">
-                    <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
-                      Demo Video Coming Soon
-                    </div>
-                    <div className="text-gray-400 dark:text-gray-500 text-sm">
-                      Social Media Analysis Demo
+                {/* Right Column - Video Placeholder */}
+                <div className="order-1 lg:order-2">
+                  <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                    <div className="text-center px-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
+                        Demo Video Coming Soon
+                      </div>
+                      <div className="text-gray-400 dark:text-gray-500 text-sm">
+                        Brand Analysis Demo
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="max-w-3xl mx-auto px-4">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-3 font-mono">
+              </div>
+
+              {/* Second Demo - Social Media Analysis */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                {/* Left Column - Video Placeholder */}
+                <div className="order-1">
+                  <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                    <div className="text-center px-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
+                        Demo Video Coming Soon
+                      </div>
+                      <div className="text-gray-400 dark:text-gray-500 text-sm">
+                        Social Media Analysis Demo
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Right Column - Title and Description */}
+                <div className="text-center lg:text-left px-4 order-2">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
                     &gt; Real-Time Social Media Profile Analysis
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">

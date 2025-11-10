@@ -17,6 +17,7 @@ import UsageDashboard from "@/components/dashboard/usage-dashboard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import { FullPageLoader, LoadingSpinner, InlineLoader } from "@/components/ui/loading-spinner";
 
 // Markdown component definitions
 const markdownComponents: Components = {
@@ -146,19 +147,11 @@ export default function BrandAnalysis() {
   }, [isLoaded, isSignedIn, router, user, fetchUsageInfo]);
 
   if (!isLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        Loading...
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (!isSignedIn) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        Redirecting...
-      </div>
-    );
+    return <FullPageLoader text="Redirecting to sign in..." />;
   }
   const handleBrandComparison = async () => {
     if (usageInfo && usageInfo.usage.remaining_today === 0) {
@@ -441,8 +434,10 @@ export default function BrandAnalysis() {
           </p>
 
           {/** Usage Dashboard */}
-          {!isLoadingUsage && usageInfo?.usage.remaining_today === 0 && (
-            <UsageDashboard />
+          {isLoadingUsage ? (
+            <InlineLoader text="Loading usage information..." size="sm" />
+          ) : (
+            usageInfo?.usage.remaining_today === 0 && <UsageDashboard />
           )}
         </div>
         <div className="space-y-6">
@@ -586,10 +581,14 @@ export default function BrandAnalysis() {
                 : "bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl"
             }`}
           >
-            {" "}
-            {isAnalyzing
-              ? "Analyzing Brand Alignment..."
-              : "Analyze Brand Alignment"}
+            {isAnalyzing ? (
+              <div className="flex items-center justify-center">
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">Analyzing Brand Alignment...</span>
+              </div>
+            ) : (
+              "Analyze Brand Alignment"
+            )}
           </button>
           {/* Streaming feedback display */}
           {isAnalyzing && streamingFeedback && (
