@@ -82,12 +82,10 @@ function ExtensionAuthContent() {
               </div>
             `;
 
-            // Send token to extension via chrome-extension URL
+            // Open extension callback in new window (more reliable than iframe)
             const callbackUrl = `chrome-extension://${extensionId}/auth-callback.html?token=${token}`;
-            const iframe = document.createElement("iframe");
-            iframe.style.display = "none";
-            iframe.src = callbackUrl;
-            document.body.appendChild(iframe);
+            console.log("Opening callback URL:", callbackUrl);
+            globalThis.open(callbackUrl, "_blank");
 
             // Countdown timer
             let countdown = 5;
