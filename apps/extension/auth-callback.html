@@ -99,17 +99,17 @@
             }
         }
 
-        // Extract auth code from URL
+        // Extract token from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
+        const token = urlParams.get('token');
 
-        if (!authCode) {
-            showError('No authentication code found in URL');
+        if (!token) {
+            showError('No authentication token found in URL');
         } else {
-            // Send auth code to background script
+            // Send token to background script for validation and storage
             chrome.runtime.sendMessage({
-                action: 'handleAuthCallback',
-                authCode: authCode
+                action: 'storeExtensionToken',
+                token: token
             }, (response) => {
                 if (chrome.runtime.lastError) {
                     showError('Failed to communicate with extension');
@@ -119,7 +119,7 @@
                 if (response && response.success) {
                     showSuccess();
                 } else {
-                    showError(response?.error || 'Authentication failed');
+                    showError(response?.error || 'Token validation failed');
                 }
             });
         }

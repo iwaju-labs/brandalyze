@@ -74,8 +74,57 @@ def generate_short_code():
 @api_view(["POST"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
+def generate_extension_token(request):
+    """Generate a long-lived extension token for authenticated user (NEW FLOW)"""
+    try:
+        user = request.user
+        subscription = UserSubscription.objects.filter(user=user).first()
+
+        # Check subscription requirements for extension access
+        extension_enabled = subscription and subscription.tier in ["pro", "enterprise"]
+        
+        if not extension_enabled:
+            return error_response(
+                message=EXTENSION_REQUIRES_PAID_PLAN_MESSAGE,
+                code="SUBSCRIPTION_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+
+        # Generate token
+        extension_token = secrets.token_urlsafe(32)
+        expiry = timezone.now() + timedelta(days=90)  # 90 day expiry
+
+        # Deactivate any existing tokens for this user
+        ExtensionToken.objects.filter(user=user, is_active=True).update(is_active=False)
+
+        # Create new token
+        token_obj = ExtensionToken.objects.create(
+            user=user,
+            token=extension_token,
+            auth_code=None,  # Not using auth codes in new flow
+            expires_at=expiry,
+            is_active=True
+        )
+
+        return success_response(data={
+            'token': extension_token,
+            'expires_at': expiry.isoformat(),
+            'message': 'Extension token generated successfully'
+        })
+
+    except Exception as e:
+        return error_response(
+            message=f"Failed to generate extension token: {str(e)}",
+            code="TOKEN_GENERATION_FAILED",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["POST"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
 def create_extension_token(request):
-    """Exchange Clerk JWT for long-lived extension token"""
+    """Exchange Clerk JWT for long-lived extension token (LEGACY - auth code flow)"""
     try:
         user = request.user
         subscription = UserSubscription.objects.filter(user=user).first()

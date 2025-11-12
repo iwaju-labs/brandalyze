@@ -2,12 +2,15 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # OAuth-style authentication endpoints
-    path('auth/create/', views.create_extension_token, name='extension_auth_create'),
-    path('auth/exchange-code/', views.exchange_auth_code, name='extension_auth_exchange'),
+    # NEW: Token-based authentication (simple flow)
+    path('auth/generate-token/', views.generate_extension_token, name='extension_generate_token'),
     path('auth/verify-token/', views.verify_extension_token, name='extension_token_verify'),
     
-    # Legacy Clerk auth endpoint (keep for backward compatibility)
+    # LEGACY: Auth code flow (keeping for backward compatibility)
+    path('auth/create/', views.create_extension_token, name='extension_auth_create'),
+    path('auth/exchange-code/', views.exchange_auth_code, name='extension_auth_exchange'),
+    
+    # LEGACY: Clerk auth endpoint
     path('auth/verify/', views.verify_extension_auth, name='extension_auth_verify'),
     
     # Extension endpoints

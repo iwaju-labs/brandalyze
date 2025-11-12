@@ -360,6 +360,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
       return true;
 
+    // Store extension token - NEW TOKEN-BASED AUTH
+    case "storeExtensionToken":
+      storeExtensionToken(request.token)
+        .then((response) => sendResponse(response))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message })
+        );
+      return true;
+
+    // Get auth state - reads from storage, returns user info
+    case "getAuthState":
+      chrome.storage.local.get(['extensionToken', 'userInfo', 'currentApiUrl', 'lastSynced'])
+        .then((stored) => {
+          if (stored.extensionToken && stored.userInfo) {
+            sendResponse({ 
+              success: true, 
+              data: {
+                isAuthenticated: true,
+                userInfo: stored.userInfo,
+                apiUrl: stored.currentApiUrl,
+                lastSynced: stored.lastSynced
+              }
+            });
+          } else {
+            sendResponse({ success: true, data: { isAuthenticated: false } });
+          }
+        })
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message })
+        );
+      return true;
+
+    // Legacy: Clerk session sync
+    case "syncClerkSession":
+      syncClerkSession(request.data)
+        .then((response) => sendResponse({ success: true, data: response }))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message })
+        );
+      return true;
+
     // LEGACY actions - maintain backward compatibility during transition
     case "checkClerkAuth":
       // Try new auth first, fallback to legacy
@@ -1341,12 +1382,12 @@ function invalidateAuthCache() {
   authState.userData = null;
 }
 
-// Update stored token when provided by main site
+// Update stored token when provided by main site (legacy)
 async function updateStoredToken(tokenData) {
   try {
     if (!tokenData.token) {
       throw new Error("No token provided");
-    } // Verify the new token
+    }
     const isValid = await verifyClerkToken(
       tokenData.token,
       tokenData.apiUrl || PROD_API_BASE_URL
@@ -1355,15 +1396,13 @@ async function updateStoredToken(tokenData) {
       throw new Error("Invalid token provided");
     }
 
-    // Calculate token expiry (24 hours from now as default)
-    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000; // Store the new token
+    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
     await chrome.storage.local.set({
       clerkToken: tokenData.token,
       currentApiUrl: tokenData.apiUrl || PROD_API_BASE_URL,
       tokenExpiry: tokenExpiry,
     });
 
-    // Update auth state
     authState.isAuthenticated = true;
     authState.clerkToken = tokenData.token;
     authState.jwt = tokenData.token;
@@ -1376,5 +1415,149 @@ async function updateStoredToken(tokenData) {
   } catch (error) {
     console.error("Failed to update stored token:", error);
     throw error;
+  }
+}
+
+// Store and validate extension token - NEW TOKEN-BASED AUTH
+async function storeExtensionToken(token) {
+  try {
+    if (!token) {
+      throw new Error("No token provided");
+    }
+
+    // Detect environment
+    const stored = await chrome.storage.local.get(['currentApiUrl']);
+    const apiUrl = stored.currentApiUrl || PROD_API_BASE_URL;
+    
+    // Validate token with backend
+    const userInfo = await validateExtensionToken(token, apiUrl);
+    
+    if (!userInfo) {
+      throw new Error("Token validation failed");
+    }
+
+    // Store token and user info
+    await chrome.storage.local.set({
+      extensionToken: token,
+      userInfo: userInfo,
+      currentApiUrl: apiUrl,
+      tokenValidatedAt: Date.now(),
+      lastSynced: Date.now()
+    });
+
+    // Update in-memory state
+    authState.isAuthenticated = true;
+    authState.extensionToken = token;
+    authState.userInfo = userInfo;
+    authState.currentApiUrl = apiUrl;
+    authState.apiUrl = apiUrl;
+    authState.lastChecked = Date.now();
+
+    console.log("Extension token stored and validated successfully");
+    return { success: true, userInfo };
+  } catch (error) {
+    console.error("Failed to store extension token:", error);
+    throw error;
+  }
+}
+
+// Validate extension token with backend
+async function validateExtensionToken(token, apiUrl) {
+  try {
+    const response = await fetch(`${apiUrl}/extension/auth/verify-token/`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ExtensionToken ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    
+    if (response.ok && data.success && data.data) {
+      return {
+        email: data.data.email || "Unknown user",
+        display_name: data.data.display_name || data.data.email || "Unknown user",
+        subscription_tier: data.data.subscription_tier || "free",
+        extension_enabled: data.data.extension_enabled || false,
+        requiresUpgrade: !data.data.extension_enabled
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to validate extension token:", error);
+    return null;
+  }
+}
+
+// Legacy Clerk session sync - keeping for backward compatibility
+async function syncClerkSession(sessionData) {
+  try {
+    if (!sessionData.clerkToken) {
+      throw new Error("No Clerk token provided");
+    }
+
+    const apiUrl = sessionData.apiUrl || PROD_API_BASE_URL;
+    
+    const userInfo = await fetchUserInfoFromBackend(sessionData.clerkToken, apiUrl);
+    
+    if (!userInfo) {
+      throw new Error("Failed to fetch user info from backend");
+    }
+
+    await chrome.storage.local.set({
+      clerkToken: sessionData.clerkToken,
+      clerkUser: sessionData.clerkUser,
+      userInfo: userInfo,
+      currentApiUrl: apiUrl,
+      tokenExpiry: Date.now() + 24 * 60 * 60 * 1000,
+      lastSynced: sessionData.syncedAt || Date.now()
+    });
+
+    authState.isAuthenticated = true;
+    authState.clerkToken = sessionData.clerkToken;
+    authState.jwt = sessionData.clerkToken;
+    authState.userData = sessionData.clerkUser;
+    authState.userInfo = userInfo;
+    authState.currentApiUrl = apiUrl;
+    authState.apiUrl = apiUrl;
+    authState.lastChecked = Date.now();
+
+    console.log("Clerk session synced successfully");
+    return authState;
+  } catch (error) {
+    console.error("Failed to sync Clerk session:", error);
+    throw error;
+  }
+}
+
+// Legacy user info fetcher
+async function fetchUserInfoFromBackend(clerkToken, apiUrl) {
+  try {
+    const response = await fetch(`${apiUrl}/extension/auth/verify/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clerkToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    
+    if (response.ok && data.success && data.data) {
+      return {
+        email: data.data.email || "Unknown user",
+        display_name: data.data.display_name || data.data.email || "Unknown user",
+        subscription_tier: data.data.subscription_tier || "free",
+        extension_enabled: data.data.extension_enabled || false,
+        requiresUpgrade: !data.data.extension_enabled
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to fetch user info from backend:", error);
+    return null;
   }
 }

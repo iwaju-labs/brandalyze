@@ -5,36 +5,15 @@ globalThis.BrandalyzeUtils = {
   checkSubscriptionAccess: async function() {
     try {
       const response = await chrome.runtime.sendMessage({
-        action: 'checkClerkAuth'
+        action: 'getAuthState'
       });
       
-      if (response.success && response.data.isAuthenticated) {
-        // Check if user has Pro or Enterprise subscription
-        const authState = response.data;
-        if (authState.apiUrl && authState.jwt) {
-          try {
-            const authResponse = await fetch(`${authState.apiUrl}/extension/auth/verify/`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${authState.jwt}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (authResponse.ok) {
-              const authData = await authResponse.json();
-              if (authData.success && authData.data) {
-                const tier = authData.data.subscription_tier?.toLowerCase();
-                return tier === 'pro' || tier === 'enterprise';
-              }
-            }
-          } catch (error) {
-            console.log('Error checking subscription:', error);
-          }
-        }
+      if (response.success && response.data.isAuthenticated && response.data.userInfo) {
+        const tier = response.data.userInfo.subscription_tier?.toLowerCase();
+        return tier === 'pro' || tier === 'enterprise';
       }
       
-      return false; // Default to no access for free users
+      return false;
     } catch (error) {
       console.log('Error checking auth:', error);
       return false;

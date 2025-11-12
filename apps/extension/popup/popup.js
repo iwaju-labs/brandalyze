@@ -1,47 +1,8 @@
-// Clean popup.js without duplicates and simplified complexity
+// Clean popup.js - centralized auth via background script
 
 // Global variables
 let currentUser = null;
 let currentPlatform = null;
-
-// Fetch user info from backend after authentication
-async function fetchUserInfo(apiUrl, jwt) {
-  try {
-    const response = await fetch(`${apiUrl}/extension/auth/verify/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        "Content-Type": "application/json",
-      },
-    });    const data = await response.json();
-    
-    if (response.ok && data.success && data.data) {
-      return {
-        email: data.data.email || "Unknown user",
-        displayName: data.data.display_name || data.data.email || "Unknown user",
-        subscriptionTier: data.data.subscription_tier || "free",
-        extensionEnabled: data.data.extension_enabled || false,
-        requiresUpgrade: !data.data.extension_enabled
-      };    } else {
-      console.log("Backend response unsuccessful:", { status: response.status, ok: response.ok, data }); // Debug log
-      return {
-        email: "Unknown user",
-        displayName: "Unknown user",
-        subscriptionTier: "unknown",
-        extensionEnabled: false,        requiresUpgrade: true
-      };
-    }
-  } catch (e) {
-    console.error("❌ Fetch error:", e.message);
-  }
-  return {
-    email: "Unknown user",
-    displayName: "Unknown user",
-    subscriptionTier: "unknown",
-    extensionEnabled: false,
-    requiresUpgrade: true
-  };
-}
 
 // Open Brandalyze app for sign in
 async function openBrandalyzeApp() {
@@ -363,113 +324,89 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.analyzeContentBtn.disabled = false;
     }
   }
-  // Check authentication - try new OAuth auth first, fallback to legacy
+  // Check authentication - reads from storage
   async function checkAuth() {
     const startTime = Date.now();
 
     try {
-      // Try new OAuth-style authentication first
       const response = await chrome.runtime.sendMessage({
-        action: "checkExtensionAuth",
+        action: "getAuthState",
       });
 
-      // Only show loading spinner if this takes more than 100ms (i.e., fresh check)
       if (Date.now() - startTime > 100) {
         showLoading();
       }
 
       if (response.success && response.data.isAuthenticated) {
-        updateAuthUI(response.data, 'oauth');
+        updateAuthUI(response.data);
       } else {
-        // Fallback to legacy Clerk auth for backward compatibility
-        try {
-          const legacyResponse = await chrome.runtime.sendMessage({
-            action: "checkClerkAuth",
-          });
-          
-          if (legacyResponse.success && legacyResponse.data.isAuthenticated) {
-            updateAuthUI(legacyResponse.data, 'clerk');
-          } else {
-            updateAuthUI({ isAuthenticated: false }, 'none');
-          }
-        } catch (legacyError) {
-          console.log('Legacy auth also failed:', legacyError);
-          updateAuthUI({ isAuthenticated: false }, 'none');
-        }
+        updateAuthUI({ isAuthenticated: false });
       }
     } catch (error) {
       hideLoading();
-      updateAuthUI({ isAuthenticated: false }, 'none');
+      updateAuthUI({ isAuthenticated: false });
       console.error("Auth check error:", error);
     }
   }
 
-  // Initiate OAuth-style authentication
+  // Initiate authentication - opens Brandalyze extension auth page
   async function initiateAuth() {
     try {
       showLoading();
-      setText(elements.cacheText, "Opening authentication...");
+      setText(elements.cacheText, "Opening Brandalyze...");
       
-      const response = await chrome.runtime.sendMessage({
-        action: "initiateAuth"
+      // Determine which URL to open
+      const stored = await chrome.storage.local.get(['currentApiUrl']);
+      const appUrl = stored.currentApiUrl === 'http://localhost:8000/api'
+        ? 'http://localhost:3000'
+        : 'https://brandalyze.io';
+      
+      // Get extension ID for callback
+      const extensionId = chrome.runtime.id;
+      
+      // Open extension auth page with callback URL
+      await chrome.tabs.create({ 
+        url: `${appUrl}/extension-auth?extension_id=${extensionId}` 
       });
-
-      if (response.success) {
-        // Auth window opened, check auth status after a delay
-        setTimeout(async () => {
-          await checkAuth();
-        }, 2000);
-      } else {
-        hideLoading();
-        console.error("Failed to initiate auth:", response.error);
-      }
+      
+      hideLoading();
+      setText(elements.cacheText, "Complete sign in on the web page");
+      globalThis.close();
     } catch (error) {
       hideLoading();
       console.error("Auth initiation error:", error);
     }
   }
 
-  // Force refresh authentication
+  // Force refresh authentication - just re-check storage
   async function forceRefreshAuth() {
     showLoading();
     setText(elements.cacheText, "Refreshing...");
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "forceAuthRefresh",
-      });
-
-      if (response.success) {
-        updateAuthUI(response.data);
-      } else {
-        updateAuthUI({ isAuthenticated: false });
-        console.error("Force refresh failed:", response.error);
-      }
+      await checkAuth();
     } catch (error) {
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
       console.error("Force refresh error:", error);
     }
   }
-  // Update authentication UI - handles both OAuth and legacy auth
-  function updateAuthUI(authState, authType = 'legacy') {
+  // Update authentication UI - simplified
+  function updateAuthUI(authState) {
     hideLoading();
 
-    // Show cache status for debugging
-    if (authState.lastChecked) {
-      const age = Math.round((Date.now() - authState.lastChecked) / 1000);
-      setText(elements.cacheText, `Cached (${age}s ago) - ${authType}`);
+    if (authState.lastSynced) {
+      const age = Math.round((Date.now() - authState.lastSynced) / 1000);
+      setText(elements.cacheText, `Synced ${age}s ago`);
     } else {
-      setText(elements.cacheText, `Fresh check - ${authType}`);
+      setText(elements.cacheText, `Checking...`);
     }
     
-    // Handle OAuth-style authentication
-    if (authType === 'oauth' && authState.isAuthenticated && authState.userInfo) {
+    if (authState.isAuthenticated && authState.userInfo) {
       const userInfo = authState.userInfo;
       const displayText = userInfo.display_name || userInfo.email;
       setText(elements.userEmail, displayText);
       
-      // Update subscription UI
       updateSubscriptionUI({
         subscriptionTier: userInfo.subscription_tier,
         extensionEnabled: userInfo.extension_enabled,
@@ -479,36 +416,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       showElement(elements.authenticatedContent);
       hideElement(elements.unauthenticatedContent);
       currentUser = userInfo;
-      
-      return;
-    }
-    
-    // Handle legacy Clerk authentication
-    if (authType === 'clerk' && authState.isAuthenticated && authState.userData) {
-      // Authenticated - fetch user details from backend API
-      if (authState.apiUrl && authState.jwt) {
-        // Show loading while fetching user info
-        setText(elements.userEmail, "Loading...");
-        
-        fetchUserInfo(authState.apiUrl, authState.jwt).then((userInfo) => {
-          currentUser = userInfo;
-          // Prefer displayName over email for user display
-          const displayText = userInfo.displayName || userInfo.email;
-          setText(elements.userEmail, displayText);
-          updateSubscriptionUI(userInfo);
-        }).catch((error) => {
-          console.error("Failed to fetch user info:", error);
-          setText(elements.userEmail, "Error loading user info");
-        });
-      } else {
-        setText(elements.userEmail, "Authentication incomplete");
-      }
-
-      showElement(elements.authenticatedContent);
-      hideElement(elements.unauthenticatedContent);
       detectCurrentPlatform().then(updatePlatformIndicator);
     } else {
-      // Not authenticated
       setText(elements.userEmail, "Please sign in to continue");
       hideElement(elements.authenticatedContent);
       showElement(elements.unauthenticatedContent);
