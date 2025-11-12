@@ -229,6 +229,7 @@ CORS_ALLOWED_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-extension-token',
 ]
 
 # REST Framework settings
