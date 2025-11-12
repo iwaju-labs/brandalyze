@@ -53,7 +53,7 @@ function ExtensionAuthContent() {
             getToken,
             {
               method: "POST",
-              headers: { "X-Extension-Token": token },
+              headers: { "Authorization": `ExtensionToken ${token}` },
             }
           );
 

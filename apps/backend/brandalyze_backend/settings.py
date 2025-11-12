@@ -223,9 +223,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in development
 # Import default headers from django-cors-headers
 from corsheaders.defaults import default_headers
 
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    'x-extension-token',
-]
+CORS_ALLOW_HEADERS = list(default_headers)
 
 # REST Framework settings
 REST_FRAMEWORK = {
