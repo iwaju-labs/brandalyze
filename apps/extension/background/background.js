@@ -373,7 +373,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "getAuthState":
       chrome.storage.local.get(['extensionToken', 'userInfo', 'currentApiUrl', 'lastSynced'])
         .then((stored) => {
+          console.log('getAuthState - stored data:', stored);
           if (stored.extensionToken && stored.userInfo) {
+            console.log('getAuthState - returning authenticated with userInfo:', stored.userInfo);
             sendResponse({ 
               success: true, 
               data: {
@@ -530,14 +532,31 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Check Clerk authentication - prioritize stored token, fallback to main app
 async function checkClerkAuth() {
   try {
-    // First check if we have a stored Clerk token
+    // First check if we have an extension token (long-lived, preferred)
     const result = await chrome.storage.local.get([
+      "extensionToken",
+      "userInfo",
       "clerkToken",
       "userData",
       "currentApiUrl",
       "tokenExpiry",
+      "tokenValidatedAt",
     ]);
 
+    // Check for extension token first (90-day token, no expiry check needed)
+    if (result.extensionToken && result.userInfo) {
+      console.log("Found stored extension token, using it");
+      authState.isAuthenticated = true;
+      authState.extensionToken = result.extensionToken;
+      authState.userInfo = result.userInfo;
+      authState.userData = result.userInfo; // Map userInfo to userData for compatibility
+      authState.currentApiUrl = result.currentApiUrl || PROD_API_BASE_URL;
+      authState.apiUrl = authState.currentApiUrl;
+      authState.jwt = result.extensionToken; // Use extension token as JWT
+      return authState;
+    }
+
+    // Fallback to Clerk token if no extension token
     if (result.clerkToken) {
       console.log("Found stored token, checking validity...");
 

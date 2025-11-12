@@ -103,19 +103,26 @@
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
 
+        console.log('Auth callback loaded, token:', token ? 'present' : 'missing');
+        console.log('Full URL:', window.location.href);
+
         if (!token) {
+            console.error('No token in URL');
             showError('No authentication token found in URL');
         } else {
+            console.log('Sending token to background script...');
             // Send token to background script for validation and storage
             chrome.runtime.sendMessage({
                 action: 'storeExtensionToken',
                 token: token
             }, (response) => {
                 if (chrome.runtime.lastError) {
+                    console.error('Chrome runtime error:', chrome.runtime.lastError);
                     showError('Failed to communicate with extension');
                     return;
                 }
 
+                console.log('Background script response:', response);
                 if (response && response.success) {
                     showSuccess();
                 } else {

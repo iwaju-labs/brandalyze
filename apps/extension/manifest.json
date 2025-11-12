@@ -65,6 +65,14 @@
     }
   ],
 
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "https://brandalyze.io/*",
+      "https://www.brandalyze.io/*"
+    ]
+  },
+
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
   }
