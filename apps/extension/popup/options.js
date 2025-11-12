@@ -556,14 +556,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading();
         try {
             const response = await chrome.runtime.sendMessage({
-                action: 'checkClerkAuth'
+                action: 'getAuthState'
             });
             
-            if (response.success) {
+            if (response.success && response.data.isAuthenticated) {
                 updateAuthUI(response.data);
             } else {
                 updateAuthUI({ isAuthenticated: false });
-                console.error('Auth check failed:', response.error);
             }
         } catch (error) {
             hideLoading();
@@ -607,16 +606,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             setText(elements.cacheText, 'Fresh auth check');
         }
         
-        if (authState.isAuthenticated && authState.userData) {
+        if (authState.isAuthenticated && (authState.userInfo || authState.userData)) {
             // Authenticated state
             if (elements.statusDot) elements.statusDot.className = 'status-dot authenticated';
             setText(elements.statusText, 'Authenticated');
             
-            // Handle user info
-            if (authState.apiUrl && authState.jwt) {
-                fetchUserInfo(authState.apiUrl, authState.jwt).then(userInfo => {
-                    setText(elements.userEmail, userInfo.email);
-                    updateSubscriptionUI(userInfo);
+            // Use userInfo from extension token or userData from Clerk token
+            const userInfo = authState.userInfo || authState.userData;
+            
+            if (userInfo) {
+                const displayText = userInfo.display_name || userInfo.displayName || userInfo.email;
+                setText(elements.userEmail, displayText);
+                updateSubscriptionUI({
+                    subscriptionTier: userInfo.subscription_tier || userInfo.subscriptionTier,
+                    extensionEnabled: userInfo.extension_enabled || userInfo.extensionEnabled,
+                    requiresUpgrade: !(userInfo.extension_enabled || userInfo.extensionEnabled)
                 });
             }
             
