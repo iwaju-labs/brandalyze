@@ -57,7 +57,7 @@ function ExtensionAuthContent() {
             }
           );
 
-          if (verifyResponse.data?.valid) {
+          if (verifyResponse.data?.user_id) {
             // Show success screen
             document.body.innerHTML = `
               <div class="min-h-screen bg-gray-50 flex items-center justify-center">
