@@ -1,11 +1,11 @@
 "use client";
 
 import { useAuth, useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
 
-export default function ExtensionAuthPage() {
+function ExtensionAuthContent() {
   const { getToken } = useAuth();
   const { isSignedIn, isLoaded } = useUser();
   const searchParams = useSearchParams();
@@ -21,7 +21,7 @@ export default function ExtensionAuthPage() {
       }
 
       const extensionId = searchParams.get("extension_id");
-      
+
       if (!extensionId) {
         console.error("No extension ID provided");
         document.body.innerHTML = `
@@ -75,6 +75,7 @@ export default function ExtensionAuthPage() {
 
     handleExtensionAuth();
   }, [getToken, isLoaded, isSignedIn, searchParams]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
@@ -91,5 +92,28 @@ export default function ExtensionAuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ExtensionAuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4">
+                <div className="w-full h-full border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">
+                Loading...
+              </h1>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ExtensionAuthContent />
+    </Suspense>
   );
 }
