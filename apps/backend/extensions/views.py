@@ -331,8 +331,8 @@ def list_user_brands(request):
 
 
 @api_view(["POST"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([ClerkAuthenticated])
+@authentication_classes([ExtensionTokenAuthentication, ClerkAuthentication])
+@permission_classes([])  # Authentication handled by either token or Clerk
 def analyze_profile_voice(request):
     """Analyze a profile's posts to extract their brand voice and style characteristics"""
     try:
@@ -411,8 +411,8 @@ def analyze_profile_voice(request):
 
 
 @api_view(["POST"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([ClerkAuthenticated])
+@authentication_classes([ExtensionTokenAuthentication, ClerkAuthentication])
+@permission_classes([])  # Authentication handled by either token or Clerk
 def analyze_content_alignment(request):
     """Analyze how well a piece of content aligns with a brand or profile voice"""
     try:
