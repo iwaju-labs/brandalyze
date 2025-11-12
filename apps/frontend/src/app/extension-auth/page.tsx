@@ -45,9 +45,66 @@ function ExtensionAuthContent() {
         );
 
         if (response.data?.token) {
-          // Redirect to extension callback with token
-          const callbackUrl = `chrome-extension://${extensionId}/auth-callback.html?token=${response.data.token}`;
-          globalThis.location.href = callbackUrl;
+          const token = response.data.token;
+          
+          // Verify the token with the extension
+          const verifyResponse = await authenticatedFetch(
+            "/extension/auth/verify-token/",
+            getToken,
+            {
+              method: "POST",
+              headers: { "X-Extension-Token": token },
+            }
+          );
+
+          if (verifyResponse.data?.valid) {
+            // Show success screen
+            document.body.innerHTML = `
+              <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div class="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+                  <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                    <h1 class="text-xl font-semibold text-green-600 mb-2">Authentication Successful!</h1>
+                    <p class="text-gray-600 mb-4">Your Brandalyze extension is now connected.</p>
+                    <p class="text-sm text-gray-500 mb-6">This tab will close automatically in <span id="countdown">5</span> seconds.</p>
+                    <button 
+                      onclick="window.close()" 
+                      class="inline-block bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-medium transition-colors"
+                    >
+                      Close Tab Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            // Send token to extension via chrome-extension URL
+            const callbackUrl = `chrome-extension://${extensionId}/auth-callback.html?token=${token}`;
+            const iframe = document.createElement("iframe");
+            iframe.style.display = "none";
+            iframe.src = callbackUrl;
+            document.body.appendChild(iframe);
+
+            // Countdown timer
+            let countdown = 5;
+            const countdownElement = document.getElementById("countdown");
+            const timer = setInterval(() => {
+              countdown--;
+              if (countdownElement) {
+                countdownElement.textContent = countdown.toString();
+              }
+              if (countdown <= 0) {
+                clearInterval(timer);
+                globalThis.close();
+              }
+            }, 1000);
+          } else {
+            throw new Error("Token verification failed");
+          }
         } else {
           throw new Error("No token received from server");
         }
