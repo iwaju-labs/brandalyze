@@ -9,6 +9,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
+import Typewriter from "@/components/utils/Typewriter";
+
 export const metadata: Metadata = {
   title: "Brandalyze - AI Brand Voice Analysis",
   description:
@@ -43,6 +45,11 @@ export const metadata: Metadata = {
   },
 };
 
+const words: string[] = [
+  "your brand already has a voice.",
+  "it's time to listen to it.",
+];
+
 export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white transition-colors">
@@ -58,8 +65,8 @@ export default async function HomePage() {
                 </span>
                 <span className="text-purple-600 dark:text-purple-400">.</span>
               </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono">
-                &gt; Ensure your content stays on-brand
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono select-none">
+                <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
               </p>
 
               {/* Get started button call to action */}
@@ -137,14 +144,16 @@ export default async function HomePage() {
                 {/* Right Column - Video Placeholder */}
                 <div className="order-1 lg:order-2">
                   <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                    <div className="text-center px-4">
-                      <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
-                        Demo Video Coming Soon
-                      </div>
-                      <div className="text-gray-400 dark:text-gray-500 text-sm">
-                        Brand Analysis Demo
-                      </div>
-                    </div>
+                    <video loop muted autoPlay>
+                      <source
+                        src="/assets/landing/brandalyze-content-input-demo.mp4"
+                        type="video/mp4"
+                      />
+                      <source
+                        src="/assets/landing/brandalyze-content-input-demo.webm"
+                        type="video/webm"
+                      />
+                    </video>
                   </div>
                 </div>
               </div>
@@ -219,14 +228,23 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Tech stack indicator */}
-          <div className="mt-12 sm:mt-16 text-center">
-            <p className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2">
-              POWERED BY
-            </p>
-            <div className="flex items-center justify-center space-x-6 text-gray-600 dark:text-gray-600">
-              <span className="text-sm">OpenAI</span>
-            </div>
+          {/* PROMOTIONS/TRUST/CREDIT */}
+          <div className="flex mt-12 sm:mt-16 text-center justify-center">
+            <a
+              href="https://yourwebsitescore.com/certified-websites/brandalyze.io"
+              target="_blank"
+              rel="noopener"
+            >
+              <Image
+                src="https://yourwebsitescore.com/api/badge/brandalyze.io"
+                alt="Monitor your website with YourWebsiteScore"
+                height={54}
+                width={216}
+                unoptimized
+                className="drop-shadow-md"
+              />
+            </a>
+            <p className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2"></p>
           </div>
         </div>
       </main>
