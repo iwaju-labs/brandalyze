@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' http://localhost:8000 https://*.clerk.accounts.dev https://clerk.brandalyze.io https://tally.so wss://*.clerk.accounts.dev wss://clerk.brandalyze.io",
+              "connect-src 'self' http://localhost:8000 https://brandalyze.onrender.com https://*.clerk.accounts.dev https://clerk.brandalyze.io https://tally.so wss://*.clerk.accounts.dev wss://clerk.brandalyze.io",
               "frame-src https://tally.so https://*.clerk.accounts.dev https://clerk.brandalyze.io https://challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
