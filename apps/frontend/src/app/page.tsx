@@ -72,7 +72,7 @@ export default async function HomePage() {
                   alt="Like Grammarly but for brands!"
                   width={256}
                   height={256}
-                  className="absolute left-[calc(100%-13rem)] top-1/2 -translate-y-1/2 z-0 pointer-events-none -rotate-12 dark:invert"
+                  className="absolute left-[calc(100%-13rem)] top-1/2 -translate-y-1/2 z-0 pointer-events-none -rotate-12 dark:invert md:block lg:block hidden"
                 />
               </div>
 
@@ -174,16 +174,20 @@ export default async function HomePage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 {/* Left Column - Video Placeholder */}
                 <div className="order-1">
-                  <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                    <div className="text-center px-4">
-                      <div className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium mb-2">
-                        Demo Video Coming Soon
-                      </div>
-                      <div className="text-gray-400 dark:text-gray-500 text-sm">
-                        Social Media Analysis Demo
-                      </div>
-                    </div>
-                  </div>
+                  <video
+                    loop
+                    muted
+                    autoPlay
+                  >
+                    <source 
+                      src="/assets/landing/brandalyze-profile-analysis-demo0.mp4"
+                      type="video/mp4"
+                    />
+                    <source
+                      src="/assets/landing/brandalyze-profile-analysis-demo0.webm"
+                      type="video/webm"
+                    />
+                  </video>
                 </div>
                 {/* Right Column - Title and Description */}
                 <div className="text-center lg:text-left px-4 order-2">
