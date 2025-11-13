@@ -70,9 +70,6 @@
       "http://localhost:3000/*",
       "https://brandalyze.io/*",
       "https://www.brandalyze.io/*"
-    ],
-    "ids": [
-      "chnffppbmnlchenodfkbldobgmfgpbph"
     ]
   },
 
