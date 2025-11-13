@@ -924,13 +924,18 @@ async function getUserDataFromAPI(token, apiUrl) {
 // Profile analysis handler - simple version with basic 401 retry
 async function handleProfileAnalysis(analysisData) {
   try {
-    // Ensure we have authentication
-    if (!authState.isAuthenticated || !authState.clerkToken) {
-      await checkClerkAuth();
-      if (!authState.isAuthenticated) {
-        throw new Error("Please sign in to Brandalyze first");
-      }
+    // Ensure we have authentication - check for extension token first
+    await checkClerkAuth();
+    
+    if (!authState.isAuthenticated) {
+      throw new Error("Please sign in to Brandalyze first");
     }
+
+    // Determine which token to use (prioritize extension token)
+    const useExtensionToken = authState.extensionToken && authState.userInfo;
+    const authHeader = useExtensionToken
+      ? `ExtensionToken ${authState.extensionToken}`
+      : `Bearer ${authState.clerkToken}`;
 
     const requestBody = {
       handle: analysisData.handle,
@@ -948,7 +953,7 @@ async function handleProfileAnalysis(analysisData) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authState.clerkToken}`,
+          Authorization: authHeader,
         },
         body: JSON.stringify(requestBody),
       }
@@ -959,13 +964,19 @@ async function handleProfileAnalysis(analysisData) {
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
+        // Re-determine auth header after refresh
+        const retryUseExtensionToken = authState.extensionToken && authState.userInfo;
+        const retryAuthHeader = retryUseExtensionToken
+          ? `ExtensionToken ${authState.extensionToken}`
+          : `Bearer ${authState.clerkToken}`;
+
         const retryResponse = await fetch(
           `${authState.currentApiUrl}/extension/analyze/profile/voice/`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${authState.clerkToken}`,
+              Authorization: retryAuthHeader,
             },
             body: JSON.stringify(requestBody),
           }
@@ -1017,13 +1028,18 @@ async function handleProfileAnalysis(analysisData) {
 // LinkedIn profile analysis handler using DOM-extracted data
 async function handleLinkedInProfileAnalysis(profileData, platform) {
   try {
-    // Ensure we have authentication
-    if (!authState.isAuthenticated || !authState.clerkToken) {
-      await checkClerkAuth();
-      if (!authState.isAuthenticated) {
-        throw new Error("Please sign in to Brandalyze first");
-      }
+    // Ensure we have authentication - check for extension token first
+    await checkClerkAuth();
+    
+    if (!authState.isAuthenticated) {
+      throw new Error("Please sign in to Brandalyze first");
     }
+
+    // Determine which token to use (prioritize extension token)
+    const useExtensionToken = authState.extensionToken && authState.userInfo;
+    const authHeader = useExtensionToken
+      ? `ExtensionToken ${authState.extensionToken}`
+      : `Bearer ${authState.clerkToken}`;
 
     // Process LinkedIn profile data for analysis
     const requestBody = {
@@ -1049,7 +1065,7 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authState.clerkToken}`,
+          Authorization: authHeader,
         },
         body: JSON.stringify(requestBody),
       }
@@ -1060,13 +1076,19 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
+        // Re-determine auth header after refresh
+        const retryUseExtensionToken = authState.extensionToken && authState.userInfo;
+        const retryAuthHeader = retryUseExtensionToken
+          ? `ExtensionToken ${authState.extensionToken}`
+          : `Bearer ${authState.clerkToken}`;
+
         const retryResponse = await fetch(
           `${authState.currentApiUrl}/extension/analyze/profile/voice/`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${authState.clerkToken}`,
+              Authorization: retryAuthHeader,
             },
             body: JSON.stringify(requestBody),
           }
@@ -1153,14 +1175,19 @@ async function handleContentAnalysis(analysisData) {
 // Content alignment analysis handler - simple version with 401 retry
 async function handleContentAlignmentAnalysis(analysisData) {
   try {
-    // Ensure we have authentication
-    if (!authState.isAuthenticated || !authState.clerkToken) {
-      console.log("⚠️ Not authenticated, checking auth...");
-      await checkClerkAuth();
-      if (!authState.isAuthenticated) {
-        throw new Error("Please sign in to Brandalyze first");
-      }
+    // Ensure we have authentication - check for extension token first
+    console.log("⚠️ Checking auth for content alignment...");
+    await checkClerkAuth();
+    
+    if (!authState.isAuthenticated) {
+      throw new Error("Please sign in to Brandalyze first");
     }
+
+    // Determine which token to use (prioritize extension token)
+    const useExtensionToken = authState.extensionToken && authState.userInfo;
+    const authHeader = useExtensionToken
+      ? `ExtensionToken ${authState.extensionToken}`
+      : `Bearer ${authState.clerkToken}`;
 
     const requestBody = {
       content: analysisData.content,
@@ -1176,7 +1203,7 @@ async function handleContentAlignmentAnalysis(analysisData) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authState.clerkToken}`,
+          Authorization: authHeader,
         },
         body: JSON.stringify(requestBody),
       }
@@ -1187,13 +1214,19 @@ async function handleContentAlignmentAnalysis(analysisData) {
       await checkClerkAuth();
 
       if (authState.isAuthenticated) {
+        // Re-determine auth header after refresh
+        const retryUseExtensionToken = authState.extensionToken && authState.userInfo;
+        const retryAuthHeader = retryUseExtensionToken
+          ? `ExtensionToken ${authState.extensionToken}`
+          : `Bearer ${authState.clerkToken}`;
+
         const retryResponse = await fetch(
           `${authState.currentApiUrl}/extension/analyze/content/alignment/`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${authState.clerkToken}`,
+              Authorization: retryAuthHeader,
             },
             body: JSON.stringify(requestBody),
           }
