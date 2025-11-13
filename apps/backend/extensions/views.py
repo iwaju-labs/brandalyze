@@ -92,7 +92,13 @@ def generate_extension_token(request):
 
         # Generate token
         extension_token = secrets.token_urlsafe(32)
-        expiry = timezone.now() + timedelta(days=90)  # 90 day expiry
+        
+        # Set token expiry to match subscription end date (or 90 days if no end date)
+        if subscription.subscription_end:
+            expiry = subscription.subscription_end
+        else:
+            # Fallback to 90 days if subscription has no end date (e.g., lifetime)
+            expiry = timezone.now() + timedelta(days=90)
 
         # Deactivate any existing tokens for this user
         ExtensionToken.objects.filter(user=user, is_active=True).update(is_active=False)
@@ -142,7 +148,13 @@ def create_extension_token(request):
         # Generate tokens
         extension_token = secrets.token_urlsafe(32)
         auth_code = generate_short_code()
-        expiry = timezone.now() + timedelta(days=30)
+        
+        # Set token expiry to match subscription end date (or 30 days if no end date)
+        if subscription.subscription_end:
+            expiry = subscription.subscription_end
+        else:
+            # Fallback to 30 days if subscription has no end date
+            expiry = timezone.now() + timedelta(days=30)
 
         # Deactivate any existing tokens for this user
         ExtensionToken.objects.filter(user=user, is_active=True).update(is_active=False)
