@@ -75,13 +75,19 @@ function ExtensionAuthContent() {
                     // @ts-expect-error - chrome.runtime exists
                     if (chrome.runtime.lastError) {
                       // @ts-expect-error - chrome.runtime exists
-                      console.error('Chrome runtime error:', chrome.runtime.lastError);
+                      const error = chrome.runtime.lastError;
+                      console.error('Chrome runtime error:', {
+                        message: error.message,
+                        full: error,
+                        extensionId: extensionId
+                      });
                       // Show error with manual token option
                       showManualTokenScreen(token);
                     } else if (response && response.success) {
                       // Show success screen
                       showSuccessScreen();
                     } else {
+                      console.log('Extension did not respond with success:', response);
                       showManualTokenScreen(token);
                     }
                   }
