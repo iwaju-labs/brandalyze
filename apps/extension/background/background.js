@@ -477,13 +477,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
       return true;
     case "forceAuthRefresh":
-      console.log("Forcing auth refresh...");
-      invalidateAuthCache();
-      checkClerkAuth()
-        .then((response) => sendResponse({ success: true, data: response }))
-        .catch((error) =>
-          sendResponse({ success: false, error: error.message })
-        );
+      console.log("Forcing auth refresh - clearing all tokens...");
+      // Clear all stored auth data
+      chrome.storage.local.remove([
+        "extensionToken",
+        "userInfo",
+        "clerkToken",
+        "userData",
+        "tokenExpiry",
+        "tokenValidatedAt",
+        "lastSynced"
+      ])
+        .then(() => {
+          // Clear in-memory state
+          invalidateAuthCache();
+          authState.extensionToken = null;
+          authState.userInfo = null;
+          authState.clerkToken = null;
+          authState.userData = null;
+          
+          // Redirect to extension-auth page for fresh token
+          const appUrl = authState.currentApiUrl === DEV_API_BASE_URL
+            ? "http://localhost:3000"
+            : "https://brandalyze.io";
+          const extensionId = chrome.runtime.id;
+          const authUrl = `${appUrl}/extension-auth?source=refresh&extension_id=${extensionId}`;
+          
+          chrome.tabs.create({ url: authUrl });
+          
+          sendResponse({ 
+            success: true, 
+            data: { isAuthenticated: false, message: "Redirecting to authentication..." }
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to clear auth data:", error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true;
     case "updateStoredToken":
       // Handle token updates from the main site

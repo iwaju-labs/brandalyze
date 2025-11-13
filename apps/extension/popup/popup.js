@@ -378,13 +378,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Force refresh authentication - just re-check storage
+  // Force refresh authentication - clear tokens and re-authenticate
   async function forceRefreshAuth() {
     showLoading();
-    setText(elements.cacheText, "Refreshing...");
+    setText(elements.cacheText, "Clearing tokens...");
 
     try {
-      await checkAuth();
+      const response = await chrome.runtime.sendMessage({
+        action: 'forceAuthRefresh'
+      });
+      
+      if (response.success) {
+        // Background script will open new auth tab
+        updateAuthUI({ isAuthenticated: false });
+      } else {
+        console.error('Force refresh failed:', response.error);
+      }
     } catch (error) {
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
