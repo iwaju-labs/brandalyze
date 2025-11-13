@@ -59,12 +59,23 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 lg:mb-16">
             {/* Left Column - Title and Subtext */}
             <div className="text-center lg:text-left space-y-6">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none">
-                <span className="text-gray-900 dark:text-white">
-                  brandalyze
-                </span>
-                <span className="text-purple-600 dark:text-purple-400">.</span>
-              </h1>
+              <div className="relative">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none relative z-10">
+                  <span className="text-gray-900 dark:text-white">
+                    brandalyze
+                  </span>
+                  <span className="text-purple-600 dark:text-purple-400">.</span>
+                </h1>
+                {/* Grammarly comparison ink stamp */}
+                <Image 
+                  src="/assets/landing/inkstamp.png"
+                  alt="Like Grammarly but for brands!"
+                  width={256}
+                  height={256}
+                  className="absolute left-[calc(100%-13rem)] top-1/2 -translate-y-1/2 z-0 pointer-events-none -rotate-12 dark:invert"
+                />
+              </div>
+
               <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono select-none">
                 <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
               </p>
@@ -90,6 +101,7 @@ export default async function HomePage() {
                   Featured on Chrome Webstore
                 </Link>
               </div>
+
             </div>
 
             {/* Right Column - Description and Image Space */}
@@ -229,7 +241,7 @@ export default async function HomePage() {
           </div>
 
           {/* PROMOTIONS/TRUST/CREDIT */}
-          <div className="flex mt-12 sm:mt-16 text-center justify-center">
+          <div className="flex mt-12 sm:mt-16 text-center justify-center items-center space-x-4">
             <a
               href="https://yourwebsitescore.com/certified-websites/brandalyze.io"
               target="_blank"
@@ -244,7 +256,13 @@ export default async function HomePage() {
                 className="drop-shadow-md"
               />
             </a>
-            <p className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2"></p>
+            <Link 
+              className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2 dark:text-white"
+              href="https://x.com/_dngi"
+              target="_blank"
+            > 
+              contact me: @_dngi
+            </Link>
           </div>
         </div>
       </main>
