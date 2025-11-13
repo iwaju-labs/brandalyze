@@ -529,6 +529,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// Handle messages from external websites (brandalyze.io)
+chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+  console.log("External message received:", request, "from:", sender.url);
+  
+  // Only allow messages from brandalyze.io domains
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://brandalyze.io",
+    "https://www.brandalyze.io"
+  ];
+  
+  const senderOrigin = new URL(sender.url).origin;
+  if (!allowedOrigins.includes(senderOrigin)) {
+    console.error("Message from unauthorized origin:", senderOrigin);
+    sendResponse({ success: false, error: "Unauthorized origin" });
+    return;
+  }
+  
+  // Handle the same actions as internal messages
+  switch (request.action) {
+    case "storeExtensionToken":
+      console.log("Storing extension token from external website");
+      storeExtensionToken(request.token)
+        .then((response) => {
+          console.log("Token stored successfully:", response);
+          sendResponse(response);
+        })
+        .catch((error) => {
+          console.error("Failed to store token:", error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+      
+    default:
+      console.warn("Unknown external action:", request.action);
+      sendResponse({ success: false, error: "Unknown action" });
+  }
+});
+
 // Listen for tab updates to invalidate cache when user navigates away from Brandalyze
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // If user navigates away from Brandalyze, invalidate auth cache
