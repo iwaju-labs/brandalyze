@@ -46,5 +46,5 @@ jobs:
           git commit -m "Mirror frontend from main branch - $(date)"
           
           # Add the public repo as remote and push
-          git remote add origin https://$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
+          git remote add origin https://x-access-token:$PUBLIC_REPO_TOKEN@github.com/iwaju-labs/brandalyze-frontend.git
           git push origin main --force
