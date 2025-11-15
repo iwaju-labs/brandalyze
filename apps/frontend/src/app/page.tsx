@@ -143,7 +143,7 @@ export default async function HomePage() {
 
               {/* Right Column - Description and Image Space */}
               <div className="text-center lg:text-left space-y-6">
-                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto lg:mx-0">
+                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
                   Upload your brand samples, analyze new content, and get
                   AI-powered feedback on tone, style, and messaging consistency.
                   Keep your brand voice unified across all channels.
