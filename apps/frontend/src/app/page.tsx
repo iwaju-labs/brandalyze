@@ -5,12 +5,14 @@ import {
   ArrowSquareRight,
   Award03,
 } from "@untitledui/icons";
+import { FaChrome } from "react-icons/fa";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
 import Typewriter from "@/components/utils/Typewriter";
 import MotionFadeUp from "@/components/framer/motion-fade-up";
+import { title } from "process";
 
 export const metadata: Metadata = {
   title: "Brandalyze - AI Brand Voice Analysis",
@@ -49,6 +51,33 @@ export const metadata: Metadata = {
 const words: string[] = [
   "your brand already has a voice.",
   "it's time to listen to it.",
+];
+
+const features = [
+  {
+    icon: Zap,
+    title: "AI Analysis",
+    description:
+      "Advanced AI compares your content against brand samples using semantic understanding",
+  },
+  {
+    icon: BarChart02,
+    title: "Alignment Score",
+    description:
+      "Get precise 0-100 brand alignment scores with detailed feedback and reasoning",
+  },
+  {
+    icon: Target01,
+    title: "Actionable Insights",
+    description:
+      "Receive specific suggestions to improve brand consistency and messaging",
+  },
+  {
+    icon: FaChrome,
+    title: "Chrome Extension",
+    description:
+      "Pro users and above gain access to the chrome extension that gives access to direct social media profile analysis",
+  },
 ];
 
 export default async function HomePage() {
@@ -111,140 +140,121 @@ export default async function HomePage() {
 
               {/* Right Column - Description and Image Space */}
               <div className="text-center lg:text-left space-y-6">
-                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto lg:mx-0">
                   Upload your brand samples, analyze new content, and get
                   AI-powered feedback on tone, style, and messaging consistency.
                   Keep your brand voice unified across all channels.
                 </p>
-
-                {/* Image placeholder space */}
-                <div className="w-full max-w-2xl mx-auto lg:mx-0">
-                  <Image
-                    src="/assets/landing/profile-analysis.png"
-                    alt="example profile analysis results"
-                    width={580}
-                    height={296}
-                    priority
-                    className="w-full h-auto rounded-lg shadow-lg"
-                  />
-                </div>
               </div>
             </div>
           </MotionFadeUp>
 
           {/* Demo Videos Section */}
           <div className="mt-16 sm:mt-20 max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
-                &gt; See Brandalyze in Action
-              </h2>
-              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4">
-                Watch how our AI-powered brand analysis works to ensure your
-                content stays perfectly on-brand
-              </p>
-            </div>
+            <MotionFadeUp delay={1} duration={1.5}>
+              <div className="text-center mb-12 sm:mb-16">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
+                  &gt; See Brandalyze in Action
+                </h2>
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4">
+                  Watch how our AI-powered brand analysis works to ensure your
+                  content stays perfectly on-brand
+                </p>
+              </div>
+            </MotionFadeUp>
+
             <div className="space-y-8 sm:space-y-12">
-              {/* First Demo - Brand Analysis */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                {/* Left Column - Title and Description */}
-                <div className="text-center lg:text-left px-4 order-2 lg:order-1">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
-                    &gt; Upload Brand Samples & Get Instant Analysis
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
-                    Upload your existing brand content samples, and our AI
-                    instantly learns your unique voice, tone, and messaging
-                    style. Get detailed insights into what makes your brand
-                    distinctive and how to maintain consistency across all
-                    content.
-                  </p>
+              <MotionFadeUp delay={0.75} duration={1.5}>
+                {/* First Demo - Brand Analysis */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                  {/* Left Column - Title and Description */}
+                  <div className="text-center lg:text-left px-4 order-2 lg:order-1">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
+                      &gt; Upload Brand Samples & Get Instant Analysis
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
+                      Upload your existing brand content samples, and our AI
+                      instantly learns your unique voice, tone, and messaging
+                      style. Get detailed insights into what makes your brand
+                      distinctive and how to maintain consistency across all
+                      content.
+                    </p>
+                  </div>
+                  {/* Right Column - Video Placeholder */}
+                  <div className="order-1 lg:order-2">
+                    <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                      <video loop muted autoPlay>
+                        <source
+                          src="/assets/landing/brandalyze-content-input-demo.mp4"
+                          type="video/mp4"
+                        />
+                        <source
+                          src="/assets/landing/brandalyze-content-input-demo.webm"
+                          type="video/webm"
+                        />
+                      </video>
+                    </div>
+                  </div>
                 </div>
-                {/* Right Column - Video Placeholder */}
-                <div className="order-1 lg:order-2">
-                  <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+              </MotionFadeUp>
+
+              <MotionFadeUp>
+                {/* Second Demo - Social Media Analysis */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                  {/* Left Column - Video Placeholder */}
+                  <div className="order-1">
                     <video loop muted autoPlay>
                       <source
-                        src="/assets/landing/brandalyze-content-input-demo.mp4"
+                        src="/assets/landing/brandalyze-profile-analysis-demo0.mp4"
                         type="video/mp4"
                       />
                       <source
-                        src="/assets/landing/brandalyze-content-input-demo.webm"
+                        src="/assets/landing/brandalyze-profile-analysis-demo0.webm"
                         type="video/webm"
                       />
                     </video>
                   </div>
+                  {/* Right Column - Title and Description */}
+                  <div className="text-center lg:text-left px-4 order-2">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
+                      &gt; Real-Time Social Media Profile Analysis
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
+                      Analyze social media profiles based on previously set
+                      handles. Get feedback on tone, style, and messaging to
+                      ensure every piece of content perfectly matches your brand
+                      identity.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </MotionFadeUp>
+            </div>
+          </div>
 
-              {/* Second Demo - Social Media Analysis */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                {/* Left Column - Video Placeholder */}
-                <div className="order-1">
-                  <video loop muted autoPlay>
-                    <source
-                      src="/assets/landing/brandalyze-profile-analysis-demo0.mp4"
-                      type="video/mp4"
-                    />
-                    <source
-                      src="/assets/landing/brandalyze-profile-analysis-demo0.webm"
-                      type="video/webm"
-                    />
-                  </video>
-                </div>
-                {/* Right Column - Title and Description */}
-                <div className="text-center lg:text-left px-4 order-2">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
-                    &gt; Real-Time Social Media Profile Analysis
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
-                    Analyze social media profiles based on previously set
-                    handles. Get feedback on tone, style, and messaging to
-                    ensure every piece of content perfectly matches your brand
-                    identity.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
           {/* Feature highlights */}
-          <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto px-4">
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md">
-              <div className="flex justify-center mb-4">
-                <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
-                AI Analysis
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
-                Advanced AI compares your content against brand samples using
-                semantic understanding
-              </p>
+          <MotionFadeUp delay={0.5} duration={1}>
+            <div className="mt-12 sm:mt-16 flex flex-wrap justify-center gap-6 sm:gap-8 max-w-4xl mx-auto px-4">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)]"
+                  >
+                    <div className="flex justify-center mb-4">
+                      <Icon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md">
-              <div className="flex justify-center mb-4">
-                <BarChart02 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
-                Alignment Score
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
-                Get precise 0-100 brand alignment scores with detailed feedback
-                and reasoning
-              </p>
-            </div>
-            <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md sm:col-span-2 lg:col-span-1">
-              <div className="flex justify-center mb-4">
-                <Target01 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 font-mono text-lg">
-                Actionable Insights
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
-                Receive specific suggestions to improve brand consistency and
-                messaging
-              </p>
-            </div>
-          </div>
+          </MotionFadeUp>
 
           {/* PROMOTIONS/TRUST/CREDIT */}
           <div className="flex mt-12 sm:mt-16 text-center justify-center items-center space-x-4">
