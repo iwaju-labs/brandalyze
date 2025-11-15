@@ -12,7 +12,7 @@ import Image from "next/image";
 
 import Typewriter from "@/components/utils/Typewriter";
 import MotionFadeUp from "@/components/framer/motion-fade-up";
-import { title } from "process";
+import ParticleLink from "@/components/framer/particle-link";
 
 export const metadata: Metadata = {
   title: "Brandalyze - AI Brand Voice Analysis",
@@ -117,13 +117,16 @@ export default async function HomePage() {
 
                 {/* Get started button call to action */}
                 <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto lg:mx-0">
-                  <Link
+                  <ParticleLink
                     className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-6 py-3 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium hover:bg-purple-300 dark:hover:bg-purple-600/80 transition-colors w-full sm:flex-1"
                     href={"/analyze"}
+                    images={["/icon.png"]}
+                    particleCount={12}
+                    particleSizeRange={[12, 24]}
                   >
                     Get Started For Free
                     <ArrowSquareRight className="ml-2 h-5 w-5" />
-                  </Link>
+                  </ParticleLink>
                 </div>
 
                 {/* Chrome Extension plug */}
