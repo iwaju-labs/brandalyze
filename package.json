@@ -5,7 +5,8 @@
   "main": "index.js",
   "directories": {
     "doc": "docs"
-  },  "scripts": {
+  },
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd apps/backend && call venv\\Scripts\\activate.bat && python manage.py runserver",
@@ -25,6 +26,7 @@
   "homepage": "https://github.com/iwaju-labs/brandalyze#readme",
   "dependencies": {
     "concurrently": "^9.2.1",
+    "framer-motion": "^12.23.24",
     "tailwindcss": "^3.4.18"
   }
 }

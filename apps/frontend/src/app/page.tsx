@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Typewriter from "@/components/utils/Typewriter";
+import MotionFadeUp from "@/components/framer/motion-fade-up";
 
 export const metadata: Metadata = {
   title: "Brandalyze - AI Brand Voice Analysis",
@@ -53,78 +54,83 @@ const words: string[] = [
 export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white transition-colors">
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 min-h-screen flex items-center">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 sm:pt-12 lg:pt-16 pb-8 sm:pb-12 lg:pb-16 min-h-screen flex items-start">
         <div className="w-full">
-          {/* Two Column Hero Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 lg:mb-16">
-            {/* Left Column - Title and Subtext */}
-            <div className="text-center lg:text-left space-y-6">
-              <div className="relative">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none relative z-10">
-                  <span className="text-gray-900 dark:text-white">
-                    brandalyze
-                  </span>
-                  <span className="text-purple-600 dark:text-purple-400">.</span>
-                </h1>
-                {/* Grammarly comparison ink stamp */}
-                <Image 
-                  src="/assets/landing/inkstamp.png"
-                  alt="Like Grammarly but for brands!"
-                  width={256}
-                  height={256}
-                  className="absolute left-[calc(100%-13rem)] top-1/2 -translate-y-1/2 z-0 pointer-events-none -rotate-12 dark:invert md:block lg:block hidden"
-                />
-              </div>
-
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono select-none">
-                <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
-              </p>
-
-              {/* Get started button call to action */}
-              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto lg:mx-0">
-                <Link
-                  className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-6 py-3 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium hover:bg-neutral-300 dark:hover:bg-neutral-600/80 transition-colors w-full sm:flex-1"
-                  href={"/analyze"}
-                >
-                  Get Started For Free
-                  <ArrowSquareRight className="ml-2 h-5 w-5" />
-                </Link>
-              </div>
-
-              {/* Chrome Extension plug */}
-              <div className="flex justify-center lg:justify-start">
-                <Link
-                  className="inline-flex items-center text-sm text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                  href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
-                >
-                  <Award03 size={18} className="mr-2" />
-                  Featured on Chrome Webstore
-                </Link>
-              </div>
-
+          {/* Grammarly comparison ink stamp */}
+          <MotionFadeUp delay={0.5} duration={1}>
+            <div className="grammarly-comp flex items-center justify-center">
+              <Image
+                src="/assets/landing/inkstamp.png"
+                alt="Like Grammarly but for brands!"
+                width={300}
+                height={300}
+                className="flex items-center justify-center pointer-events-none -rotate-12 dark:invert md:block lg:block"
+              />
             </div>
+            {/* Two Column Hero Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 lg:mb-16">
+              {/* Left Column - Title and Subtext */}
+              <div className="text-center lg:text-left space-y-6">
+                <div className="relative">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none relative z-10">
+                    <span className="text-gray-900 dark:text-white">
+                      brandalyze
+                    </span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      .
+                    </span>
+                  </h1>
+                </div>
 
-            {/* Right Column - Description and Image Space */}
-            <div className="text-center lg:text-left space-y-6">
-              <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Upload your brand samples, analyze new content, and get
-                AI-powered feedback on tone, style, and messaging consistency.
-                Keep your brand voice unified across all channels.
-              </p>
+                <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono select-none">
+                  <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
+                </p>
 
-              {/* Image placeholder space */}
-              <div className="w-full max-w-2xl mx-auto lg:mx-0">
-                <Image
-                  src="/assets/landing/profile-analysis.png"
-                  alt="example profile analysis results"
-                  width={580}
-                  height={296}
-                  priority
-                  className="w-full h-auto rounded-lg shadow-lg"
-                />
+                {/* Get started button call to action */}
+                <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto lg:mx-0">
+                  <Link
+                    className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-6 py-3 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium hover:bg-purple-300 dark:hover:bg-purple-600/80 transition-colors w-full sm:flex-1"
+                    href={"/analyze"}
+                  >
+                    Get Started For Free
+                    <ArrowSquareRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </div>
+
+                {/* Chrome Extension plug */}
+                <div className="flex justify-center lg:justify-start">
+                  <Link
+                    className="inline-flex items-center text-sm text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                    href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
+                  >
+                    <Award03 size={18} className="mr-2" />
+                    Featured on Chrome Webstore
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right Column - Description and Image Space */}
+              <div className="text-center lg:text-left space-y-6">
+                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                  Upload your brand samples, analyze new content, and get
+                  AI-powered feedback on tone, style, and messaging consistency.
+                  Keep your brand voice unified across all channels.
+                </p>
+
+                {/* Image placeholder space */}
+                <div className="w-full max-w-2xl mx-auto lg:mx-0">
+                  <Image
+                    src="/assets/landing/profile-analysis.png"
+                    alt="example profile analysis results"
+                    width={580}
+                    height={296}
+                    priority
+                    className="w-full h-auto rounded-lg shadow-lg"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </MotionFadeUp>
 
           {/* Demo Videos Section */}
           <div className="mt-16 sm:mt-20 max-w-6xl mx-auto">
@@ -174,12 +180,8 @@ export default async function HomePage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 {/* Left Column - Video Placeholder */}
                 <div className="order-1">
-                  <video
-                    loop
-                    muted
-                    autoPlay
-                  >
-                    <source 
+                  <video loop muted autoPlay>
+                    <source
                       src="/assets/landing/brandalyze-profile-analysis-demo0.mp4"
                       type="video/mp4"
                     />
@@ -260,11 +262,11 @@ export default async function HomePage() {
                 className="drop-shadow-md"
               />
             </a>
-            <Link 
+            <Link
               className="text-gray-500 dark:text-gray-500 text-xs font-mono mb-2 dark:text-white"
               href="https://x.com/_dngi"
               target="_blank"
-            > 
+            >
               contact me: @_dngi
             </Link>
           </div>
