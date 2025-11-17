@@ -9,7 +9,7 @@ User = get_user_model()
 
 @receiver(post_save, sender=User)
 def notify_user_sign_up(sender, instance, created, **kwargs):
-    """Send Telegram notification when a new user signs up"""
+    """Send Telegram notification + email when a new user signs up"""
     if not created:
         return
     
@@ -25,6 +25,11 @@ def notify_user_sign_up(sender, instance, created, **kwargs):
 
         send_telegram_message_async(message)
         logger.info(f"Queued telegram notifcation for user: {instance.pk}")
+        
+        # Send welcome email
+        from utils.email_service import send_welcome_email
+        send_welcome_email(instance)
+        logger.info(f"Sent welcome email to user: {instance.pk}")
 
     except Exception as e:
         logger.exception(f"Failed to send user signup notification: {e}")
