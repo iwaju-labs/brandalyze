@@ -202,7 +202,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black py-16">
+    <div className="min-h-screen bg-white dark:bg-black py-4">
       <div className="mx-auto max-w-7xl px-4">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
@@ -219,7 +219,7 @@ export default function PricingPage() {
             return (
               <div
                 key={tier.name}
-                className={`relative rounded-2xl border-2 p-8 ${
+                className={`relative rounded-2xl border-2 p-6 ${
                   tier.popular
                     ? "border-purple-500 shadow-2xl scale-105 bg-white dark:bg-gray-900"
                     : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50"
@@ -233,7 +233,7 @@ export default function PricingPage() {
                   </div>
                 )}
                 <div className="text-center mb-8">
-                  <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto">
                     <IconComponent className="w-6 h-6 text-purple-600" />
                   </div>
 
@@ -330,7 +330,7 @@ export default function PricingPage() {
 
         {/* Trust Indicators */}
         <div className="mt-16 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-8">
+          <p className="text-gray-500 dark:text-gray-400 mb-2">
             All paid plans include a 7-day free trial. Cancel anytime.
           </p>
 
