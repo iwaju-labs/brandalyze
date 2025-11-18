@@ -202,10 +202,10 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black py-4">
+    <div className="min-h-[84vh] bg-white dark:bg-black py-4">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 mt-2">
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -213,13 +213,15 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto rounded-lg">
+        <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto items-center">
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 rounded-lg w-full">
           {pricingTiers.map((tier) => {
             const IconComponent = tier.icon;
             return (
               <div
                 key={tier.name}
-                className={`relative rounded-2xl border-2 p-6 ${
+                className={`relative rounded-2xl border-2 p-5 ${
                   tier.popular
                     ? "border-purple-500 shadow-2xl scale-105 bg-white dark:bg-gray-900"
                     : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50"
@@ -232,35 +234,35 @@ export default function PricingPage() {
                     </span>
                   </div>
                 )}
-                <div className="text-center mb-8">
-                  <div className="w-12 h-12 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto">
-                    <IconComponent className="w-6 h-6 text-purple-600" />
+                <div className="text-center mb-6">
+                  <div className="w-10 h-10 bg-transparent dark:bg-transparent rounded-lg flex items-center justify-center mx-auto">
+                    <IconComponent className="w-5 h-5 text-purple-600" />
                   </div>
 
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     {tier.name}
                   </h3>
 
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                  <div className="mb-3">
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">
                       ${tier.price}
                     </span>
                     {tier.price > 0 && (
-                      <span className="text-gray-600 dark:text-gray-300">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm">
                         /{tier.billing}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     {tier.description}
                   </p>
                 </div>
-                <ul className="space-y-4 mb-8">
+                <ul className="space-y-3 mb-6">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {feature}
                       </span>
                     </li>
@@ -279,7 +281,7 @@ export default function PricingPage() {
                     isLoading === "trial" ||
                     (tier.name === "Pro" && isSignedIn && hasUsedTrial === null)
                   }
-                  className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center ${
+                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center text-sm ${
                     tier.popular
                       ? "bg-purple-700 dark:bg-black text-white shadow-lg hover:shadow-xl"
                       : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
@@ -326,36 +328,43 @@ export default function PricingPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* Trust Indicators */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-2">
-            All paid plans include a 7-day free trial. Cancel anytime.
-          </p>
-
-          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-400">
-            <div className="flex items-center">
-              <Laptop02 className="w-4 h-4 mr-2" />
-              Secure Payments
-            </div>
-            <div className="flex items-center">
-              <CreditCard02 className="w-4 h-4 mr-2" />
-              No Setup Fees
-            </div>
-            <div>Cancel Anytime</div>
           </div>
 
-          <div className="mt-8">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              Questions/Issues? Email me at{" "}
-              <a
-                href="mailto:dom@brandalyze.io"
-                className="text-purple-600 hover:text-purple-700"
-              >
-                dom@brandalyze.io
-              </a>
-            </p>
+          {/* Trust Indicators - Right Side */}
+          <div className="lg:w-64 flex-shrink-0 flex flex-col justify-center space-y-6">
+            <div className="text-center lg:text-left">
+              <p className="text-gray-500 dark:text-gray-400 mb-4 font-medium">
+                All paid plans include a 7-day free trial. Cancel anytime.
+              </p>
+
+              <div className="flex flex-col gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center justify-center lg:justify-start">
+                  <Laptop02 className="w-5 h-5 mr-3 text-purple-600" />
+                  <span>Secure Payments</span>
+                </div>
+                <div className="flex items-center justify-center lg:justify-start">
+                  <CreditCard02 className="w-5 h-5 mr-3 text-purple-600" />
+                  <span>No Setup Fees</span>
+                </div>
+                <div className="flex items-center justify-center lg:justify-start">
+                  <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                  <span>Cancel Anytime</span>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  Questions/Issues? <br className="hidden lg:block" />
+                  Email me at{" "}
+                  <a
+                    href="mailto:dom@brandalyze.io"
+                    className="text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    dom@brandalyze.io
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
