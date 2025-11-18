@@ -5,6 +5,7 @@ from analysis.models import UserSubscription
 from datetime import datetime, timedelta
 from django.utils import timezone
 import traceback
+from utils.email_service import send_subscription_created_email, send_subscription_cancelled_email, send_subscription_updated_email
 
 User = get_user_model()
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -208,6 +209,8 @@ class StripeService:
             subscription.is_trial_active = False
             subscription.save()
 
+            price = format_stripe_price(stripe_subscription)
+            billing_period = get_billing_period(stripe_subscription)
             # Send Telegram notification for new subscription
             try:
                 from utils.telegram_client import send_telegram_message_async, escape_html
@@ -215,6 +218,8 @@ class StripeService:
                     f"💳 <b>New Subscription</b>\n\n"
                     f"👤 User: <code>{escape_html(user.email)}</code>\n"
                     f"📦 Tier: <code>{subscription.tier}</code>\n"
+                    f"💵 Price: <code>{price}</code>\n"
+                    f"📅 Billing Period: <code>{billing_period}</code>\n"
                     f"🆔 Subscription: <code>{stripe_subscription.id}</code>\n"
                     f"📅 Date: {timezone.now().strftime('%Y-%m-%d %H:%M UTC')}"
                 )
@@ -222,6 +227,8 @@ class StripeService:
             except Exception as e:
                 print(f"Failed to send subscription notification: {e}")
 
+            # send Email to user about new subscription
+            send_subscription_created_email(user, subscription.tier, price, billing_period, subscription.subscription_start)
             return True
         except Exception as e:
             print(f"Error handling subscription created: {e}")
@@ -239,6 +246,7 @@ class StripeService:
                 print(f"No subscription found for stripe_subscription_id: {stripe_subscription.id}")
                 return False
             
+            user = subscription.user
             subscription.payment_status = stripe_subscription.status
 
             subscription.next_billing_date = datetime.fromtimestamp(
@@ -261,6 +269,28 @@ class StripeService:
                 subscription.is_trial_active = False
 
             subscription.save()
+
+            price = format_stripe_price(stripe_subscription)
+            billing_period = get_billing_period(stripe_subscription)
+            
+            # send telegram notification for updated subscription
+            try:
+                from utils.telegram_client import send_telegram_message_async, escape_html
+                message = (
+                    f"💳 <b>Updated Subscription</b>\n\n"
+                    f"👤 User: <code>{escape_html(user.email)}\n"
+                    f"📦 Tier: <code>{subscription.tier}</code>\n"
+                    f"💵 Price: <code>{price}</code>\n"
+                    f"📅 Billing Period: <code>{billing_period}</code>\n"
+                    f"🆔 Subscription: <code>{stripe_subscription.id}</code>\n"
+                    f"📅 Date: {timezone.now().strftime('%Y-%m-%d %H:%M UTC')}"
+                )
+                send_telegram_message_async(message)
+            except Exception as e:
+                print(f"Failed to send subscription update notification: {e}")
+
+            # send email to user about new subscription
+            send_subscription_updated_email(user, subscription.tier, price, billing_period, timezone.now().strftime('%Y-%m-%d %H:%M UTC'))
 
             if old_tier != subscription.tier:
                 print(f"User {subscription.user.id} upgraded from {old_tier} to {subscription.tier}")
@@ -313,8 +343,8 @@ class StripeService:
             except Exception as e:
                 print(f"Failed to send cancellation notification: {e}")
 
-            # TODO: send cancellation email to user
-            # EmailService.send_cancellation_email(subscription.user)
+            # send cancellation email to user
+            send_subscription_cancelled_email(user, subscription.tier, timezone.now().strftime('%Y-%m-%d %H:%M UTC'))
 
             return True
 
@@ -359,7 +389,9 @@ class StripeService:
                 # Final attempt - warn about service suspension
                 print(f"Sending final payment notice to user {subscription.user.id}")
                 # TODO: Send final warning email
-                # EmailService.send_final_payment_warning(subscription.user)                # If subscription is already canceled by Stripe, downgrade user
+                # EmailService.send_final_payment_warning(subscription.user)                
+                
+                # If subscription is already canceled by Stripe, downgrade user
                 try:
                     stripe_subscription = stripe.Subscription.retrieve(stripe_subscription_id)
                     if stripe_subscription.status in ['canceled', 'unpaid']:
@@ -396,9 +428,12 @@ class StripeService:
             
             print(f"Trial will end soon for user {subscription.user.id}")
             
-            # TODO: Send trial ending email notification
-            # EmailService.send_trial_ending_notification(subscription.user)
-            
+            # Send reminder about the trial ending
+            # Calculate days left in trial
+            from datetime import datetime
+            days_left = (datetime.fromtimestamp(stripe_subscription.trial_end) - datetime.now()).days
+            from utils.email_service import send_trial_ending_email
+            send_trial_ending_email(subscription.user, days_left, subscription.tier)
             return True
         
         except Exception as e:
@@ -647,3 +682,28 @@ class StripeService:
                 local_subscription.stripe_subscription_id = None
                 local_subscription.stripe_price_id = None
                 local_subscription.next_billing_date = None
+
+
+def format_stripe_price(stripe_subscription):
+    """
+    Extract and format price from Stripe subscription object.
+    Returns formatted price string like "USD $10.00" or "N/A" if not available.
+    """
+    try:
+        price_obj = stripe_subscription.items.data[0].price
+        price_amount = price_obj.unit_amount / 100  # Convert cents to dollars
+        currency = price_obj.currency.upper()
+        return f"{currency} ${price_amount:.2f}"
+    except (AttributeError, IndexError, TypeError):
+        return "N/A"
+
+
+def get_billing_period(stripe_subscription):
+    """
+    Extract billing period from Stripe subscription object.
+    Returns "month", "year", or "N/A" if not available.
+    """
+    try:
+        return stripe_subscription.items.data[0].price.recurring.interval
+    except (AttributeError, IndexError, TypeError):
+        return "N/A"
