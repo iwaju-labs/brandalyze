@@ -37,6 +37,13 @@ async function processTweets() {
 
   if (!currentProfile) {
     console.log("❌ Not on a profile page or unable to detect profile handle");
+    // Remove any existing button since we're not on a profile page
+    const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
+    if (existingButton) {
+      console.log("🗑️ Removing analyze button (not on profile page)");
+      existingButton.remove();
+      currentButtonHandle = null;
+    }
     return;
   }
 
@@ -63,6 +70,13 @@ async function processTweets() {
 
   if (!isProfilePage) {
     console.log(`❌ Not on a profile page for @${currentProfile}`);
+    // Remove any existing button since we're not on a valid profile page
+    const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
+    if (existingButton) {
+      console.log("🗑️ Removing analyze button (not on valid profile page)");
+      existingButton.remove();
+      currentButtonHandle = null;
+    }
     return;
   }
 
@@ -77,6 +91,7 @@ async function processTweets() {
 
 // Track if button is being added to prevent race conditions
 let isAddingButton = false;
+let currentButtonHandle = null;
 
 // Simplified function to add analyze button to profile
 async function addAnalyzeButtonToProfile(handle) {
@@ -88,10 +103,18 @@ async function addAnalyzeButtonToProfile(handle) {
     return;
   }
 
-  // Check if button already exists
-  if (document.querySelector(".brandalyze-analyze-profile-btn")) {
-    console.log("✅ Analyze button already exists");
+  // Check if button already exists for this handle
+  const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
+  if (existingButton && currentButtonHandle === handle) {
+    console.log("✅ Analyze button already exists for this profile");
     return;
+  }
+
+  // Remove existing button if it's for a different profile
+  if (existingButton && currentButtonHandle !== handle) {
+    console.log(`🗑️ Removing button for old profile @${currentButtonHandle}`);
+    existingButton.remove();
+    currentButtonHandle = null;
   }
 
   isAddingButton = true;
@@ -109,12 +132,14 @@ async function addAnalyzeButtonToProfile(handle) {
     const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
     if (!hasAccess) {
       console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      isAddingButton = false;
       return;
     }
     
     console.log("✅ User has subscription access, adding analyze button");
     console.log("🔍 Edit button container:", editProfileButton.parentElement);    // Insert analyze button directly before the edit profile button
     insertAnalyzeButton(editProfileButton.parentElement, handle);
+    currentButtonHandle = handle;
     isAddingButton = false;
     return;
   }
