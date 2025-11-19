@@ -26,38 +26,32 @@ except LookupError:
     nltk.download('punkt', quiet=True)
 
 
-def calculate_emotional_indicators(text):
+def calculate_emotional_indicators(text, selected_indicators=None):
     """Calculate real emotional indicators based on text analysis"""
     if not text or not text.strip():
-        return {
-            "enthusiasm": 5.0,
-            "professionalism": 5.0,
-            "approachability": 5.0,
-            "authority": 5.0,
-        }
+        return {}
+    
+    if selected_indicators is None:
+        selected_indicators = ["enthusiasm", "professionalism", "approachability", "authority"]
     
     # Initialize sentiment analyzer
     sia = SentimentIntensityAnalyzer()
+    results = {}
     
-    # Calculate enthusiasm score (0-10)
-    enthusiasm = calculate_enthusiasm_score(text, sia)
-    
-    # Calculate professionalism score (0-10)  
-    professionalism = calculate_professionalism_score(text)
-    
-    # Calculate approachability score (0-10)
-    approachability = calculate_approachability_score(text, sia)
-    
-    # Calculate authority score (0-10)
-    authority = calculate_authority_score(text)
-    
-    return {
-        "enthusiasm": round(enthusiasm, 1),
-        "professionalism": round(professionalism, 1),
-        "approachability": round(approachability, 1), 
-        "authority": round(authority, 1),
+    calculators = {
+        "enthusiasm": lambda t: calculate_enthusiasm_score(t, sia),
+        "professionalism": lambda t: calculate_professionalism_score(t),
+        "approachability": lambda t: calculate_approachability_score(t, sia),
+        "authority": lambda t: calculate_authority_score(t)
     }
 
+    for indicator in selected_indicators:
+        if indicator in calculators:
+            results[indicator] = round(calculators[indicator](text), 1)
+        else:
+            results[indicator] = None
+
+    return results
 
 def calculate_enthusiasm_score(text, sia):
     """Calculate enthusiasm based on positive sentiment, exclamation marks, and energetic words"""
@@ -253,24 +247,23 @@ def calculate_authority_score(text):
 
 
 def perform_profile_voice_analysis(
-    handle, platform="twitter", posts_count=10, extracted_posts=None, use_bio=True, extracted_bio=None
+    handle, platform="twitter", posts_count=10, extracted_posts=None, 
+    use_bio=True, extracted_bio=None, emotional_indicators=None
 ):
     """Analyze a profile to extract brand voice and style characteristics using AI"""
     try:
         if use_bio:
             # Use bio analysis (more efficient for rate limits)
-            return perform_profile_bio_analysis(handle, platform, extracted_bio)
+            return perform_profile_bio_analysis(handle, platform, extracted_bio, emotional_indicators)
         else:
             # Use posts analysis (original method)
-            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts)
+            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts, emotional_indicators)
 
     except Exception as e:
         error_msg = str(e)
         print(f"Profile voice analysis error: {error_msg}")
-        raise Exception(error_msg)
 
-
-def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None):
+def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None, emotional_indicators=None):
     """Analyze a profile's bio and information to extract brand voice characteristics using AI"""
     try:
         print(f"🎯 Analyzing profile bio for @{handle} on {platform}")
@@ -400,14 +393,19 @@ def perform_profile_posts_analysis(
         raise Exception(error_msg)
 
 
-def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
+def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle, emotional_indicators=None):
     """Use AI to analyze voice characteristics from profile bio and information"""
     try:
         # Create a comprehensive prompt for bio voice analysis
         follower_count = profile_data.get('metrics', {}).get('followers', 0)
         verified = profile_data.get('verified', False)
         account_age = profile_data.get('created_at', '')
-        
+
+        if not emotional_indicators:
+            emotional_indicators = ["enthusiasm", "professionalism", "approachability", "authority"]
+
+        indicators_json_structure = ",\n".join([f'"{ind}": 0.0' for ind in emotional_indicators])
+
         bio_prompt = f"""
         Analyze the brand voice and communication style of @{handle} based on their social media profile:
 
@@ -440,10 +438,7 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
                 "Third content theme"
             ],
             "emotional_indicators": {{
-                "enthusiasm": 0.0,
-                "professionalism": 0.0,
-                "approachability": 0.0,
-                "authority": 0.0
+                {indicators_json_structure}
             }}
         }}
 
@@ -462,7 +457,7 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle):
         print(f"🎯 AI Response for @{handle}: {ai_response}")
 
         # Parse the AI response into structured format with text content for emotional indicators
-        bio_analysis = parse_voice_analysis_response(ai_response, profile_text)
+        bio_analysis = parse_voice_analysis_response(ai_response, profile_text, emotional_indicators)
         
         # Add bio-specific metadata
         bio_analysis['analysis_source'] = 'profile_bio'
@@ -565,7 +560,7 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
         }
 
 
-def parse_voice_analysis_response(ai_response, text_content=None):
+def parse_voice_analysis_response(ai_response, text_content=None, selected_indicators=None):
     """Parse AI response into structured voice analysis data using JSON parsing"""
     try:
         print(f"🔍 Parsing AI response: {ai_response[:200]}...")
@@ -599,14 +594,16 @@ def parse_voice_analysis_response(ai_response, text_content=None):
                 
                 # Always calculate real emotional indicators if we have text content
                 if text_content and text_content.strip():
-                    voice_data["emotional_indicators"] = calculate_emotional_indicators(text_content)
-                elif "emotional_indicators" not in voice_data:
-                    voice_data["emotional_indicators"] = {
-                        "enthusiasm": 5.0,
-                        "professionalism": 5.0,
-                        "approachability": 5.0,
-                        "authority": 5.0,
-                    }
+                    heuristic_scores = calculate_emotional_indicators(text_content, selected_indicators)
+
+                    if "emotional_indicators" not in voice_data:
+                        voice_data["emotional_indicators"] = {}
+
+                    for indicator, score in heuristic_scores.items():
+                        if score is not None:
+                            voice_data["emotional_indicators"][indicator] = score
+                        elif indicator not in voice_data["emotional_indicators"]:
+                            voice_data["emotional_indicators"][indicator] = 5.0
                 
                 return voice_data
                 

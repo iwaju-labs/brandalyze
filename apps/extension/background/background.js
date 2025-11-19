@@ -1006,6 +1006,11 @@ async function handleProfileAnalysis(analysisData) {
       ? `ExtensionToken ${authState.extensionToken}`
       : `Bearer ${authState.clerkToken}`;
 
+    const userPrefs = await chrome.storage.sync.get(['emotionalIndicators']);
+    const emotionalIndicators = userPrefs.emotionalIndicators || [
+      "enthusiasm", "professionalism", "approachability", "authority"
+    ];
+
     const requestBody = {
       handle: analysisData.handle,
       platform: analysisData.platform || "twitter",
@@ -1013,6 +1018,7 @@ async function handleProfileAnalysis(analysisData) {
       extracted_posts: analysisData.extractedPosts || null, // Include extracted posts
       extracted_bio: analysisData.extractedBio || null, // Include extracted bio data
       use_bio: analysisData.use_bio !== undefined ? analysisData.use_bio : true, // Default to bio analysis for better rate limits
+      emotional_indicators: emotionalIndicators
     };
 
     // Make the API request

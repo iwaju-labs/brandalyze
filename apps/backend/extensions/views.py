@@ -391,12 +391,21 @@ def analyze_profile_voice(request):
         use_bio = request.data.get("use_bio", True)  # Default to bio analysis
         extracted_posts = request.data.get("extracted_posts")  # Posts from extension
         extracted_bio = request.data.get("extracted_bio")  # Bio from extension
+
+        # get user-selected emotional indicators (default to the 4 below, if not specified)
+        emotional_indicators = request.data.get("emotional_indicators", [
+            "enthusiasm", "professionalism", "approachability", "authority"
+        ])
+
+        # limit to 4 emotional_indicators
+        emotional_indicators = emotional_indicators[:4]
         
         analysis_result = perform_profile_voice_analysis(
             handle, platform, posts_count, 
             extracted_posts=extracted_posts,
             use_bio=use_bio, 
-            extracted_bio=extracted_bio
+            extracted_bio=extracted_bio,
+            emotional_indicators=emotional_indicators
         )
 
         # Record the analysis
