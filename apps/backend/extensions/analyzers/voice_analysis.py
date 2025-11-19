@@ -357,7 +357,7 @@ def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None,
                 )
 
             analyzer = BrandAnalyzer(api_key)
-            voice_analysis = analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle)
+            voice_analysis = analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle, emotional_indicators)
 
         except ImportError:
             raise Exception("AI_CORE_NOT_AVAILABLE - AI analysis module not available")
@@ -379,7 +379,7 @@ def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None,
 
 
 def perform_profile_posts_analysis(
-    handle, platform="twitter", posts_count=10, extracted_posts=None
+    handle, platform="twitter", posts_count=10, extracted_posts=None, emotional_indicators=None
 ):
     """Analyze a profile's posts to extract brand voice and style characteristics using AI (original method)"""
     try:
@@ -416,7 +416,7 @@ def perform_profile_posts_analysis(
                 )
 
             analyzer = BrandAnalyzer(api_key)
-            voice_analysis = analyze_voice_with_ai(analyzer, posts_text, handle)
+            voice_analysis = analyze_voice_with_ai(analyzer, posts_text, handle, emotional_indicators)
 
         except ImportError:
             raise Exception("AI_CORE_NOT_AVAILABLE - AI analysis module not available")
@@ -547,10 +547,15 @@ def analyze_bio_voice_with_ai(analyzer, profile_text, profile_data, handle, emot
         }
 
 
-def analyze_voice_with_ai(analyzer, posts_text, handle):
+def analyze_voice_with_ai(analyzer, posts_text, handle, emotional_indicators=None):
     """Use AI to analyze voice characteristics from posts"""
     try:
         # Create a comprehensive prompt for voice analysis
+        if not emotional_indicators:
+            emotional_indicators = ["enthusiasm", "professionalism", "approachability", "authority"]
+
+        indicators_json_structure = ",\n".join([f'"{ind}": 0.0' for ind in emotional_indicators])
+
         voice_prompt = f"""
         Analyze the voice and communication style of @{handle} based on their social media posts:
 
@@ -564,9 +569,19 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
         3. PERSONALITY_TRAITS: List 3-4 key personality traits evident in the writing
         4. COMMUNICATION_PATTERNS: Specific patterns (use of emojis, hashtags, question asking, etc.)
         5. CONTENT_THEMES: Main topics and themes they discuss
-        6. EMOTIONAL_INDICATORS: Emotional qualities with scores 0-10 (enthusiasm, professionalism, approachability, authority)
+        6. EMOTIONAL_INDICATORS: Emotional qualities with scores 0-10 ({', '.join(emotional_indicators)})
 
-        Format your response as clear, concise descriptions for each category.
+        You must respond with ONLY a valid JSON object in this exact format:
+        {{
+            "tone": "A concise description of their overall communication tone",
+            "style": "Their communication style",
+            "personality_traits": ["Trait 1", "Trait 2", "Trait 3"],
+            "communication_patterns": ["Pattern 1", "Pattern 2"],
+            "content_themes": ["Theme 1", "Theme 2"],
+            "emotional_indicators": {{
+                {indicators_json_structure}
+            }}
+        }}
         """
 
         response = analyzer.client.chat.completions.create(
@@ -579,12 +594,12 @@ def analyze_voice_with_ai(analyzer, posts_text, handle):
         ai_response = response.choices[0].message.content
 
         # Parse the AI response into structured format with text content for emotional indicators
-        return parse_voice_analysis_response(ai_response, posts_text)
+        return parse_voice_analysis_response(ai_response, posts_text, emotional_indicators)
 
     except Exception as e:
         print(f"AI voice analysis error: {e}")
         # Return structured fallback analysis with real emotional indicators
-        fallback_emotional_indicators = calculate_emotional_indicators(posts_text)
+        fallback_emotional_indicators = calculate_emotional_indicators(posts_text, emotional_indicators)
         return {
             "tone": "Professional and engaging",
             "style": "Thought leadership with personal insights",
