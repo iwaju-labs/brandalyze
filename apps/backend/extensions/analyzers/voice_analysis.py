@@ -26,6 +26,254 @@ except LookupError:
     nltk.download('punkt', quiet=True)
 
 
+# Configuration for dynamic indicator calculation
+INDICATOR_CONFIGS = {
+    # --- Core Indicators ---
+    "enthusiasm": {
+        "keywords": [
+            'amazing', 'awesome', 'fantastic', 'incredible', 'wonderful', 'brilliant',
+            'excited', 'thrilled', 'love', 'passionate', 'energy', 'dynamic',
+            'innovative', 'breakthrough', 'revolutionary', 'outstanding', 'excellent'
+        ],
+        "weights": {"sentiment": 4.0, "exclamations": 3.0, "caps": 1.0, "keywords": 2.0},
+        "base_score": 0.0
+    },
+    "professionalism": {
+        "keywords": [
+            'strategic', 'effective', 'efficient', 'professional', 'industry', 'development',
+            'growth', 'analysis', 'leverage', 'optimize', 'scalable', 'sustainable',
+            'methodology', 'framework', 'implementation', 'objective'
+        ],
+        "weights": {"complexity": 4.0, "keywords": 3.0, "length": 1.0},
+        "base_score": 2.0
+    },
+    "approachability": {
+        "keywords": [
+            'help', 'chat', 'welcome', 'happy', 'thanks', 'together', 'community',
+            'share', 'thoughts', 'feedback', 'connect', 'reach out', 'hello', 'hi'
+        ],
+        "weights": {"sentiment": 3.0, "pronouns": 2.0, "questions": 2.0, "keywords": 3.0},
+        "base_score": 0.0
+    },
+    "authority": {
+        "keywords": [
+            'proven', 'guarantee', 'result', 'expert', 'leading', 'official',
+            'strategy', 'master', 'guide', 'essential', 'must', 'crucial', 'critical'
+        ],
+        "weights": {"assertiveness": 4.0, "keywords": 3.0, "length": 1.0},
+        "base_score": 2.0
+    },
+
+    # --- Personality ---
+    "empathy": {
+        "keywords": [
+            'understand', 'feel', 'support', 'care', 'listen', 'hear', 'struggle',
+            'challenge', 'together', 'appreciate', 'grateful', 'sorry', 'hope'
+        ],
+        "weights": {"sentiment": 3.0, "keywords": 5.0, "pronouns": 2.0},
+        "base_score": 0.0
+    },
+    "authenticity": {
+        "keywords": [
+            'honest', 'real', 'true', 'actually', 'personally', 'believe', 'opinion',
+            'mistake', 'learned', 'journey', 'story', 'frankly', 'truth'
+        ],
+        "weights": {"keywords": 5.0, "pronouns": 3.0, "sentiment": 2.0},
+        "base_score": 0.0
+    },
+    "inclusivity": {
+        "keywords": [
+            'everyone', 'all', 'community', 'together', 'welcome', 'diverse',
+            'inclusive', 'us', 'we', 'team', 'collaborate', 'join', 'open'
+        ],
+        "weights": {"keywords": 6.0, "pronouns": 2.0, "sentiment": 2.0},
+        "base_score": 0.0
+    },
+    "curiosity": {
+        "keywords": [
+            'why', 'how', 'what', 'wonder', 'learn', 'discover', 'explore',
+            'question', 'interesting', 'curious', 'maybe', 'perhaps', 'search'
+        ],
+        "weights": {"questions": 5.0, "keywords": 5.0},
+        "base_score": 0.0
+    },
+
+    # --- Style ---
+    "innovation": {
+        "keywords": [
+            'new', 'future', 'tech', 'ai', 'digital', 'transform', 'change',
+            'create', 'build', 'launch', 'beta', 'next', 'modern', 'cutting-edge'
+        ],
+        "weights": {"keywords": 6.0, "sentiment": 2.0, "exclamations": 2.0},
+        "base_score": 0.0
+    },
+    "clarity": {
+        "keywords": [
+            'clear', 'simple', 'easy', 'step', 'guide', 'how-to', 'explain',
+            'break down', 'summary', 'key', 'point', 'understand'
+        ],
+        "weights": {"readability": 5.0, "keywords": 3.0, "length": -2.0}, # Penalty for long sentences
+        "base_score": 5.0
+    },
+    "urgency": {
+        "keywords": [
+            'now', 'today', 'limited', 'time', 'fast', 'quick', 'hurry',
+            'last chance', 'deadline', 'soon', 'miss', 'act', 'action'
+        ],
+        "weights": {"keywords": 5.0, "exclamations": 3.0, "caps": 2.0},
+        "base_score": 0.0
+    },
+    "storytelling": {
+        "keywords": [
+            'story', 'once', 'started', 'journey', 'remember', 'ago', 'then',
+            'finally', 'lesson', 'experience', 'life', 'day', 'happened'
+        ],
+        "weights": {"keywords": 5.0, "length": 3.0, "pronouns": 2.0},
+        "base_score": 0.0
+    },
+
+    # --- Tone ---
+    "humor": {
+        "keywords": [
+            'lol', 'haha', 'funny', 'joke', 'laugh', 'fun', 'crazy', 'weird',
+            'silly', 'hilarious', 'comedy', 'meme', 'kidding'
+        ],
+        "weights": {"keywords": 7.0, "sentiment": 2.0, "exclamations": 1.0},
+        "base_score": 0.0
+    },
+    "optimism": {
+        "keywords": [
+            'hope', 'great', 'good', 'better', 'best', 'bright', 'future',
+            'believe', 'can', 'will', 'possible', 'opportunity', 'success'
+        ],
+        "weights": {"sentiment": 6.0, "keywords": 3.0, "exclamations": 1.0},
+        "base_score": 0.0
+    },
+    "sincerity": {
+        "keywords": [
+            'truly', 'honestly', 'sincerely', 'heart', 'mean', 'promise',
+            'trust', 'value', 'respect', 'deeply', 'appreciate'
+        ],
+        "weights": {"keywords": 5.0, "sentiment": 3.0, "pronouns": 2.0},
+        "base_score": 0.0
+    },
+    "boldness": {
+        "keywords": [
+            'stop', 'never', 'always', 'must', 'wrong', 'right', 'truth',
+            'dare', 'challenge', 'fight', 'win', 'leader', 'power'
+        ],
+        "weights": {"assertiveness": 4.0, "caps": 2.0, "keywords": 3.0, "exclamations": 1.0},
+        "base_score": 0.0
+    }
+}
+
+def calculate_dynamic_indicator_score(text, indicator, sia):
+    """
+    Calculate score for any indicator using a data-driven approach.
+    This replaces the need for separate functions for each indicator.
+    """
+    if not text or not text.strip():
+        return 0.0
+        
+    config = INDICATOR_CONFIGS.get(indicator)
+    if not config:
+        return 5.0 # Default neutral score for unknown indicators
+        
+    score = config.get("base_score", 0.0)
+    weights = config.get("weights", {})
+    
+    # 1. Keyword Analysis
+    if "keywords" in weights and config.get("keywords"):
+        text_lower = text.lower()
+        keywords = config["keywords"]
+        # Count occurrences of keywords
+        match_count = sum(1 for word in keywords if word in text_lower)
+        word_count = len(text.split())
+        # Calculate ratio (matches per 100 words approx)
+        ratio = match_count / max(word_count, 1) * 100
+        # Apply weight (cap at 10.0 contribution)
+        score += min(ratio * weights["keywords"], 5.0)
+
+    # 2. Sentiment Analysis
+    if "sentiment" in weights:
+        sentiment_scores = sia.polarity_scores(text)
+        # Use positive sentiment for most, but could be negative for some?
+        # Assuming positive correlation for now
+        score += (sentiment_scores['pos'] * weights["sentiment"] * 10) # Scale 0-1 to 0-10
+
+    # 3. Exclamations
+    if "exclamations" in weights:
+        exclamation_count = text.count('!')
+        sentence_count = len([s for s in text.split('.') if s.strip()])
+        ratio = exclamation_count / max(sentence_count, 1)
+        score += min(ratio * weights["exclamations"], 3.0)
+
+    # 4. Caps (Shouting/Emphasis)
+    if "caps" in weights:
+        caps_words = re.findall(r'\b[A-Z]{2,}\b', text)
+        word_count = len(text.split())
+        ratio = len(caps_words) / max(word_count, 1)
+        score += min(ratio * 20 * weights["caps"], 2.0)
+
+    # 5. Pronouns (Personal/Inclusive)
+    if "pronouns" in weights:
+        # I, we, us, me, my, our
+        pronouns = re.findall(r'\b(i|we|us|me|my|our|you)\b', text.lower())
+        word_count = len(text.split())
+        ratio = len(pronouns) / max(word_count, 1)
+        score += min(ratio * 20 * weights["pronouns"], 3.0)
+
+    # 6. Questions (Curiosity/Engagement)
+    if "questions" in weights:
+        q_count = text.count('?')
+        sentence_count = len([s for s in text.split('.') if s.strip()])
+        ratio = q_count / max(sentence_count, 1)
+        score += min(ratio * weights["questions"], 4.0)
+
+    # 7. Complexity/Readability (Professionalism/Clarity)
+    if "complexity" in weights or "readability" in weights:
+        if TEXTSTAT_AVAILABLE:
+            try:
+                # Flesch Reading Ease: 0-100 (100 is easy, 0 is hard)
+                # For professionalism (complexity), we want lower scores to mean higher professionalism?
+                # Actually, usually professionalism implies some complexity but not unreadable.
+                ease = flesch_reading_ease(text)
+                
+                if "complexity" in weights:
+                    # Lower ease = higher complexity. 
+                    # Map 100->0, 0->10. 
+                    complexity_score = (100 - ease) / 10.0
+                    score += min(max(complexity_score, 0), 10) * (weights["complexity"] / 4.0)
+                    
+                if "readability" in weights:
+                    # Higher ease = higher readability
+                    readability_score = ease / 10.0
+                    score += min(max(readability_score, 0), 10) * (weights["readability"] / 4.0)
+            except:
+                score += 5.0 # Fallback
+        else:
+            # Fallback based on avg word length
+            words = text.split()
+            avg_len = sum(len(w) for w in words) / max(len(words), 1)
+            if "complexity" in weights:
+                score += min(avg_len, 8.0)
+            if "readability" in weights:
+                score += max(10 - avg_len, 0)
+
+    # 8. Assertiveness (Authority/Boldness)
+    if "assertiveness" in weights:
+        # Short sentences, strong words
+        sentence_count = len([s for s in text.split('.') if s.strip()])
+        if sentence_count > 0:
+            avg_sentence_len = len(text.split()) / sentence_count
+            # Shorter sentences = more assertive (often)
+            # Map 10 words -> 10 pts, 30 words -> 0 pts
+            len_score = max(0, (30 - avg_sentence_len) / 2.0)
+            score += len_score * (weights["assertiveness"] / 4.0)
+
+    return min(max(round(score, 1), 0.0), 10.0)
+
+
 def calculate_emotional_indicators(text, selected_indicators=None):
     """Calculate real emotional indicators based on text analysis"""
     if not text or not text.strip():
@@ -38,212 +286,11 @@ def calculate_emotional_indicators(text, selected_indicators=None):
     sia = SentimentIntensityAnalyzer()
     results = {}
     
-    calculators = {
-        "enthusiasm": lambda t: calculate_enthusiasm_score(t, sia),
-        "professionalism": lambda t: calculate_professionalism_score(t),
-        "approachability": lambda t: calculate_approachability_score(t, sia),
-        "authority": lambda t: calculate_authority_score(t)
-    }
-
+    # Use the dynamic calculator for all indicators
     for indicator in selected_indicators:
-        if indicator in calculators:
-            results[indicator] = round(calculators[indicator](text), 1)
-        else:
-            results[indicator] = None
+        results[indicator] = calculate_dynamic_indicator_score(text, indicator, sia)
 
     return results
-
-def calculate_enthusiasm_score(text, sia):
-    """Calculate enthusiasm based on positive sentiment, exclamation marks, and energetic words"""
-    # Get sentiment scores
-    sentiment_scores = sia.polarity_scores(text)
-    positive_sentiment = sentiment_scores['pos']
-    
-    # Count exclamation marks
-    exclamation_count = text.count('!')
-    total_sentences = len([s for s in text.split('.') if s.strip()])
-    exclamation_ratio = exclamation_count / max(total_sentences, 1)
-    
-    # Count enthusiastic words
-    enthusiastic_words = [
-        'amazing', 'awesome', 'fantastic', 'incredible', 'wonderful', 'brilliant',
-        'excited', 'thrilled', 'love', 'passionate', 'energy', 'dynamic',
-        'innovative', 'breakthrough', 'revolutionary', 'outstanding', 'excellent',
-        'superb', 'magnificent', 'spectacular', 'phenomenal', 'extraordinary'
-    ]
-    
-    text_lower = text.lower()
-    enthusiastic_word_count = sum(1 for word in enthusiastic_words if word in text_lower)
-    word_count = len(text.split())
-    enthusiastic_word_ratio = enthusiastic_word_count / max(word_count, 1)
-    
-    # Count ALL CAPS words (excluding single letters and common abbreviations)
-    caps_words = re.findall(r'\b[A-Z]{2,}\b', text)
-    caps_ratio = len(caps_words) / max(word_count, 1)
-    
-    # Calculate composite score
-    enthusiasm_score = (
-        positive_sentiment * 4.0 +  # 0-4 points from sentiment
-        min(exclamation_ratio * 20, 3.0) +  # 0-3 points from exclamations
-        min(enthusiastic_word_ratio * 50, 2.0) +  # 0-2 points from enthusiastic words
-        min(caps_ratio * 20, 1.0)  # 0-1 points from caps
-    )
-    
-    return min(max(enthusiasm_score, 0), 10)
-
-
-def calculate_professionalism_score(text):
-    """Calculate professionalism based on language complexity, formal words, and writing style"""
-    if not text or len(text.strip()) < 10:
-        return 5.0
-        
-    # Reading level analysis
-    if TEXTSTAT_AVAILABLE:
-        try:
-            reading_ease = flesch_reading_ease(text)
-            # Convert to 0-10 scale (lower reading ease = higher professionalism)
-            reading_professionalism = max(0, (100 - reading_ease) / 10)
-        except Exception:
-            reading_professionalism = 5.0
-    else:
-        # Fallback reading level calculation based on sentence and word complexity
-        words = text.split()
-        sentences = [s for s in text.split('.') if s.strip()]
-        avg_word_length = sum(len(word) for word in words) / max(len(words), 1)
-        avg_sentence_length = len(words) / max(len(sentences), 1)
-        
-        # Simple complexity score (longer words and sentences = more professional)
-        reading_professionalism = min(10, (avg_word_length - 3) * 2 + (avg_sentence_length - 10) * 0.2)
-    
-    # Professional vocabulary
-    professional_words = [
-        'strategy', 'implement', 'analyze', 'optimize', 'leverage', 'facilitate',
-        'collaborate', 'expertise', 'experience', 'professional', 'industry',
-        'solution', 'development', 'management', 'leadership', 'objective',
-        'achievement', 'performance', 'quality', 'excellence', 'innovation',
-        'results', 'growth', 'success', 'organizational', 'strategic'
-    ]
-    
-    text_lower = text.lower()
-    professional_word_count = sum(1 for word in professional_words if word in text_lower)
-    word_count = len(text.split())
-    professional_ratio = professional_word_count / max(word_count, 1)
-    
-    # Sentence structure complexity
-    avg_sentence_length = word_count / max(len([s for s in text.split('.') if s.strip()]), 1)
-    sentence_complexity = min(avg_sentence_length / 20 * 3, 3.0)  # 0-3 points
-    
-    # Avoid casual language markers
-    casual_markers = ['lol', 'omg', 'tbh', 'btw', 'imo', 'fyi', 'asap', 'etc']
-    casual_count = sum(1 for marker in casual_markers if marker in text_lower)
-    casual_penalty = min(casual_count * 0.5, 2.0)
-    
-    # Calculate composite score
-    professionalism_score = (
-        min(reading_professionalism * 0.4, 2.5) +  # 0-2.5 points from reading level
-        min(professional_ratio * 40, 3.0) +  # 0-3 points from professional vocabulary
-        sentence_complexity +  # 0-3 points from sentence complexity
-        1.5 -  # Base professionalism
-        casual_penalty  # Penalty for casual language
-    )
-    
-    return min(max(professionalism_score, 0), 10)
-
-
-def calculate_approachability_score(text, sia):
-    """Calculate approachability based on friendly language, questions, and inclusive tone"""
-    # Sentiment analysis for friendliness
-    sentiment_scores = sia.polarity_scores(text)
-    positive_sentiment = sentiment_scores['pos']
-    
-    # Question marks (engaging with audience)
-    question_count = text.count('?')
-    total_sentences = len([s for s in text.split('.') if s.strip()])
-    question_ratio = question_count / max(total_sentences, 1)
-    
-    # Friendly/approachable words
-    friendly_words = [
-        'welcome', 'thanks', 'please', 'help', 'share', 'join', 'together',
-        'community', 'team', 'support', 'friendly', 'open', 'happy', 'glad',
-        'appreciate', 'grateful', 'kind', 'warm', 'inviting', 'accessible',
-        'inclusive', 'collaborative', 'understanding', 'empathetic'
-    ]
-    
-    text_lower = text.lower()
-    friendly_word_count = sum(1 for word in friendly_words if word in text_lower)
-    word_count = len(text.split())
-    friendly_ratio = friendly_word_count / max(word_count, 1)
-    
-    # Personal pronouns (you, we, us, our)
-    personal_pronouns = ['you', 'we', 'us', 'our', 'your', 'ourselves', 'together']
-    pronoun_count = sum(1 for pronoun in personal_pronouns if pronoun in text_lower.split())
-    pronoun_ratio = pronoun_count / max(word_count, 1)
-    
-    # Contractions (more conversational/approachable)
-    contractions = ["'re", "'ve", "'ll", "'d", "n't", "'m", "'s"]
-    contraction_count = sum(1 for contraction in contractions if contraction in text)
-    contraction_ratio = contraction_count / max(word_count, 1)
-    
-    # Calculate composite score
-    approachability_score = (
-        positive_sentiment * 3.0 +  # 0-3 points from positive sentiment
-        min(question_ratio * 15, 2.0) +  # 0-2 points from questions
-        min(friendly_ratio * 30, 2.5) +  # 0-2.5 points from friendly words
-        min(pronoun_ratio * 20, 1.5) +  # 0-1.5 points from personal pronouns
-        min(contraction_ratio * 10, 1.0)  # 0-1 points from contractions
-    )
-    
-    return min(max(approachability_score, 0), 10)
-
-
-def calculate_authority_score(text):
-    """Calculate authority based on expertise indicators, confidence markers, and credentials"""
-    # Authority/expertise words
-    authority_words = [
-        'expert', 'expertise', 'experience', 'proven', 'established', 'leading',
-        'recognized', 'award', 'certified', 'qualified', 'specialist', 'authority',
-        'pioneering', 'renowned', 'accomplished', 'distinguished', 'respected',
-        'industry', 'leader', 'executive', 'director', 'founder', 'ceo', 'president',
-        'research', 'study', 'analysis', 'data', 'evidence', 'results', 'findings'
-    ]
-    
-    text_lower = text.lower()
-    authority_word_count = sum(1 for word in authority_words if word in text_lower)
-    word_count = len(text.split())
-    authority_ratio = authority_word_count / max(word_count, 1)
-    
-    # Confidence markers vs uncertainty
-    confidence_words = ['will', 'should', 'must', 'clearly', 'obviously', 'certainly', 'definitely']
-    uncertainty_words = ['maybe', 'perhaps', 'possibly', 'might', 'could', 'probably', 'seems']
-    
-    confidence_count = sum(1 for word in confidence_words if word in text_lower.split())
-    uncertainty_count = sum(1 for word in uncertainty_words if word in text_lower.split())
-    
-    confidence_ratio = confidence_count / max(word_count, 1)
-    uncertainty_penalty = uncertainty_count / max(word_count, 1)
-    
-    # Numbers and statistics (data-driven authority)
-    number_pattern = r'\b\d+(?:\.\d+)?%?|\$\d+|\d+k\b|\d+m\b'
-    number_matches = re.findall(number_pattern, text, re.IGNORECASE)
-    number_ratio = len(number_matches) / max(word_count, 1)
-    
-    # Industry jargon and technical terms (indicate expertise)
-    technical_indicators = text_lower.count('technology') + text_lower.count('solution') + \
-                          text_lower.count('platform') + text_lower.count('system') + \
-                          text_lower.count('framework') + text_lower.count('methodology')
-    technical_ratio = technical_indicators / max(word_count, 1)
-    
-    # Calculate composite score  
-    authority_score = (
-        min(authority_ratio * 35, 3.0) +  # 0-3 points from authority words
-        min(confidence_ratio * 25, 2.0) +  # 0-2 points from confidence
-        min(number_ratio * 20, 1.5) +  # 0-1.5 points from data/numbers
-        min(technical_ratio * 15, 1.5) +  # 0-1.5 points from technical terms
-        2.0 -  # Base authority score
-        min(uncertainty_penalty * 15, 1.5)  # Penalty for uncertainty
-    )
-    
-    return min(max(authority_score, 0), 10)
 
 
 def perform_profile_voice_analysis(
@@ -257,7 +304,7 @@ def perform_profile_voice_analysis(
             return perform_profile_bio_analysis(handle, platform, extracted_bio, emotional_indicators)
         else:
             # Use posts analysis (original method)
-            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts, emotional_indicators)
+            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts)
 
     except Exception as e:
         error_msg = str(e)
@@ -596,13 +643,15 @@ def parse_voice_analysis_response(ai_response, text_content=None, selected_indic
                 if text_content and text_content.strip():
                     heuristic_scores = calculate_emotional_indicators(text_content, selected_indicators)
 
-                    if "emotional_indicators" not in voice_data:
-                        voice_data["emotional_indicators"] = {}
-
-                    for indicator, score in heuristic_scores.items():
-                        if score is not None:
-                            voice_data["emotional_indicators"][indicator] = score
-                        elif indicator not in voice_data["emotional_indicators"]:
+                    # Replace AI's emotional_indicators entirely with user's selected indicators
+                    voice_data["emotional_indicators"] = {}
+                    
+                    indicators_to_use = selected_indicators or ["enthusiasm", "professionalism", "approachability", "authority"]
+                    for indicator in indicators_to_use:
+                        if indicator in heuristic_scores and heuristic_scores[indicator] is not None:
+                            voice_data["emotional_indicators"][indicator] = heuristic_scores[indicator]
+                        else:
+                            # For custom indicators we can't calculate, use neutral score
                             voice_data["emotional_indicators"][indicator] = 5.0
                 
                 return voice_data
