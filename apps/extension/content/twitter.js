@@ -432,13 +432,24 @@ function extractProfileBioFromPage(handle) {
 // Display analysis results on the page with enhanced styling and save functionality
 function showProfileAnalysisResult(analysisData, targetElement) {
   try {
-    console.log("📊 Displaying Twitter analysis results:", analysisData);
+    console.log("📊 Displaying X analysis results:", analysisData);
 
     // Remove any existing results display
     const existingResults = document.getElementById("brandalyze-analysis-results");
     if (existingResults) {
       existingResults.remove();
     }
+
+    // Icons (SVG paths)
+    const icons = {
+      x: '<svg viewBox="0 0 24 24" width="24" height="24" fill="#0f1419"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+      voice: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zm5 10a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM8 18h8v2H8v-2z"/></svg>',
+      chart: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 3v18h18v-2H5V3H3zm4 14h2v-7H7v7zm4 0h2v-10h-2v10zm4 0h2v-4h-2v4z"/></svg>',
+      badge: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>',
+      save: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>',
+      close: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 17.59 13.41 12z"/></svg>',
+      check: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>'
+    };
 
     // Create results container
     const resultsContainer = document.createElement("div");
@@ -450,16 +461,14 @@ function showProfileAnalysisResult(analysisData, targetElement) {
       transform: translate(-50%, -50%);
       background: white;
       border-radius: 16px;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+      box-shadow: rgba(101, 119, 134, 0.2) 0px 0px 15px, rgba(101, 119, 134, 0.15) 0px 0px 3px 1px;
       z-index: 10000;
-      max-width: 700px;
+      max-width: 600px;
       width: 90vw;
-      max-height: 85vh;
+      max-height: 90vh;
       overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      border: 1px solid #e1e5e9;
-      backdrop-filter: blur(10px);
-      animation: brandalyze-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      animation: brandalyze-fade-in 0.2s ease-out;
     `;
 
     // Create overlay
@@ -471,9 +480,8 @@ function showProfileAnalysisResult(analysisData, targetElement) {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.4);
       z-index: 9999;
-      backdrop-filter: blur(2px);
       animation: brandalyze-fade-in 0.2s ease;
     `;
 
@@ -483,161 +491,147 @@ function showProfileAnalysisResult(analysisData, targetElement) {
       style.id = "brandalyze-animations";
       style.textContent = `
         @keyframes brandalyze-fade-in {
-          from { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
-          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @keyframes brandalyze-fade-out {
-          from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          to { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+          from { opacity: 1; }
+          to { opacity: 0; }
         }
         #brandalyze-analysis-results::-webkit-scrollbar {
-          width: 6px;
+          width: 8px;
         }
         #brandalyze-analysis-results::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 3px;
+          background: transparent;
         }
         #brandalyze-analysis-results::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 3px;
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
         }
-        #brandalyze-analysis-results::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
+        .brandalyze-section-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: #0f1419;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .brandalyze-card {
+          background-color: #f7f9f9;
+          border-radius: 16px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+        .brandalyze-tag {
+          background-color: #eff3f4;
+          color: #536471;
+          padding: 4px 12px;
+          border-radius: 9999px;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-block;
+          margin: 0 4px 4px 0;
+        }
+        .brandalyze-btn-primary {
+          background-color: #0f1419;
+          color: white;
+          border: none;
+          padding: 0 24px;
+          height: 44px;
+          border-radius: 9999px;
+          font-weight: 700;
+          font-size: 15px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .brandalyze-btn-primary:hover {
+          background-color: #272c30;
+        }
+        .brandalyze-btn-secondary {
+          background-color: white;
+          color: #0f1419;
+          border: 1px solid #cfd9de;
+          padding: 0 24px;
+          height: 44px;
+          border-radius: 9999px;
+          font-weight: 700;
+          font-size: 15px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .brandalyze-btn-secondary:hover {
+          background-color: #eff3f4;
         }
       `;
       document.head.appendChild(style);
     }
 
-    // Format analysis results with enhanced header
+    // Header
     let content = `
-      <div style="padding: 28px;">
-        <div style="
-          display: flex; 
-          justify-content: space-between; 
-          align-items: center; 
-          margin-bottom: 24px; 
-          border-bottom: 2px solid #f1f5f9; 
-          padding-bottom: 20px;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          margin: -28px -28px 24px -28px;
-          padding: 24px 28px 20px 28px;
-          border-radius: 16px 16px 0 0;
-        ">
-          <div>
-            <h2 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; display: flex; align-items: center;">
-              <span style="
-                background: linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                margin-right: 12px;
-                font-size: 28px;
-              ">🐦</span>
-              Twitter Profile Analysis
-            </h2>
-            <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">AI-powered brand voice insights</p>
+      <div style="padding: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 10; border-bottom: 1px solid #eff3f4;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+             ${icons.x}
           </div>
-          <button id="brandalyze-close-results" style="
-            background: #f8fafc; 
-            border: 1px solid #e2e8f0; 
-            font-size: 20px; 
-            cursor: pointer; 
-            color: #64748b; 
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-          ">×</button>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #0f1419;">X Profile Analysis</h2>
         </div>
+        <button id="brandalyze-close-results" style="background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #0f1419; transition: background 0.2s;">
+          ${icons.close}
+        </button>
+      </div>
+      <div style="padding: 16px;">
     `;
 
-    // Display voice analysis if available
+    // Voice Analysis
     if (analysisData.voice_analysis) {
       const voice = analysisData.voice_analysis;
       content += `
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 18px; font-weight: 600; color: #1d9bf0; margin-bottom: 16px; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">🎯</span> Voice Analysis
+          <h3 class="brandalyze-section-title" style="color: #0f1419;">
+            <span style="color: #1d9bf0;">${icons.voice}</span> Voice Analysis
           </h3>
           
-          <!-- Tone & Style -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border-left: 4px solid #1d9bf0;">
-              <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Communication Tone</div>
-              <div style="font-weight: 600; color: #1e293b;">${voice.tone || "Professional"}</div>
+            <div class="brandalyze-card">
+              <div style="font-size: 13px; color: #536471; margin-bottom: 4px;">Tone</div>
+              <div style="font-weight: 700; color: #0f1419; font-size: 16px;">${voice.tone || "Professional"}</div>
             </div>
-            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border-left: 4px solid #10b981;">
-              <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Communication Style</div>
-              <div style="font-weight: 600; color: #1e293b;">${voice.style || "Thoughtful"}</div>
+            <div class="brandalyze-card">
+              <div style="font-size: 13px; color: #536471; margin-bottom: 4px;">Style</div>
+              <div style="font-weight: 700; color: #0f1419; font-size: 16px;">${voice.style || "Thoughtful"}</div>
             </div>
           </div>
 
-          <!-- Personality Traits -->
           ${voice.personality_traits && voice.personality_traits.length > 0 ? `
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Key Personality Traits</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${voice.personality_traits.map(trait => `
-                <span style="
-                  background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%); 
-                  color: #5b21b6; 
-                  padding: 4px 12px; 
-                  border-radius: 16px; 
-                  font-size: 12px; 
-                  font-weight: 500;
-                  border: 1px solid #a78bfa;
-                ">${trait}</span>
-              `).join("")}
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f1419; margin-bottom: 8px;">Personality Traits</div>
+            <div>
+              ${voice.personality_traits.map(trait => `<span class="brandalyze-tag">${trait}</span>`).join("")}
             </div>
           </div>` : ""}
 
-          <!-- Communication Patterns -->
-          ${voice.communication_patterns && voice.communication_patterns.length > 0 ? `
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Communication Patterns</div>
-            <div style="background: #fefce8; border-radius: 8px; padding: 12px; border-left: 3px solid #eab308;">
-              ${voice.communication_patterns.map(pattern => `
-                <div style="display: flex; align-items: center; margin-bottom: 4px; font-size: 13px;">
-                  <span style="color: #ca8a04; margin-right: 6px;">▸</span>
-                  <span style="color: #374151;">${pattern}</span>
-                </div>
-              `).join("")}
-            </div>
-          </div>` : ""}
-
-          <!-- Content Themes -->
-          ${voice.content_themes && voice.content_themes.length > 0 ? `
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 8px; font-weight: 500;">Primary Content Themes</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${voice.content_themes.map(theme => `
-                <span style="
-                  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); 
-                  color: #166534; 
-                  padding: 4px 12px; 
-                  border-radius: 16px; 
-                  font-size: 12px; 
-                  font-weight: 500;
-                  border: 1px solid #86efac;
-                ">${theme}</span>
-              `).join("")}
-            </div>
-          </div>` : ""}
-
-          <!-- Emotional Indicators -->
           ${voice.emotional_indicators ? `
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 12px; font-weight: 500;">Emotional Indicators</div>
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f1419; margin-bottom: 12px;">Emotional Indicators</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               ${Object.entries(voice.emotional_indicators).map(([emotion, score]) => {
                 const percentage = Math.round(score * 10);
-                const color = percentage >= 80 ? "#10b981" : percentage >= 60 ? "#f59e0b" : "#ef4444";
+                const color = percentage >= 80 ? "#00ba7c" : percentage >= 60 ? "#ffd400" : "#f91880";
                 return `
-                  <div style="background: white; border-radius: 6px; padding: 12px; border: 1px solid #e5e7eb;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                      <span style="font-size: 12px; color: #6b7280; text-transform: capitalize;">${emotion}</span>
-                      <span style="font-size: 12px; font-weight: 600; color: ${color};">${percentage}%</span>
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                      <span style="color: #536471; text-transform: capitalize;">${emotion}</span>
+                      <span style="font-weight: 700; color: #0f1419;">${percentage}%</span>
                     </div>
-                    <div style="background: #f3f4f6; border-radius: 2px; height: 4px;">
-                      <div style="background: ${color}; height: 100%; border-radius: 2px; width: ${percentage}%; transition: width 0.3s ease;"></div>
+                    <div style="background: #eff3f4; height: 4px; border-radius: 2px; overflow: hidden;">
+                      <div style="background: ${color}; height: 100%; width: ${percentage}%;"></div>
                     </div>
                   </div>
                 `;
@@ -648,119 +642,52 @@ function showProfileAnalysisResult(analysisData, targetElement) {
       `;
     }
 
-    // Display analysis summary if available
+    // Summary
     if (analysisData.analysis_summary) {
       content += `
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 18px; font-weight: 600; color: #1d9bf0; margin-bottom: 16px; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">📊</span> Analysis Summary
+          <h3 class="brandalyze-section-title">
+            <span style="color: #1d9bf0;">${icons.chart}</span> Summary
           </h3>
-          <div style="
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
-            border-radius: 12px; 
-            padding: 20px; 
-            line-height: 1.6;
-            border: 1px solid #bae6fd;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          ">
-            <div style="color: #0f172a; font-size: 14px;">${analysisData.analysis_summary}</div>
+          <div class="brandalyze-card" style="line-height: 1.5; color: #0f1419;">
+            ${analysisData.analysis_summary}
           </div>
         </div>
       `;
     }
 
-    // Display confidence score if available
+    // Confidence
     if (analysisData.confidence_score) {
       const confidence = Math.round(analysisData.confidence_score * 100);
-      const confidenceColor = confidence >= 75 ? "#10b981" : confidence >= 50 ? "#f59e0b" : "#ef4444";
-      const confidenceLabel = confidence >= 75 ? "High Confidence" : confidence >= 50 ? "Medium Confidence" : "Low Confidence";
-
+      const color = confidence >= 75 ? "#00ba7c" : confidence >= 50 ? "#ffd400" : "#f91880";
+      
       content += `
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 18px; font-weight: 600; color: #1d9bf0; margin-bottom: 16px; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">🎖️</span> Analysis Confidence
+          <h3 class="brandalyze-section-title">
+            <span style="color: #1d9bf0;">${icons.badge}</span> Confidence
           </h3>
-          <div style="
-            background: white; 
-            border-radius: 12px; 
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          ">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <span style="font-size: 14px; color: #64748b;">${confidenceLabel}</span>
-              <span style="font-weight: 700; font-size: 18px; color: ${confidenceColor};">${confidence}%</span>
-            </div>
-            <div style="background: #f1f5f9; border-radius: 8px; height: 12px; overflow: hidden;">
-              <div style="
-                background: linear-gradient(90deg, ${confidenceColor} 0%, ${confidenceColor}dd 100%); 
-                height: 100%; 
-                border-radius: 8px; 
-                width: ${confidence}%;
-                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-              "></div>
-            </div>
-            <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
-              Based on ${analysisData.analysis_type === "bio_analysis" ? "profile bio content" : "post content analysis"}
+          <div class="brandalyze-card" style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 24px; font-weight: 800; color: ${color};">${confidence}%</div>
+            <div style="flex: 1;">
+              <div style="background: #eff3f4; height: 6px; border-radius: 3px; overflow: hidden;">
+                <div style="background: ${color}; height: 100%; width: ${confidence}%;"></div>
+              </div>
             </div>
           </div>
         </div>
       `;
     }
 
-    // Add action buttons with Twitter styling
+    // Footer Actions
     content += `
-        <div style="
-          display: flex; 
-          gap: 12px; 
-          justify-content: flex-end; 
-          border-top: 2px solid #f1f5f9; 
-          padding-top: 20px; 
-          margin-top: 28px;
-          margin-bottom: -28px;
-          margin-left: -28px;
-          margin-right: -28px;
-          padding-left: 28px;
-          padding-right: 28px;
-          padding-bottom: 28px;
-          background: #f8fafc;
-          border-radius: 0 0 16px 16px;
-        ">
-          <button id="brandalyze-save-analysis" style="
-            background: linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%); 
-            color: white; 
-            border: none; 
-            padding: 12px 24px; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          ">
-            <span>💾</span> Save Analysis
-          </button>
-          <button id="brandalyze-close-results-btn" style="
-            background: white; 
-            color: #374151; 
-            border: 2px solid #e5e7eb; 
-            padding: 12px 24px; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          ">
-            <span>✕</span> Close
-          </button>
-        </div>
+      </div>
+      <div style="padding: 16px; border-top: 1px solid #eff3f4; display: flex; justify-content: flex-end; gap: 12px; background: white; position: sticky; bottom: 0; border-radius: 0 0 16px 16px;">
+        <button id="brandalyze-close-results-btn" class="brandalyze-btn-secondary">
+          Close
+        </button>
+        <button id="brandalyze-save-analysis" class="brandalyze-btn-primary">
+          ${icons.save} Save Analysis
+        </button>
       </div>
     `;
 
@@ -782,22 +709,12 @@ function showProfileAnalysisResult(analysisData, targetElement) {
         // Add hover effects for non-overlay buttons
         btn.onmouseenter = () => {
           if (btn.id === "brandalyze-close-results") {
-            btn.style.background = "#f1f5f9";
-            btn.style.color = "#374151";
-          } else {
-            btn.style.background = "#f9fafb";
-            btn.style.borderColor = "#d1d5db";
-            btn.style.transform = "translateY(-1px)";
+            btn.style.background = "#eff3f4";
           }
         };
         btn.onmouseleave = () => {
           if (btn.id === "brandalyze-close-results") {
-            btn.style.background = "#f8fafc";
-            btn.style.color = "#64748b";
-          } else {
-            btn.style.background = "white";
-            btn.style.borderColor = "#e5e7eb";
-            btn.style.transform = "translateY(0)";
+            btn.style.background = "none";
           }
         };
       }
@@ -817,16 +734,6 @@ function showProfileAnalysisResult(analysisData, targetElement) {
     // Save button handler
     const saveButton = document.getElementById("brandalyze-save-analysis");
     if (saveButton) {
-      // Enhanced hover effects
-      saveButton.onmouseenter = () => {
-        saveButton.style.transform = "translateY(-2px)";
-        saveButton.style.boxShadow = "0 6px 20px rgba(29, 155, 240, 0.4)";
-      };
-      saveButton.onmouseleave = () => {
-        saveButton.style.transform = "translateY(0)";
-        saveButton.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.3)";
-      };
-
       saveButton.onclick = async () => {
         try {
           // Get profile handle for storage key
@@ -871,29 +778,29 @@ function showProfileAnalysisResult(analysisData, targetElement) {
           });
 
           // Update button to show success
-          saveButton.innerHTML = '<span>✓</span> Saved!';
-          saveButton.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+          saveButton.innerHTML = `${icons.check} Saved!`;
+          saveButton.style.backgroundColor = "#00ba7c";
 
           setTimeout(() => {
-            saveButton.innerHTML = '<span>💾</span> Save Analysis';
-            saveButton.style.background = "linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%)";
+            saveButton.innerHTML = `${icons.save} Save Analysis`;
+            saveButton.style.backgroundColor = "#0f1419";
           }, 2000);
 
-          console.log(`✅ Twitter analysis saved with key: ${storageKey}`);
+          console.log(`✅ X analysis saved with key: ${storageKey}`);
         } catch (error) {
-          console.error("❌ Error saving Twitter analysis:", error);
-          saveButton.innerHTML = '<span>❌</span> Save Failed';
-          saveButton.style.background = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+          console.error("❌ Error saving X analysis:", error);
+          saveButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Save Failed';
+          saveButton.style.backgroundColor = "#f91880";
 
           setTimeout(() => {
-            saveButton.innerHTML = '<span>💾</span> Save Analysis';
-            saveButton.style.background = "linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%)";
+            saveButton.innerHTML = `${icons.save} Save Analysis`;
+            saveButton.style.backgroundColor = "#0f1419";
           }, 2000);
         }
       };
     }
   } catch (error) {
-    console.error("❌ Error displaying Twitter analysis results:", error);
+    console.error("❌ Error displaying X analysis results:", error);
     alert("Failed to display analysis results");
   }
 }

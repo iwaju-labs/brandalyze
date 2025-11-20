@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/navigation/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -150,7 +151,6 @@ export default function RootLayout({
               `,
             }}
           />
-          <script defer src="https://cloud.umami.is/script.js" data-website-id="93f69958-ca6f-4bee-974d-7b8da4f6e8ee"></script>
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -201,6 +201,11 @@ export default function RootLayout({
               }}
             />
           </ThemeProvider>
+          <Script
+            defer
+            src="https://cloud.umami.is/script.js"
+            data-website-id="93f69958-ca6f-4bee-974d-7b8da4f6e8ee"
+          />
         </body>
       </html>
     </ClerkProvider>
