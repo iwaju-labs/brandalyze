@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "marketing automation",
     "brand voice checker",
     "content analysis",
-    "brand messaging",
+    "grammarly for brands",
     "AI copywriting tool",
     "marketing analytics",
   ],
@@ -150,7 +150,7 @@ export default function RootLayout({
               `,
             }}
           />
-          <script async src="https://tally.so/widgets/embed.js"></script>
+          <script defer src="https://cloud.umami.is/script.js" data-website-id="93f69958-ca6f-4bee-974d-7b8da4f6e8ee"></script>
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
