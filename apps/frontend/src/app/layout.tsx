@@ -202,9 +202,9 @@ export default function RootLayout({
             />
           </ThemeProvider>
           <Script
-            defer
             src="https://cloud.umami.is/script.js"
             data-website-id="93f69958-ca6f-4bee-974d-7b8da4f6e8ee"
+            strategy="afterInteractive"
           />
         </body>
       </html>

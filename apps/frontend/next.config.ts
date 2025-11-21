@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://*.clerk.accounts.dev https://clerk.brandalyze.io https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://*.clerk.accounts.dev https://clerk.brandalyze.io https://challenges.cloudflare.com https://cloud.umami.is",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
