@@ -242,7 +242,7 @@ export default async function HomePage() {
                 return (
                   <div
                     key={feature.title}
-                    className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 transition-colors hover:shadow-md w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)]"
+                    className="text-center p-6 bg-[#f8f8ff] dark:bg-black rounded-xl border border-gray-900 dark:border-white transition-colors hover:shadow-md w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)]"
                   >
                     <div className="flex justify-center mb-4">
                       <Icon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
