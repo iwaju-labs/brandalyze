@@ -92,3 +92,45 @@ class AuditMetrics:
 
     def __str__(self):
         return f"Metrics for Audit #{self.audit.id}"
+
+class DriftAlert:
+    """Alerts when brand voice consistency drifts"""
+    SEVERITY_CHOICES = [
+        ('low', 'low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='drift_alerts')
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='drift_alerts')
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
+    message = models.TextField(help_text="Alert message describing the drift")
+    detected_at = models.DateTimeField(auto_now_add=True)
+    acknowledged = models.BooleanField(default=False)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    related_audits=models.ManyToManyField(PostAudit, related_name='drift_alerts')
+    threshold_breached=models.FloatField(
+        help_text="The score threshold that triggered this alert"
+    )
+
+    class Meta:
+        db_table = 'drift_alerts'
+        ordering = ['-detected_at']
+        indexes = [
+            models.Index(fields=['user', '-detected_at']),
+            models.Index(fields=['brand', '-detected_att']),
+            models.Index(fields=['acknowledged']),
+        ]
+        verbose_name = 'Drift Alert',
+        verbose_name_plural = 'Drift Alerts'
+
+    def __str__(self):
+        status = "Acknowledged" if self.acknowledged else "Pending"
+        return f"{self.user.email} - {self.severity.upper()} - {status}"
+    
+    def acknowledge(self):
+        """Mark alert as acknowledged"""
+        from django.utils import timezone
+        self.acknowledged = True
+        self.acknowledged_at = timezone.now()
+        self.save()
