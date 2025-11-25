@@ -46,4 +46,5 @@ urlpatterns = [
     path("api/user/usage", get_user_usage, name="get_user_usage"),
     path("api/payments/", include("payments.urls")),
     path("api/extension/", include("extensions.urls")),
+    path("api/audits/", include("audits.urls")),
 ]
