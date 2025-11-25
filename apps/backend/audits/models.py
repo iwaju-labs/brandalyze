@@ -51,13 +51,13 @@ class PostAudit(models.Model):
             models.Index(fields=['platform', '-created_at']),
             models.Index(fields=['score'])
         ]
-        verbose_name = 'Post Audit',
+        verbose_name = 'Post Audit'
         verbose_name_plural = 'Post Audits'
 
     def __str__(self):
         return f"{self.user.email} - {self.platform} - Score: {self.score}"
 
-class AuditMetrics:
+class AuditMetrics(models.Model):
     """Detailed breakdown of audit scores"""
     audit = models.OneToOneField(PostAudit, on_delete=models.CASCADE, related_name='metrics')
 
@@ -69,20 +69,20 @@ class AuditMetrics:
 
     # detailed findings
     deviations = models.JSONField(
-        default=dict,
+        default=list,
         help_text="List of specific deviations found"
     )
 
     x_optimization = models.JSONField(
         null=True,
         blank=True,
-        help_text="X/Twittter specific optimizaion tips"
+        help_text="X/Twitter specific optimization tips"
     )
 
     ai_feedback = models.TextField(
         blank=True,
         null=True,
-        help_text="AI_generated suggestions"
+        help_text="AI-generated suggestions"
     )
 
     class Meta:
@@ -93,10 +93,10 @@ class AuditMetrics:
     def __str__(self):
         return f"Metrics for Audit #{self.audit.id}"
 
-class DriftAlert:
+class DriftAlert(models.Model):
     """Alerts when brand voice consistency drifts"""
     SEVERITY_CHOICES = [
-        ('low', 'low'),
+        ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
     ]
@@ -118,10 +118,10 @@ class DriftAlert:
         ordering = ['-detected_at']
         indexes = [
             models.Index(fields=['user', '-detected_at']),
-            models.Index(fields=['brand', '-detected_att']),
-            models.Index(fields=['acknowledged']),
+            models.Index(fields=['brand', '-detected_at']),
+            models.Index(fields=['acknowledged'])
         ]
-        verbose_name = 'Drift Alert',
+        verbose_name = 'Drift Alert'
         verbose_name_plural = 'Drift Alerts'
 
     def __str__(self):
@@ -134,3 +134,44 @@ class DriftAlert:
         self.acknowledged = True
         self.acknowledged_at = timezone.now()
         self.save()
+
+class AuditUsage(models.Model):
+    """Track audit usage for subscription tiers (extends DailyUsage pattern)"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='audit_usage')
+    date = models.DateField(auto_now_add=True)
+    audit_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'audit_usage'
+        unique_together = ['user', 'date']
+        indexes = [
+            models.Index(fields=['user', 'date']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.date} - {self.audit_count} audits"
+    
+    @classmethod
+    def can_perform_audit(cls, user):
+        """Check if the user can perform another audit (reuses DailyUsage pattern)"""
+        from analysis.models import UserSubscription
+        from django.utils import timezone
+
+        subscription = getattr(user, 'subscription', None)
+        if not subscription:
+            subscription = UserSubscription.objects.create(user=user)
+
+        if subscription.tier in ['pro', 'enterprise']:
+            return True, None
+        
+        return False, 0
+        
+    @classmethod
+    def increment_audit_count(cls, user):
+        """Increment audit count for today"""
+        from django.utils import timezone
+        today = timezone.now().date()
+        usage, _ = cls.objects.get_or_create(user=user, date=today)
+        usage.audit_count += 1
+        usage.save()
+        return usage
