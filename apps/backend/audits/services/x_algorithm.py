@@ -58,6 +58,7 @@ class XAlgorithmChecker:
                 'priority': 1
             })
             score -= 30
+# apps/backend/audits/services/x_algorithm.py
         elif len(content.strip()) < 50:
             tips.append({
                 'type': 'warning',
@@ -145,8 +146,8 @@ class XAlgorithmChecker:
         tips.sort(key=lambda x: x['priority'])
         
         return {
-            'score': max(0, min(100, score)),
-            'tips': tips,
+            'x_score': max(0, min(100, score)),
+            'optimization_tips': tips,
             'triggers_found': triggers_found,
             'theme': theme_detected,
             'recommendation': self._generate_recommendation(score, tips)

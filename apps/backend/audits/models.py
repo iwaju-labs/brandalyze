@@ -1,9 +1,15 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 from brands.models import Brand
 
 User = get_user_model()
+
+
+def get_current_date():
+    """Return current date for AuditUsage default"""
+    return timezone.now().date()
 
 class PostAudit(models.Model):
     """Individual audit for a piece of content"""
@@ -27,7 +33,7 @@ class PostAudit(models.Model):
         help_text="platform chosen from platform choices",
         choices=PLATFORM_CHOICES    
     )
-    score = models.FloatField(help_text="Overall brand voice alignment score (0-100)")
+    score = models.FloatField(help_text="Overall brand voice alignment score (0-100)", null=True, blank=True, default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     # context from chrome extension
@@ -138,7 +144,7 @@ class DriftAlert(models.Model):
 class AuditUsage(models.Model):
     """Track audit usage for subscription tiers (extends DailyUsage pattern)"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='audit_usage')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=get_current_date)
     audit_count = models.PositiveIntegerField(default=0)
 
     class Meta:

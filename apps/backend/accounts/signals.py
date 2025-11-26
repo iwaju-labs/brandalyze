@@ -13,6 +13,11 @@ def notify_user_sign_up(sender, instance, created, **kwargs):
     if not created:
         return
     
+    # Skip notifications during tests
+    import sys
+    if 'pytest' in sys.modules or 'test' in sys.argv:
+        return
+    
     try:
         from utils.telegram_client import send_telegram_message_async, escape_html
 
