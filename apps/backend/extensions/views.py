@@ -418,6 +418,33 @@ def analyze_profile_voice(request):
             alignment_score=0.0,  # Not applicable for voice analysis
         )
 
+        # Create or update a Brand from this profile analysis
+        # This allows post audits to use the analyzed voice
+        from brands.models import Brand, BrandSample
+        
+        brand_name = f"@{handle} ({platform})"
+        brand, created = Brand.objects.update_or_create(
+            user=request.user,
+            name=brand_name,
+            defaults={
+                'description': f"Brand voice extracted from {platform} profile @{handle}"
+            }
+        )
+        
+        # Store voice analysis as a brand sample
+        voice_summary = analysis_result.get('voice_analysis', {})
+        if voice_summary:
+            import json
+            sample_text = json.dumps(voice_summary, indent=2)
+            BrandSample.objects.update_or_create(
+                brand=brand,
+                source_name=f"{platform}_profile_voice",
+                defaults={
+                    'text': sample_text,
+                    'file_type': 'txt'
+                }
+            )
+
         return success_response(
             data=analysis_result,
             message="Profile voice analysis completed successfully",
