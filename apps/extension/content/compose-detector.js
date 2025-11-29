@@ -49,11 +49,26 @@ console.log("compose detector script loaded successfully");
         element.matches(COMPOSE_SELECTORS.twitter.dm);
       if (isDM) return false;
 
-      // Skip replies - detect by checking for reply context
+      // Skip replies - multiple detection methods
+      const container = element.closest('[role="dialog"]') || element.closest('[data-testid="primaryColumn"]');
+      
+      // Check for reply indicators
       const isReply = 
+        // Direct reply testid
         element.closest('[data-testid="reply"]') ||
+        // Inline reply indicator
+        document.querySelector('[data-testid="inlineReply"]') !== null ||
+        // Reply aria label on the compose field
         element.getAttribute('aria-label')?.toLowerCase().includes('reply') ||
-        document.querySelector('[data-testid="inlineReply"]') !== null;
+        // "Replying to" text in the compose container
+        container?.querySelector('[data-testid="Tweet-User-Avatar"]') !== null ||
+        // Reply thread indicator (shows who you're replying to)
+        container?.textContent?.includes('Replying to') ||
+        // Check URL for reply context
+        globalThis.location.pathname.includes('/status/') ||
+        // Check for the reply indicator element (blue line connecting to original tweet)
+        container?.querySelector('[data-testid="tweetPhoto"]')?.closest('[role="dialog"]') === container;
+      
       if (isReply) return false;
     }
 

@@ -138,58 +138,6 @@
             Look for the "Analyze Profile" button on profile pages
           </div>
         </div>
-        <!-- Content Alignment Analysis - Only visible on supported platforms -->
-        <div
-          id="contentAlignmentSection"
-          class="bg-blue-50 border border-blue-200 rounded p-3 hidden"
-        >
-          <h3 class="text-sm font-medium text-blue-900 mb-2">
-            Content Alignment Check
-          </h3>
-
-          <div
-            id="noAnalysisWarning"
-            class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-xs text-yellow-800 hidden"
-          >
-            <strong>No Profile Analysis Found</strong><br />
-            Please analyze your profile first to enable content alignment
-            checking.
-          </div>
-
-          <div class="space-y-2">
-            <textarea
-              id="contentToAnalyze"
-              class="w-full p-2 border border-gray-300 rounded text-xs resize-none"
-              placeholder="Enter your post content to check alignment..."
-              rows="2"
-            ></textarea>
-
-            <div class="flex gap-2">
-              <select
-                id="alignmentType"
-                class="flex-1 p-1 border border-gray-300 rounded text-xs"
-              >
-                <option value="profile">Profile Voice</option>
-                <option value="brand">My Brand</option>
-              </select>
-
-              <input
-                type="text"
-                id="referenceHandle"
-                class="flex-1 p-1 border border-gray-300 rounded text-xs hidden"
-                placeholder="@username"
-              />
-            </div>
-
-            <button
-              class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white border-0 px-3 py-1 rounded cursor-pointer text-xs font-medium"
-              id="analyzeContentBtn"
-              disabled
-            >
-              Check Alignment
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Status Messages -->
