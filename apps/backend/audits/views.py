@@ -23,9 +23,9 @@ def analyze_post(request):
     """
     Analyze a post for brand voice alignment
     
-    POST /api/audits/analyze
+    POST /api/audits/analyze/
     {
-        "brand_id": 1,
+        "brand_id": 1,  // Optional - uses default brand if not provided
         "content": "Post text...",
         "platform": "twitter",
         "context": {"has_media": true}
@@ -44,9 +44,20 @@ def analyze_post(request):
             status=status.HTTP_403_FORBIDDEN
         )
     
+    # If brand_id not provided, use user's default brand
+    data = request.data.copy()
+    if 'brand_id' not in data or not data.get('brand_id'):
+        default_brand = Brand.objects.filter(user=request.user).order_by('-created_at').first()
+        if not default_brand:
+            return Response(
+                {'error': 'No brand found. Please create a brand first.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        data['brand_id'] = default_brand.id
+    
     # Validate input
     serializer = PostAuditCreateSerializer(
-        data=request.data,
+        data=data,
         context={'request': request}
     )
     

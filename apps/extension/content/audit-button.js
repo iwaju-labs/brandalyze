@@ -334,7 +334,19 @@ console.log("Brandalyze audit button loaded");
         updateButtonState(auditButton, "success");
         showAuditResults(response.data);
       } else {
-        throw new Error(response?.error || "Audit failed");
+        const errorMsg = response?.error || "Audit failed";
+        
+        // Check for specific error types
+        if (errorMsg.includes("No brand found")) {
+          alert("Please analyze a profile first to set up your brand voice before auditing posts.\n\nVisit a social profile and click 'Analyze Profile' in the Brandalyze extension.");
+        } else if (errorMsg.includes("UPGRADE_REQUIRED") || errorMsg.includes("Pro")) {
+          alert("Post audits require a Pro subscription. Upgrade to access this feature.");
+        } else {
+          throw new Error(errorMsg);
+        }
+        
+        updateButtonState(auditButton, "idle");
+        return;
       }
     } catch (error) {
       console.error("Audit error:", error);
