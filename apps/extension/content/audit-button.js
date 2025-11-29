@@ -48,14 +48,20 @@ console.log("Brandalyze audit button loaded");
     if (bgColor) {
       const rgb = bgColor.match(/\d+/g);
       if (rgb && rgb.length >= 3) {
-        const brightness = (Number.parseInt(rgb[0], 10) + Number.parseInt(rgb[1], 10) + Number.parseInt(rgb[2], 10)) / 3;
+        const brightness =
+          (Number.parseInt(rgb[0], 10) +
+            Number.parseInt(rgb[1], 10) +
+            Number.parseInt(rgb[2], 10)) /
+          3;
         return brightness < 128;
       }
     }
     // Fallback: check for dark mode class or data attribute
-    return document.documentElement.style.colorScheme === 'dark' ||
-           document.body.classList.contains('dark') ||
-           document.querySelector('[data-theme="dark"]') !== null;
+    return (
+      document.documentElement.style.colorScheme === "dark" ||
+      document.body.classList.contains("dark") ||
+      document.querySelector('[data-theme="dark"]') !== null
+    );
   }
 
   /**
@@ -81,9 +87,10 @@ console.log("Brandalyze audit button loaded");
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         cursor: pointer;
         z-index: 10000;
-        transition: background-color 0.2s ease;
+        transition: background-color 0.2s ease, top 0.15s ease, left 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
         border: none;
         min-width: 100px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       /* Light mode (default) */
@@ -204,60 +211,88 @@ console.log("Brandalyze audit button loaded");
   function positionButton(button, composeField) {
     if (!composeField || !composeField.element) return;
 
-    const rect = composeField.element.getBoundingClientRect();
+    const element = composeField.element;
+    const rect = element.getBoundingClientRect();
+    
+    // Get actual button dimensions after it's in DOM
     const buttonWidth = button.offsetWidth || 120;
-    const buttonHeight = 36;
+    const buttonHeight = button.offsetHeight || 36;
     const margin = 12;
 
-    // Find the compose container/dialog to position relative to
-    const container = composeField.element.closest('[role="dialog"], [data-testid="tweetButtonInline"], .share-box, form') 
-                   || composeField.element.parentElement;
-    
-    // Find X/Twitter's Post button to avoid overlap
-    const postButton = container?.querySelector('[data-testid="tweetButton"], [data-testid="tweetButtonInline"]');
-    const replyButton = container?.querySelector('[data-testid="replyButton"]');
-    const platformButton = postButton || replyButton;
-    
+    // Find the compose container/dialog
+    const dialog = element.closest('[role="dialog"]');
+    const container = dialog || 
+      element.closest('[data-testid="primaryColumn"]') ||
+      element.closest('form') || 
+      element.parentElement;
+
+    // Find X/Twitter's Post button to position relative to it
+    const postButton = container?.querySelector(
+      '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+    );
+
     let top, left;
-    
-    if (platformButton) {
-      // Position to the left of the Post/Reply button
-      const btnRect = platformButton.getBoundingClientRect();
-      top = btnRect.top + (btnRect.height - buttonHeight) / 2; // Vertically center with Post button
+
+    if (postButton && postButton.offsetParent !== null) {
+      // Post button exists and is visible - position to its left
+      const btnRect = postButton.getBoundingClientRect();
+      top = btnRect.top + (btnRect.height - buttonHeight) / 2;
       left = btnRect.left - buttonWidth - margin;
-      
-      // If too far left, position above the compose area instead
+
+      // If button would go off-screen left, position above the toolbar instead
       if (left < margin) {
-        top = rect.top - buttonHeight - margin;
-        left = rect.right - buttonWidth;
+        // Find the toolbar/action bar
+        const toolbar = postButton.closest('[role="group"]') || postButton.parentElement;
+        if (toolbar) {
+          const toolbarRect = toolbar.getBoundingClientRect();
+          top = toolbarRect.top - buttonHeight - margin;
+          left = toolbarRect.right - buttonWidth;
+        } else {
+          top = btnRect.top - buttonHeight - margin;
+          left = btnRect.right - buttonWidth;
+        }
       }
     } else {
-      // Fallback: position above compose field, right-aligned
+      // No Post button visible - position relative to compose field
+      // For inline compose (home timeline), position above and right-aligned
       top = rect.top - buttonHeight - margin;
       left = rect.right - buttonWidth;
-      
+
+      // If in a dialog, position in bottom-right of dialog
+      if (dialog) {
+        const dialogRect = dialog.getBoundingClientRect();
+        top = dialogRect.bottom - buttonHeight - 60; // Above the typical footer
+        left = dialogRect.right - buttonWidth - 20;
+      }
+
       // If no room above, position below
       if (top < margin) {
         top = rect.bottom + margin;
       }
     }
 
-    // Ensure button stays within viewport
-    if (top + buttonHeight > window.innerHeight) {
-      top = window.innerHeight - buttonHeight - margin;
+    // Viewport boundary checks
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Keep within vertical bounds
+    if (top + buttonHeight > viewportHeight - margin) {
+      top = viewportHeight - buttonHeight - margin;
     }
     if (top < margin) {
       top = margin;
     }
+
+    // Keep within horizontal bounds
     if (left < margin) {
       left = margin;
     }
-    if (left + buttonWidth > window.innerWidth - margin) {
-      left = window.innerWidth - buttonWidth - margin;
+    if (left + buttonWidth > viewportWidth - margin) {
+      left = viewportWidth - buttonWidth - margin;
     }
 
-    button.style.top = `${top}px`;
-    button.style.left = `${left}px`;
+    button.style.top = `${Math.round(top)}px`;
+    button.style.left = `${Math.round(left)}px`;
   }
 
   /**
@@ -280,8 +315,8 @@ console.log("Brandalyze audit button loaded");
   }
 
   // Add scroll/resize listeners
-  window.addEventListener('scroll', throttledReposition, true);
-  window.addEventListener('resize', throttledReposition);
+  window.addEventListener("scroll", throttledReposition, true);
+  window.addEventListener("resize", throttledReposition);
 
   /**
    * Show the audit button
@@ -345,8 +380,10 @@ console.log("Brandalyze audit button loaded");
       for (const node of mutation.removedNodes) {
         if (node.nodeType === Node.ELEMENT_NODE) {
           // Check if a dialog or compose container was removed
-          if (node.matches?.('[role="dialog"]') || 
-              node.querySelector?.('[data-testid="tweetTextarea_0"]')) {
+          if (
+            node.matches?.('[role="dialog"]') ||
+            node.querySelector?.('[data-testid="tweetTextarea_0"]')
+          ) {
             hideButton(true); // Immediate hide
           }
         }
@@ -405,23 +442,31 @@ console.log("Brandalyze audit button loaded");
         updateButtonState(auditButton, "success");
         showAuditResults(response.data);
       } else {
-        const errorMsg = typeof response?.error === 'string' 
-          ? response.error 
-          : JSON.stringify(response?.error || "Audit failed");
-        
+        const errorMsg =
+          typeof response?.error === "string"
+            ? response.error
+            : JSON.stringify(response?.error || "Audit failed");
+
         console.error("Audit failed:", errorMsg, response);
-        
+
         // Check for specific error types
         if (errorMsg.includes("No brand found")) {
-          alert("Please analyze a profile first to set up your brand voice before auditing posts.\n\nVisit a social profile and click 'Analyze Profile' in the Brandalyze extension.");
+          alert(
+            "Please analyze a profile first to set up your brand voice before auditing posts.\n\nVisit a social profile and click 'Analyze Profile' in the Brandalyze extension."
+          );
           updateButtonState(auditButton, "idle");
           return;
-        } else if (errorMsg.includes("UPGRADE_REQUIRED") || errorMsg.includes("Pro")) {
-          alert("Post audits require a Pro subscription. Upgrade to access this feature.");
+        } else if (
+          errorMsg.includes("UPGRADE_REQUIRED") ||
+          errorMsg.includes("Pro")
+        ) {
+          alert(
+            "Post audits require a Pro subscription. Upgrade to access this feature."
+          );
           updateButtonState(auditButton, "idle");
           return;
         }
-        
+
         throw new Error(errorMsg);
       }
     } catch (error) {
@@ -446,13 +491,16 @@ console.log("Brandalyze audit button loaded");
     // This will be implemented in Step 2.3 (Audit Panel)
     console.log("Audit results:", data);
 
-    // For now, show a simple notification
-    const score = data?.audit?.score || data?.score || 0;
-    const message = `Brand Voice Score: ${Math.round(score)}%`;
+    if (globalThis.BrandalyzeAuditPanel) {
+      globalThis.BrandalyzeAuditPanel.open(data);
+    } else {
+      // For now, show a simple notification
+      const score = data?.audit?.score || data?.score || 0;
+      const message = `Brand Voice Score: ${Math.round(score)}%`;
 
-    // Simple notification (will be replaced with panel)
-    const notification = document.createElement("div");
-    notification.style.cssText = `
+      // Simple notification (will be replaced with panel)
+      const notification = document.createElement("div");
+      notification.style.cssText = `
       position: fixed;
       top: 20px;
       right: 20px;
@@ -463,15 +511,15 @@ console.log("Brandalyze audit button loaded");
       z-index: 10001;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
-    notification.innerHTML = `
+      notification.innerHTML = `
       <div style="font-weight: 600; margin-bottom: 4px;">${message}</div>
       <div style="font-size: 12px; color: #666;">Full results coming in Step 2.3</div>
     `;
-    document.body.appendChild(notification);
+      document.body.appendChild(notification);
 
-    setTimeout(() => notification.remove(), 5000);
+      setTimeout(() => notification.remove(), 5000);
+    }
   }
-
   // Expose API
   globalThis.BrandalyzeAuditButton = {
     showButton,

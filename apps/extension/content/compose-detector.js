@@ -43,10 +43,18 @@ console.log("compose detector script loaded successfully");
     if (!element) return false;
 
     if (platform === "twitter") {
+      // Skip DMs
       const isDM =
         element.closest('[data-testid="conversation"]') ||
         element.matches(COMPOSE_SELECTORS.twitter.dm);
       if (isDM) return false;
+
+      // Skip replies - detect by checking for reply context
+      const isReply = 
+        element.closest('[data-testid="reply"]') ||
+        element.getAttribute('aria-label')?.toLowerCase().includes('reply') ||
+        document.querySelector('[data-testid="inlineReply"]') !== null;
+      if (isReply) return false;
     }
 
     return true;
@@ -63,7 +71,8 @@ console.log("compose detector script loaded successfully");
     if (!selectors) return null;
 
     for (const [type, selector] of Object.entries(selectors)) {
-      if (type == "dm" || type == "comment") continue;
+      // Skip DMs, comments, and replies - only audit original posts
+      if (type === "dm" || type === "comment" || type === "reply") continue;
 
       const element = document.querySelector(selector);
       if (element && isValidComposeField(element, platform)) {

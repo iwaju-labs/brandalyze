@@ -26,6 +26,7 @@
         "content/shared.js",
         "content/compose-detector.js",
         "content/audit-button.js",
+        "content/audit-panel.js",
         "content/compose-observer.js",
         "content/twitter.js"
       ],

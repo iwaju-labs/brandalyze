@@ -1,0 +1,880 @@
+# Phase 2 Step 2.3: Audit Panel Implementation Guide
+
+## Overview
+
+This guide covers implementing the slide-in audit results panel for the browser extension. When users click "Audit Post" and receive results, instead of a basic notification, they'll see a polished panel showing their brand voice score, detailed breakdown, deviations, and X algorithm optimization tips.
+
+---
+
+## Current State
+
+**What's Working:**
+- Content detection on Twitter/X
+- Floating "Audit Post" button appears when composing
+- Button sends content to backend via `background.js`
+- Backend analyzes and returns results
+- Basic notification shows score (placeholder in `showAuditResults()`)
+
+**What's Missing:**
+- Proper slide-in panel UI
+- Score visualization (gauge/progress bar)
+- Metric breakdown display
+- Deviation highlighting
+- X algorithm tips section
+- Dark mode support
+- Panel animations
+
+---
+
+## Files to Create/Modify
+
+### 1. Audit Panel Component
+
+Create: `apps/extension/content/audit-panel.js`
+
+```javascript
+// apps/extension/content/audit-panel.js
+
+console.log("Brandalyze audit panel loaded");
+
+(function() {
+  "use strict";
+
+  let panelElement = null;
+  let isOpen = false;
+
+  /**
+   * Inject panel styles
+   */
+  function injectStyles() {
+    if (document.getElementById("brandalyze-panel-styles")) return;
+
+    const styles = document.createElement("style");
+    styles.id = "brandalyze-panel-styles";
+    styles.textContent = `
+      .brandalyze-panel-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10001;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .brandalyze-panel-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .brandalyze-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        max-width: 100vw;
+        height: 100vh;
+        background: rgb(255, 255, 255);
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        z-index: 10002;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .brandalyze-panel.open {
+        transform: translateX(0);
+      }
+
+      /* Dark mode */
+      .brandalyze-panel.dark {
+        background: rgb(21, 32, 43);
+        color: rgb(247, 249, 249);
+      }
+
+      .brandalyze-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgb(239, 243, 244);
+      }
+
+      .brandalyze-panel.dark .brandalyze-panel-header {
+        border-bottom-color: rgb(56, 68, 77);
+      }
+
+      .brandalyze-panel-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .brandalyze-panel-close {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+      }
+
+      .brandalyze-panel-close:hover {
+        background: rgb(239, 243, 244);
+      }
+
+      .brandalyze-panel.dark .brandalyze-panel-close:hover {
+        background: rgb(39, 51, 64);
+      }
+
+      .brandalyze-panel-close svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .brandalyze-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      /* Score Section */
+      .brandalyze-score-section {
+        text-align: center;
+        padding: 24px 0;
+        border-bottom: 1px solid rgb(239, 243, 244);
+        margin-bottom: 20px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-score-section {
+        border-bottom-color: rgb(56, 68, 77);
+      }
+
+      .brandalyze-score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .brandalyze-score-circle svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform: rotate(-90deg);
+      }
+
+      .brandalyze-score-circle .score-bg {
+        stroke: rgb(239, 243, 244);
+      }
+
+      .brandalyze-panel.dark .brandalyze-score-circle .score-bg {
+        stroke: rgb(56, 68, 77);
+      }
+
+      .brandalyze-score-circle .score-fill {
+        stroke-dasharray: 339.292;
+        stroke-dashoffset: 339.292;
+        transition: stroke-dashoffset 1s ease-out;
+      }
+
+      .brandalyze-score-value {
+        font-size: 36px;
+        font-weight: 700;
+        z-index: 1;
+      }
+
+      .brandalyze-score-label {
+        font-size: 14px;
+        color: rgb(83, 100, 113);
+      }
+
+      .brandalyze-panel.dark .brandalyze-score-label {
+        color: rgb(139, 152, 165);
+      }
+
+      .brandalyze-score-status {
+        margin-top: 8px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .brandalyze-score-status.excellent { color: rgb(0, 186, 124); }
+      .brandalyze-score-status.good { color: rgb(29, 155, 240); }
+      .brandalyze-score-status.needs-work { color: rgb(255, 173, 31); }
+      .brandalyze-score-status.poor { color: rgb(244, 33, 46); }
+
+      /* Metrics Grid */
+      .brandalyze-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .brandalyze-metric-card {
+        background: rgb(247, 249, 249);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-card {
+        background: rgb(39, 51, 64);
+      }
+
+      .brandalyze-metric-label {
+        font-size: 12px;
+        color: rgb(83, 100, 113);
+        margin-bottom: 4px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-label {
+        color: rgb(139, 152, 165);
+      }
+
+      .brandalyze-metric-value {
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .brandalyze-metric-bar {
+        height: 4px;
+        background: rgb(207, 217, 222);
+        border-radius: 2px;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-bar {
+        background: rgb(56, 68, 77);
+      }
+
+      .brandalyze-metric-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.5s ease-out;
+      }
+
+      /* Section Headers */
+      .brandalyze-section {
+        margin-bottom: 24px;
+      }
+
+      .brandalyze-section-header {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Deviations */
+      .brandalyze-deviation {
+        background: rgb(254, 249, 217);
+        border-left: 3px solid rgb(255, 173, 31);
+        border-radius: 0 8px 8px 0;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-deviation {
+        background: rgb(51, 45, 30);
+      }
+
+      .brandalyze-deviation-phrase {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .brandalyze-deviation-reason {
+        font-size: 13px;
+        color: rgb(83, 100, 113);
+        margin-bottom: 4px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-deviation-reason {
+        color: rgb(139, 152, 165);
+      }
+
+      .brandalyze-deviation-suggestion {
+        font-size: 13px;
+        color: rgb(0, 186, 124);
+      }
+
+      /* X Tips */
+      .brandalyze-tip {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        background: rgb(247, 249, 249);
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-tip {
+        background: rgb(39, 51, 64);
+      }
+
+      .brandalyze-tip-icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .brandalyze-tip-icon.success { background: rgb(209, 250, 229); color: rgb(0, 186, 124); }
+      .brandalyze-tip-icon.warning { background: rgb(254, 243, 199); color: rgb(255, 173, 31); }
+      .brandalyze-tip-icon.error { background: rgb(254, 226, 226); color: rgb(244, 33, 46); }
+      .brandalyze-tip-icon.info { background: rgb(219, 234, 254); color: rgb(29, 155, 240); }
+
+      .brandalyze-panel.dark .brandalyze-tip-icon.success { background: rgb(30, 70, 50); }
+      .brandalyze-panel.dark .brandalyze-tip-icon.warning { background: rgb(51, 45, 30); }
+      .brandalyze-panel.dark .brandalyze-tip-icon.error { background: rgb(70, 30, 30); }
+      .brandalyze-panel.dark .brandalyze-tip-icon.info { background: rgb(30, 50, 70); }
+
+      .brandalyze-tip-content {
+        flex: 1;
+      }
+
+      .brandalyze-tip-message {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .brandalyze-tip-impact {
+        font-size: 12px;
+        color: rgb(83, 100, 113);
+        margin-top: 4px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-tip-impact {
+        color: rgb(139, 152, 165);
+      }
+
+      /* Empty State */
+      .brandalyze-empty {
+        text-align: center;
+        padding: 24px;
+        color: rgb(83, 100, 113);
+      }
+
+      .brandalyze-panel.dark .brandalyze-empty {
+        color: rgb(139, 152, 165);
+      }
+
+      /* Panel Footer */
+      .brandalyze-panel-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgb(239, 243, 244);
+        display: flex;
+        gap: 12px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-panel-footer {
+        border-top-color: rgb(56, 68, 77);
+      }
+
+      .brandalyze-btn {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 9999px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border: none;
+      }
+
+      .brandalyze-btn-primary {
+        background: rgb(29, 155, 240);
+        color: white;
+      }
+
+      .brandalyze-btn-primary:hover {
+        background: rgb(26, 140, 216);
+      }
+
+      .brandalyze-btn-secondary {
+        background: transparent;
+        border: 1px solid rgb(207, 217, 222);
+        color: inherit;
+      }
+
+      .brandalyze-panel.dark .brandalyze-btn-secondary {
+        border-color: rgb(56, 68, 77);
+      }
+
+      .brandalyze-btn-secondary:hover {
+        background: rgb(239, 243, 244);
+      }
+
+      .brandalyze-panel.dark .brandalyze-btn-secondary:hover {
+        background: rgb(39, 51, 64);
+      }
+    `;
+    document.head.appendChild(styles);
+  }
+
+  /**
+   * Get score color based on value
+   */
+  function getScoreColor(score) {
+    if (score >= 80) return 'rgb(0, 186, 124)';      // Green
+    if (score >= 60) return 'rgb(29, 155, 240)';     // Blue
+    if (score >= 40) return 'rgb(255, 173, 31)';     // Yellow
+    return 'rgb(244, 33, 46)';                        // Red
+  }
+
+  /**
+   * Get score status text
+   */
+  function getScoreStatus(score) {
+    if (score >= 80) return { text: 'Excellent', class: 'excellent' };
+    if (score >= 60) return { text: 'Good', class: 'good' };
+    if (score >= 40) return { text: 'Needs Work', class: 'needs-work' };
+    return { text: 'Poor', class: 'poor' };
+  }
+
+  /**
+   * Detect dark mode
+   */
+  function isDarkMode() {
+    const bgColor = getComputedStyle(document.body).backgroundColor;
+    if (bgColor) {
+      const rgb = bgColor.match(/\d+/g);
+      if (rgb && rgb.length >= 3) {
+        const brightness = (Number.parseInt(rgb[0], 10) + Number.parseInt(rgb[1], 10) + Number.parseInt(rgb[2], 10)) / 3;
+        return brightness < 128;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Create the panel HTML
+   */
+  function createPanel(data) {
+    injectStyles();
+
+    const audit = data.audit || data;
+    const metrics = audit.metrics || {};
+    const score = Math.round(audit.score || 0);
+    const scoreStatus = getScoreStatus(score);
+    const scoreColor = getScoreColor(score);
+    const deviations = metrics.deviations || [];
+    const xOptimization = metrics.x_optimization || {};
+    const tips = xOptimization.tips || [];
+    const dark = isDarkMode();
+
+    // Calculate score circle offset
+    const circumference = 339.292;
+    const offset = circumference - (score / 100) * circumference;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'brandalyze-panel-overlay';
+    overlay.addEventListener('click', closePanel);
+
+    const panel = document.createElement('div');
+    panel.className = `brandalyze-panel${dark ? ' dark' : ''}`;
+    panel.innerHTML = `
+      <div class="brandalyze-panel-header">
+        <h2 class="brandalyze-panel-title">Audit Results</h2>
+        <button class="brandalyze-panel-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="brandalyze-panel-body">
+        <!-- Score Section -->
+        <div class="brandalyze-score-section">
+          <div class="brandalyze-score-circle">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle class="score-bg" cx="60" cy="60" r="54" fill="none" stroke-width="8"/>
+              <circle class="score-fill" cx="60" cy="60" r="54" fill="none" stroke-width="8" 
+                      stroke="${scoreColor}" stroke-linecap="round"
+                      style="stroke-dashoffset: ${offset}"/>
+            </svg>
+            <span class="brandalyze-score-value">${score}</span>
+          </div>
+          <div class="brandalyze-score-label">Brand Voice Score</div>
+          <div class="brandalyze-score-status ${scoreStatus.class}">${scoreStatus.text}</div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="brandalyze-metrics-grid">
+          ${createMetricCard('Tone Match', metrics.tone_match, getScoreColor(metrics.tone_match))}
+          ${createMetricCard('Vocabulary', metrics.vocabulary_consistency, getScoreColor(metrics.vocabulary_consistency))}
+          ${createMetricCard('Emotion', metrics.emotional_alignment, getScoreColor(metrics.emotional_alignment))}
+          ${createMetricCard('Style', 100 - (metrics.style_deviation || 0), getScoreColor(100 - (metrics.style_deviation || 0)))}
+        </div>
+
+        <!-- Deviations Section -->
+        ${deviations.length > 0 ? `
+          <div class="brandalyze-section">
+            <div class="brandalyze-section-header">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(255, 173, 31)" stroke-width="2">
+                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              Deviations Found
+            </div>
+            ${deviations.map(d => `
+              <div class="brandalyze-deviation">
+                <div class="brandalyze-deviation-phrase">"${escapeHtml(d.phrase || d.text || '')}"</div>
+                <div class="brandalyze-deviation-reason">${escapeHtml(d.reason || d.message || '')}</div>
+                ${d.suggestion ? `<div class="brandalyze-deviation-suggestion">Try: "${escapeHtml(d.suggestion)}"</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- X Algorithm Tips -->
+        ${tips.length > 0 ? `
+          <div class="brandalyze-section">
+            <div class="brandalyze-section-header">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              Algorithm Tips
+            </div>
+            ${tips.map(tip => `
+              <div class="brandalyze-tip">
+                <div class="brandalyze-tip-icon ${tip.type || 'info'}">
+                  ${getTipIcon(tip.type)}
+                </div>
+                <div class="brandalyze-tip-content">
+                  <div class="brandalyze-tip-message">${escapeHtml(tip.message)}</div>
+                  ${tip.impact ? `<div class="brandalyze-tip-impact">Impact: ${tip.impact}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${deviations.length === 0 && tips.length === 0 ? `
+          <div class="brandalyze-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 12px;">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>Great job! No issues found.</div>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="brandalyze-panel-footer">
+        <button class="brandalyze-btn brandalyze-btn-secondary" id="brandalyze-copy-results">
+          Copy Results
+        </button>
+        <button class="brandalyze-btn brandalyze-btn-primary" id="brandalyze-close-panel">
+          Done
+        </button>
+      </div>
+    `;
+
+    // Add event listeners
+    panel.querySelector('.brandalyze-panel-close').addEventListener('click', closePanel);
+    panel.querySelector('#brandalyze-close-panel').addEventListener('click', closePanel);
+    panel.querySelector('#brandalyze-copy-results').addEventListener('click', () => copyResults(data));
+
+    // Store references
+    panelElement = { overlay, panel };
+
+    return panelElement;
+  }
+
+  /**
+   * Create a metric card HTML
+   */
+  function createMetricCard(label, value, color) {
+    const displayValue = Math.round(value || 0);
+    return `
+      <div class="brandalyze-metric-card">
+        <div class="brandalyze-metric-label">${label}</div>
+        <div class="brandalyze-metric-value" style="color: ${color}">${displayValue}</div>
+        <div class="brandalyze-metric-bar">
+          <div class="brandalyze-metric-bar-fill" style="width: ${displayValue}%; background: ${color}"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Get icon for tip type
+   */
+  function getTipIcon(type) {
+    switch (type) {
+      case 'success':
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>';
+      case 'warning':
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01"/></svg>';
+      case 'error':
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>';
+      default:
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01"/></svg>';
+    }
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Copy results to clipboard
+   */
+  function copyResults(data) {
+    const audit = data.audit || data;
+    const metrics = audit.metrics || {};
+    const text = `Brand Voice Score: ${Math.round(audit.score || 0)}%
+Tone Match: ${Math.round(metrics.tone_match || 0)}%
+Vocabulary: ${Math.round(metrics.vocabulary_consistency || 0)}%
+Emotion: ${Math.round(metrics.emotional_alignment || 0)}%
+Style: ${Math.round(100 - (metrics.style_deviation || 0))}%`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('#brandalyze-copy-results');
+      if (btn) {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }
+    });
+  }
+
+  /**
+   * Open the panel with data
+   */
+  function openPanel(data) {
+    if (isOpen) {
+      closePanel();
+    }
+
+    const { overlay, panel } = createPanel(data);
+    document.body.appendChild(overlay);
+    document.body.appendChild(panel);
+
+    // Trigger animations
+    requestAnimationFrame(() => {
+      overlay.classList.add('visible');
+      panel.classList.add('open');
+    });
+
+    isOpen = true;
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * Close the panel
+   */
+  function closePanel() {
+    if (!panelElement || !isOpen) return;
+
+    const { overlay, panel } = panelElement;
+
+    overlay.classList.remove('visible');
+    panel.classList.remove('open');
+
+    setTimeout(() => {
+      overlay.remove();
+      panel.remove();
+      panelElement = null;
+    }, 300);
+
+    isOpen = false;
+
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }
+
+  // Expose API
+  globalThis.BrandalyzeAuditPanel = {
+    open: openPanel,
+    close: closePanel,
+    isOpen: () => isOpen
+  };
+
+})();
+```
+
+---
+
+### 2. Update Audit Button to Use Panel
+
+Modify: `apps/extension/content/audit-button.js`
+
+Update the `showAuditResults` function to use the panel:
+
+```javascript
+  /**
+   * Show audit results in panel
+   */
+  function showAuditResults(data) {
+    console.log('Audit results:', data);
+    
+    // Use the audit panel if available
+    if (globalThis.BrandalyzeAuditPanel) {
+      globalThis.BrandalyzeAuditPanel.open(data);
+    } else {
+      // Fallback to simple notification
+      const score = data?.audit?.score || data?.score || 0;
+      alert(`Brand Voice Score: ${Math.round(score)}%`);
+    }
+  }
+```
+
+---
+
+### 3. Update manifest.json
+
+Add the audit panel script to content scripts:
+
+```json
+{
+  "content_scripts": [
+    {
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "js": [
+        "content/shared.js",
+        "content/compose-detector.js",
+        "content/audit-button.js",
+        "content/audit-panel.js",
+        "content/compose-observer.js",
+        "content/twitter.js"
+      ],
+      "css": [],
+      "run_at": "document_idle"
+    }
+  ]
+}
+```
+
+Note: `audit-panel.js` must load before `compose-observer.js` so the panel API is available.
+
+---
+
+## Testing Checklist
+
+### Visual Tests
+- [X] Panel slides in smoothly from right
+- [X] Overlay darkens background
+- [X] Score circle animates on open
+- [X] Metric bars animate fill
+- [ ] Dark mode matches X's dark theme
+- [X] Light mode matches X's light theme
+- [X] Close button works (X icon)
+- [X] Clicking overlay closes panel
+- [X] "Done" button closes panel
+
+### Content Tests
+- [X] Score displays correctly (0-100)
+- [ ] Score color matches range (green/blue/yellow/red)
+- [ ] Status text matches score range
+- [ ] All 4 metrics display with correct values
+- [ ] Deviations section shows when present
+- [ ] Deviations hidden when empty
+- [ ] X Tips section shows when present
+- [ ] Tips hidden when empty
+- [ ] "No issues" message shows when both empty
+
+### Interaction Tests
+- [ ] "Copy Results" copies formatted text
+- [ ] "Copied!" feedback appears
+- [ ] Panel doesn't close when clicking inside it
+- [ ] Body scroll is locked when panel open
+- [ ] Body scroll restored when panel closes
+- [ ] ESC key closes panel (optional enhancement)
+
+### Edge Cases
+- [ ] Very long deviation text wraps correctly
+- [ ] Many deviations scroll properly
+- [ ] Panel works on different screen sizes
+- [ ] Panel works with X's various layouts
+
+---
+
+## Console Debugging
+
+```javascript
+// Test panel manually
+BrandalyzeAuditPanel.open({
+  audit: {
+    score: 75,
+    metrics: {
+      tone_match: 80,
+      vocabulary_consistency: 70,
+      emotional_alignment: 75,
+      style_deviation: 20,
+      deviations: [
+        { phrase: "synergy", reason: "Corporate jargon", suggestion: "collaboration" }
+      ],
+      x_optimization: {
+        tips: [
+          { type: "success", message: "Good use of media", impact: "positive" },
+          { type: "warning", message: "Consider adding a question", impact: "medium" }
+        ]
+      }
+    }
+  }
+});
+
+// Close panel
+BrandalyzeAuditPanel.close();
+
+// Check if open
+BrandalyzeAuditPanel.isOpen();
+```
+
+---
+
+## Next Steps
+
+After completing Step 2.3:
+
+1. **Step 2.4: API Integration Polish** - Error handling, retry logic, loading states
+2. **Phase 3: Frontend Dashboard** - Audit history, analytics, drift alerts
+3. **Phase 4: Advanced Features** - Rewrite engine, inline suggestions
+
+---
+
+## Troubleshooting
+
+### Panel Not Appearing
+1. Check console for errors
+2. Verify `audit-panel.js` is loaded before `compose-observer.js`
+3. Check `globalThis.BrandalyzeAuditPanel` exists
+
+### Styling Issues
+1. Check for CSS conflicts with X's styles
+2. Verify dark mode detection is working
+3. Use browser dev tools to inspect computed styles
+
+### Animation Issues
+1. Check `transform` and `opacity` transitions
+2. Verify `requestAnimationFrame` is triggering
+3. Check for conflicting CSS animations

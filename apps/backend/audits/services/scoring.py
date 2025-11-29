@@ -2,8 +2,9 @@ from typing import Dict, List, Optional
 import re
 from collections import Counter
 from brands.models import Brand, BrandSample
-from ai_core.embeddings import EmbeddingGenerator, cosine_similarity, calculate_brand_alignment_score
+from packages.ai_core.embeddings import EmbeddingGenerator, cosine_similarity, calculate_brand_alignment_score
 from django.conf import settings
+import openai
 
 class BrandVoiceScorer:
     """
@@ -136,40 +137,39 @@ class BrandVoiceScorer:
     
     def _calculate_emotional_score(self, content: str, brand_samples) -> float:
         """
-        Analyze emotional tone alignment
-        Simple sentiment matching
+        Analyze emotional tone alignment using embeddings
+        Compares emotional context via semantic similarity
         """
-        # Positive/negative word lists (simplified)
-        positive_words = {
-            'great', 'excellent', 'amazing', 'love', 'best', 'awesome',
-            'fantastic', 'wonderful', 'perfect', 'brilliant', 'outstanding'
-        }
-        negative_words = {
-            'bad', 'terrible', 'awful', 'worst', 'hate', 'horrible',
-            'poor', 'disappointing', 'weak', 'fail', 'failure'
-        }
+        # Generate embedding for the content's emotional context
+        # We prepend an emotional framing prompt to focus the embedding
+        emotional_prompt = f"The emotional tone and feeling of this text: {content}"
+        content_emotion_embedding = self.embedding_generator.generate_embedding(emotional_prompt)
         
-        def get_sentiment(text: str) -> float:
-            """Returns sentiment score: positive values = positive, negative = negative"""
-            words = re.findall(r'\b\w+\b', text.lower())
-            pos_count = sum(1 for w in words if w in positive_words)
-            neg_count = sum(1 for w in words if w in negative_words)
-            total = pos_count + neg_count
-            if total == 0:
-                return 0  # Neutral
-            return (pos_count - neg_count) / total
+        if not content_emotion_embedding:
+            return 50.0  # Neutral fallback
         
-        content_sentiment = get_sentiment(content)
+        # Generate emotional embeddings for brand samples
+        brand_emotion_embeddings = []
+        for sample in brand_samples:
+            sample_prompt = f"The emotional tone and feeling of this text: {sample.text}"
+            sample_embedding = self.embedding_generator.generate_embedding(sample_prompt)
+            if sample_embedding:
+                brand_emotion_embeddings.append(sample_embedding)
         
-        # Average sentiment of brand samples
-        brand_sentiments = [get_sentiment(sample.text) for sample in brand_samples]
-        avg_brand_sentiment = sum(brand_sentiments) / len(brand_sentiments) if brand_sentiments else 0
+        if not brand_emotion_embeddings:
+            return 50.0  # Neutral fallback
         
-        # Calculate alignment (closer sentiments = higher score)
-        sentiment_diff = abs(content_sentiment - avg_brand_sentiment)
-        score = (1 - sentiment_diff) * 100
+        # Calculate average similarity
+        similarities = [
+            cosine_similarity(content_emotion_embedding, brand_emb)
+            for brand_emb in brand_emotion_embeddings
+        ]
+        avg_similarity = sum(similarities) / len(similarities)
         
-        return min(100, max(0, score))
+        # Convert from [-1, 1] to [0, 100]
+        score = (avg_similarity + 1) * 50
+        
+        return min(100, max(0, round(score, 2)))
     
     def _calculate_style_score(self, content: str, brand_samples) -> float:
         """
@@ -255,3 +255,56 @@ class BrandVoiceScorer:
                     })
         
         return deviations
+
+    def generate_ai_feedback(self, content: str, platform: str = 'twitter') -> Optional[str]:
+        """
+        Generate AI feedback for post optimization
+        Focuses on X algorithm best practices (November 2025 update)
+        """
+        if platform != 'twitter':
+            return None
+        
+        try:
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            prompt = f"""Analyze this X/Twitter post for algorithm optimization. Be concise and actionable.
+
+POST:
+{content}
+
+Evaluate these 3 key metrics for the November 2025 X algorithm:
+
+1. HOOK (first line): Does it grab attention immediately? Is it a strong one-liner that makes people stop scrolling?
+
+2. BODY: Is the content valuable, authentic, and engaging? Does it provide insight, tell a story, or share something relatable?
+
+3. CLOSER: Does it end with something that drives engagement? (question, call to discussion, provocative statement, or clear takeaway)
+
+Format your response as:
+HOOK: [score /10] - [brief feedback]
+BODY: [score /10] - [brief feedback]  
+CLOSER: [score /10] - [brief feedback]
+
+SUGGESTION: [One specific actionable improvement]"""
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an X/Twitter algorithm expert. Give brief, actionable feedback. No fluff."
+                    },
+                    {
+                        "role": "user", 
+                        "content": prompt
+                    }
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            print(f"Error generating AI feedback: {e}")
+            return None

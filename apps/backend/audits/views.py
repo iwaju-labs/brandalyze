@@ -96,9 +96,13 @@ def analyze_post(request):
         
         # X algorithm check (only for twitter)
         x_optimization = None
+        ai_feedback = None
         if platform == 'twitter':
             x_checker = XAlgorithmChecker()
             x_optimization = x_checker.analyze(content, context_data)
+            
+            # Generate AI feedback for X posts
+            ai_feedback = scorer.generate_ai_feedback(content, platform)
         
         # Save audit in a transaction
         with transaction.atomic():
@@ -121,7 +125,8 @@ def analyze_post(request):
                 emotional_alignment=score_result['breakdown']['emotional_alignment'],
                 style_deviation=score_result['breakdown']['style_deviation'],
                 deviations=deviations,
-                x_optimization=x_optimization
+                x_optimization=x_optimization,
+                ai_feedback=ai_feedback
             )
             
             # Increment usage count
