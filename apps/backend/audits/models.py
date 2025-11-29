@@ -165,9 +165,12 @@ class AuditUsage(models.Model):
 
         subscription = getattr(user, 'subscription', None)
         if not subscription:
-            subscription = UserSubscription.objects.create(user=user)
+            try:
+                subscription = UserSubscription.objects.get(user=user)
+            except UserSubscription.DoesNotExist:
+                subscription = UserSubscription.objects.create(user=user)
 
-        if subscription.tier in ['pro', 'enterprise']:
+        if subscription.is_active and subscription.tier in ['pro', 'enterprise']:
             return True, None
         
         return False, 0
