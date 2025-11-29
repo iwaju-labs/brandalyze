@@ -423,7 +423,7 @@ def analyze_profile_voice(request):
         from brands.models import Brand, BrandSample
         
         brand_name = f"@{handle} ({platform})"
-        brand, created = Brand.objects.update_or_create(
+        brand, _ = Brand.objects.update_or_create(
             user=request.user,
             name=brand_name,
             defaults={
@@ -436,9 +436,10 @@ def analyze_profile_voice(request):
         if voice_summary:
             import json
             sample_text = json.dumps(voice_summary, indent=2)
+            file_ref = f"{platform}_profile_voice_{handle}"
             BrandSample.objects.update_or_create(
                 brand=brand,
-                source_name=f"{platform}_profile_voice",
+                file_ref=file_ref,
                 defaults={
                     'text': sample_text,
                     'file_type': 'txt'

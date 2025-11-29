@@ -199,23 +199,55 @@ console.log("Brandalyze audit button loaded");
   }
 
   /**
-   * Position button near compose field
+   * Position button near compose field, avoiding overlap with platform buttons
    */
   function positionButton(button, composeField) {
     if (!composeField || !composeField.element) return;
 
     const rect = composeField.element.getBoundingClientRect();
-    const buttonWidth = 120;
+    const buttonWidth = button.offsetWidth || 120;
     const buttonHeight = 36;
-    const margin = 10;
+    const margin = 12;
 
-    // Position below the compose field, right-aligned
-    let top = rect.bottom + margin;
-    let left = rect.right - buttonWidth;
+    // Find the compose container/dialog to position relative to
+    const container = composeField.element.closest('[role="dialog"], [data-testid="tweetButtonInline"], .share-box, form') 
+                   || composeField.element.parentElement;
+    
+    // Find X/Twitter's Post button to avoid overlap
+    const postButton = container?.querySelector('[data-testid="tweetButton"], [data-testid="tweetButtonInline"]');
+    const replyButton = container?.querySelector('[data-testid="replyButton"]');
+    const platformButton = postButton || replyButton;
+    
+    let top, left;
+    
+    if (platformButton) {
+      // Position to the left of the Post/Reply button
+      const btnRect = platformButton.getBoundingClientRect();
+      top = btnRect.top + (btnRect.height - buttonHeight) / 2; // Vertically center with Post button
+      left = btnRect.left - buttonWidth - margin;
+      
+      // If too far left, position above the compose area instead
+      if (left < margin) {
+        top = rect.top - buttonHeight - margin;
+        left = rect.right - buttonWidth;
+      }
+    } else {
+      // Fallback: position above compose field, right-aligned
+      top = rect.top - buttonHeight - margin;
+      left = rect.right - buttonWidth;
+      
+      // If no room above, position below
+      if (top < margin) {
+        top = rect.bottom + margin;
+      }
+    }
 
     // Ensure button stays within viewport
     if (top + buttonHeight > window.innerHeight) {
-      top = rect.top - buttonHeight - margin;
+      top = window.innerHeight - buttonHeight - margin;
+    }
+    if (top < margin) {
+      top = margin;
     }
     if (left < margin) {
       left = margin;
@@ -227,6 +259,29 @@ console.log("Brandalyze audit button loaded");
     button.style.top = `${top}px`;
     button.style.left = `${left}px`;
   }
+
+  /**
+   * Handle scroll/resize to reposition button
+   */
+  function handleReposition() {
+    if (auditButton && currentComposeField) {
+      positionButton(auditButton, currentComposeField);
+    }
+  }
+
+  // Throttled reposition for performance
+  let repositionTimeout = null;
+  function throttledReposition() {
+    if (repositionTimeout) return;
+    repositionTimeout = setTimeout(() => {
+      handleReposition();
+      repositionTimeout = null;
+    }, 16); // ~60fps
+  }
+
+  // Add scroll/resize listeners
+  window.addEventListener('scroll', throttledReposition, true);
+  window.addEventListener('resize', throttledReposition);
 
   /**
    * Show the audit button
@@ -259,22 +314,48 @@ console.log("Brandalyze audit button loaded");
   }
 
   /**
-   * Hide the audit button
+   * Hide the audit button immediately or with animation
    */
-  function hideButton() {
+  function hideButton(immediate = false) {
     if (!auditButton || isAnalyzing) return;
 
-    auditButton.classList.remove("brandalyze-audit-btn-visible");
-    auditButton.classList.add("brandalyze-audit-btn-enter");
+    if (immediate) {
+      // Immediate removal without animation
+      auditButton.remove();
+      auditButton = null;
+      currentComposeField = null;
+    } else {
+      // Animated removal
+      auditButton.classList.remove("brandalyze-audit-btn-visible");
+      auditButton.classList.add("brandalyze-audit-btn-enter");
 
-    setTimeout(() => {
-      if (auditButton && !isAnalyzing) {
-        auditButton.remove();
-        auditButton = null;
-        currentComposeField = null;
-      }
-    }, 200);
+      setTimeout(() => {
+        if (auditButton && !isAnalyzing) {
+          auditButton.remove();
+          auditButton = null;
+          currentComposeField = null;
+        }
+      }, 150); // Reduced from 200ms
+    }
   }
+
+  // Watch for compose dialog closing
+  const dialogObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.removedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Check if a dialog or compose container was removed
+          if (node.matches?.('[role="dialog"]') || 
+              node.querySelector?.('[data-testid="tweetTextarea_0"]')) {
+            hideButton(true); // Immediate hide
+          }
+        }
+      }
+    }
+  });
+
+  // Start observing for dialog removals
+  dialogObserver.observe(document.body, { childList: true, subtree: true });
 
   /**
    * Handle audit button click
