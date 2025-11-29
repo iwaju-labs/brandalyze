@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
@@ -7,6 +7,8 @@ from django.db import transaction
 from brands.authentication import ClerkAuthentication
 from brands.permissions import ClerkAuthenticated
 from brands.models import Brand
+from extensions.views import ExtensionTokenAuthentication
+from analysis.models import UserSubscription
 from .models import PostAudit, AuditMetrics, DriftAlert, AuditUsage
 from .serializers import (
     PostAuditSerializer,
@@ -18,7 +20,8 @@ from .services import BrandVoiceScorer, XAlgorithmChecker
 
 
 @api_view(['POST'])
-@permission_classes([ClerkAuthenticated])
+@authentication_classes([ExtensionTokenAuthentication, ClerkAuthentication])
+@permission_classes([])  # Authentication handled by either token or Clerk
 def analyze_post(request):
     """
     Analyze a post for brand voice alignment
@@ -31,15 +34,13 @@ def analyze_post(request):
         "context": {"has_media": true}
     }
     """
-    # Check if user can perform audit (Pro/Enterprise only)
-    can_audit, remaining = AuditUsage.can_perform_audit(request.user)
-    
-    if not can_audit:
+    # Check subscription - same pattern as profile analysis
+    subscription = UserSubscription.objects.filter(user=request.user).first()
+    if not subscription or subscription.tier == 'free':
         return Response(
             {
-                'error': 'Audits are a Pro feature. Upgrade to access unlimited post audits.',
-                'code': 'UPGRADE_REQUIRED',
-                'remaining': remaining
+                'error': 'Post audits require a Pro or Enterprise subscription.',
+                'code': 'UPGRADE_REQUIRED'
             },
             status=status.HTTP_403_FORBIDDEN
         )

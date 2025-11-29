@@ -1411,7 +1411,11 @@ async function handlePostAudit(auditData) {
 
         if (!retryResponse.ok) {
           const errorData = await retryResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || `Audit failed: ${retryResponse.status}`);
+          const errorMessage = errorData.error || 
+                              errorData.message || 
+                              errorData.detail ||
+                              (typeof errorData === 'string' ? errorData : JSON.stringify(errorData));
+          throw new Error(errorMessage || `Audit failed: ${retryResponse.status}`);
         }
 
         return await retryResponse.json();
@@ -1423,12 +1427,20 @@ async function handlePostAudit(auditData) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       
+      console.error("Audit API error:", response.status, errorData);
+      
       // Handle upgrade required
       if (errorData.code === 'UPGRADE_REQUIRED') {
         throw new Error('Post audits require a Pro subscription. Please upgrade to continue.');
       }
       
-      throw new Error(errorData.error || `Audit failed: ${response.status}`);
+      // Extract error message from various possible structures
+      const errorMessage = errorData.error || 
+                          errorData.message || 
+                          errorData.detail ||
+                          (typeof errorData === 'string' ? errorData : JSON.stringify(errorData));
+      
+      throw new Error(errorMessage || `Audit failed: ${response.status}`);
     }
 
     return await response.json();

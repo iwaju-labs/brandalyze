@@ -159,18 +159,11 @@ class AuditUsage(models.Model):
     
     @classmethod
     def can_perform_audit(cls, user):
-        """Check if the user can perform another audit (reuses DailyUsage pattern)"""
+        """Check if the user can perform another audit"""
         from analysis.models import UserSubscription
-        from django.utils import timezone
 
-        subscription = getattr(user, 'subscription', None)
-        if not subscription:
-            try:
-                subscription = UserSubscription.objects.get(user=user)
-            except UserSubscription.DoesNotExist:
-                subscription = UserSubscription.objects.create(user=user)
-
-        if subscription.is_active and subscription.tier in ['pro', 'enterprise']:
+        subscription = UserSubscription.objects.filter(user=user).first()
+        if subscription and subscription.tier in ['pro', 'enterprise']:
             return True, None
         
         return False, 0

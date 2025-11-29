@@ -285,16 +285,6 @@ console.log("Brandalyze audit button loaded");
 
     if (!currentComposeField || isAnalyzing) return;
 
-    // Check subscription access first
-    const hasAccess =
-      await globalThis.BrandalyzeUtils?.checkSubscriptionAccess();
-    if (!hasAccess) {
-      alert(
-        "Post audits require a Pro or Enterprise subscription. Upgrade to access this feature."
-      );
-      return;
-    }
-
     // Extract content
     const content =
       globalThis.BrandalyzeComposeDetector?.extractContent(currentComposeField);
