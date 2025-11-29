@@ -27,27 +27,29 @@ console.log("compose detector script loaded successfully");
    */
   function detectPlatform() {
     const hostname = globalThis.location.hostname;
-    if (
-      hostname.includes("www.twitter.com") ||
-      hostname.includes("www.x.com")
-    ) {
+    if (hostname.includes("twitter.com") || hostname.includes("x.com")) {
       return "twitter";
-    } // add more
-
+    }
+    if (hostname.includes("linkedin.com")) {
+      return "linkedin";
+    }
+    if (hostname.includes("instagram.com")) {
+      return "instagram";
+    }
     return null;
   }
 
   function isValidComposeField(element, platform) {
     if (!element) return false;
 
-    if (platform === twitter) {
+    if (platform === "twitter") {
       const isDM =
         element.closest('[data-testid="conversation"]') ||
         element.matches(COMPOSE_SELECTORS.twitter.dm);
       if (isDM) return false;
     }
 
-    // other platforms
+    return true;
   }
 
   /**
@@ -144,7 +146,7 @@ console.log("compose detector script loaded successfully");
     }
 
     if (contextSelectors.thread) {
-      context.is_thread = !!container.querySelctor(contextSelectors.thread);
+      context.is_thread = !!container.querySelector(contextSelectors.thread);
     }
 
     if (contextSelectors.poll) {

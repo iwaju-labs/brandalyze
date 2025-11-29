@@ -40,6 +40,25 @@ console.log("Brandalyze audit button loaded");
   };
 
   /**
+   * Detect if X/Twitter is in dark mode
+   */
+  function isDarkMode() {
+    // X uses background color to indicate theme
+    const bgColor = getComputedStyle(document.body).backgroundColor;
+    if (bgColor) {
+      const rgb = bgColor.match(/\d+/g);
+      if (rgb && rgb.length >= 3) {
+        const brightness = (Number.parseInt(rgb[0], 10) + Number.parseInt(rgb[1], 10) + Number.parseInt(rgb[2], 10)) / 3;
+        return brightness < 128;
+      }
+    }
+    // Fallback: check for dark mode class or data attribute
+    return document.documentElement.style.colorScheme === 'dark' ||
+           document.body.classList.contains('dark') ||
+           document.querySelector('[data-theme="dark"]') !== null;
+  }
+
+  /**
    * Inject required CSS styles
    */
   function injectStyles() {
@@ -52,51 +71,79 @@ console.log("Brandalyze audit button loaded");
         position: fixed;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        padding: 8px 14px;
-        border-radius: 20px;
-        border: none;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 0 16px;
+        height: 36px;
+        border-radius: 9999px;
+        font-size: 15px;
+        font-weight: 700;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         cursor: pointer;
         z-index: 10000;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s ease;
+        border: none;
+        min-width: 100px;
       }
 
-      .brandalyze-audit-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      }
-
-      .brandalyze-audit-btn:active {
-        transform: translateY(0);
-      }
-
-      .brandalyze-audit-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-      }
-
+      /* Light mode (default) */
       .brandalyze-audit-idle {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
+        background-color: rgb(29, 155, 240);
+        color: rgb(255, 255, 255);
+      }
+      .brandalyze-audit-idle:hover {
+        background-color: rgb(26, 140, 216);
       }
 
       .brandalyze-audit-analyzing {
-        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-        color: white;
+        background-color: rgb(29, 155, 240);
+        color: rgb(255, 255, 255);
+        opacity: 0.8;
       }
 
       .brandalyze-audit-success {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
+        background-color: rgb(0, 186, 124);
+        color: rgb(255, 255, 255);
+      }
+      .brandalyze-audit-success:hover {
+        background-color: rgb(0, 166, 111);
       }
 
       .brandalyze-audit-error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white;
+        background-color: rgb(244, 33, 46);
+        color: rgb(255, 255, 255);
+      }
+      .brandalyze-audit-error:hover {
+        background-color: rgb(220, 30, 41);
+      }
+
+      /* Dark mode variants */
+      .brandalyze-dark .brandalyze-audit-idle {
+        background-color: rgb(239, 243, 244);
+        color: rgb(15, 20, 25);
+      }
+      .brandalyze-dark .brandalyze-audit-idle:hover {
+        background-color: rgb(215, 219, 220);
+      }
+
+      .brandalyze-dark .brandalyze-audit-analyzing {
+        background-color: rgb(239, 243, 244);
+        color: rgb(15, 20, 25);
+        opacity: 0.8;
+      }
+
+      .brandalyze-dark .brandalyze-audit-success {
+        background-color: rgb(0, 186, 124);
+        color: rgb(255, 255, 255);
+      }
+
+      .brandalyze-dark .brandalyze-audit-error {
+        background-color: rgb(244, 33, 46);
+        color: rgb(255, 255, 255);
+      }
+
+      .brandalyze-audit-btn:disabled {
+        cursor: not-allowed;
       }
 
       .brandalyze-spin {
@@ -110,12 +157,12 @@ console.log("Brandalyze audit button loaded");
 
       .brandalyze-audit-btn-enter {
         opacity: 0;
-        transform: translateY(10px) scale(0.95);
+        transform: scale(0.95);
       }
 
       .brandalyze-audit-btn-visible {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: scale(1);
       }
     `;
     document.head.appendChild(styles);
@@ -192,6 +239,13 @@ console.log("Brandalyze audit button loaded");
     if (!auditButton) {
       auditButton = createButton();
       document.body.appendChild(auditButton);
+    }
+
+    // Apply dark mode class based on current theme
+    if (isDarkMode()) {
+      auditButton.classList.add("brandalyze-dark");
+    } else {
+      auditButton.classList.remove("brandalyze-dark");
     }
 
     positionButton(auditButton, composeField);

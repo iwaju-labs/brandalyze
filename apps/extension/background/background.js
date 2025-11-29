@@ -469,6 +469,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
       return true;
 
+    case "auditPost":
+      handlePostAudit(request.data)
+        .then((response) => sendResponse({ success: true, data: response }))
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message })
+        );
+      return true;
+
     case "openBrandalyzeApp":
       openBrandalyzeApp()
         .then(() => sendResponse({ success: true }))
@@ -1333,6 +1341,99 @@ async function handleContentAlignmentAnalysis(analysisData) {
     return data.data || data;
   } catch (error) {
     console.error("Content alignment analysis error:", error);
+    throw error;
+  }
+}
+
+// Post audit handler
+async function handlePostAudit(auditData) {
+  try {
+    // Ensure authentication
+    await checkClerkAuth();
+    
+    if (!authState.isAuthenticated) {
+      throw new Error("Please sign in to Brandalyze first");
+    }
+
+    // Determine auth header
+    const useExtensionToken = authState.extensionToken && authState.userInfo;
+    const authHeader = useExtensionToken
+      ? `ExtensionToken ${authState.extensionToken}`
+      : `Bearer ${authState.clerkToken}`;
+
+    // Map platform names
+    const platformMap = {
+      'twitter': 'twitter',
+      'x': 'twitter',
+      'linkedin': 'linkedin',
+      'instagram': 'other'  // Instagram not fully supported yet
+    };
+
+    const requestBody = {
+      content: auditData.content,
+      platform: platformMap[auditData.platform] || 'other',
+      context: auditData.context || {}
+    };
+
+    // Call the audit API
+    const response = await fetch(
+      `${authState.currentApiUrl}/audits/analyze/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    // Handle 401 with retry
+    if (response.status === 401) {
+      await checkClerkAuth();
+      
+      if (authState.isAuthenticated) {
+        const retryHeader = authState.extensionToken
+          ? `ExtensionToken ${authState.extensionToken}`
+          : `Bearer ${authState.clerkToken}`;
+
+        const retryResponse = await fetch(
+          `${authState.currentApiUrl}/audits/analyze/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: retryHeader,
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        if (!retryResponse.ok) {
+          const errorData = await retryResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Audit failed: ${retryResponse.status}`);
+        }
+
+        return await retryResponse.json();
+      }
+      
+      throw new Error("Authentication failed. Please sign in again.");
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      // Handle upgrade required
+      if (errorData.code === 'UPGRADE_REQUIRED') {
+        throw new Error('Post audits require a Pro subscription. Please upgrade to continue.');
+      }
+      
+      throw new Error(errorData.error || `Audit failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Post audit error:", error);
     throw error;
   }
 }
