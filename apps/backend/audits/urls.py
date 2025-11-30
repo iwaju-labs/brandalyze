@@ -11,6 +11,9 @@ urlpatterns = [
     path('history/', views.audit_history, name='history'),
     path('<int:audit_id>/', views.audit_detail, name='detail'),
     
+    # Analytics
+    path('analytics/', views.analytics, name='analytics'),
+    
     # Drift alerts
     path('drift-alerts/', views.drift_alerts, name='drift-alerts'),
     path('drift-alerts/<int:alert_id>/acknowledge/', views.acknowledge_alert, name='acknowledge-alert'),

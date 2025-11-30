@@ -43,7 +43,9 @@ const pricingTiers = [
       "Advanced AI insights",
       "Access to the browser extension",
       "Social-media profile analysis",
-      "Results saved to extension storage",
+      "Audit history dashboard",
+      "Analytics and trends",
+      "Export results to CSV/JSON",
       "Priority support",
       "7-day free trial",
     ],
@@ -54,8 +56,8 @@ const pricingTiers = [
   },
   {
     name: "Enterprise",
-    price: 49,
-    billing: "month",
+    price: null,
+    billing: null,
     description: "For large teams and organizations",
     features: [
       "Unlimited analyses",
@@ -67,9 +69,9 @@ const pricingTiers = [
       "Export results to CSV/JSON/PDF",
       "Everything in previous tiers",
     ],
-    buttonText: "Get Started",
+    buttonText: "Contact Us",
     popular: false,
-    stripeId: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID,
+    stripeId: null,
     icon: Building07,
   },
 ];
@@ -244,12 +246,20 @@ export default function PricingPage() {
                   </h3>
 
                   <div className="mb-3">
-                    <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                      ${tier.price}
-                    </span>
-                    {tier.price > 0 && (
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">
-                        /{tier.billing}
+                    {tier.price !== null ? (
+                      <>
+                        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                          ${tier.price}
+                        </span>
+                        {tier.price > 0 && tier.billing && (
+                          <span className="text-gray-600 dark:text-gray-300 text-sm">
+                            /{tier.billing}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Custom Pricing
                       </span>
                     )}
                   </div>
@@ -269,13 +279,21 @@ export default function PricingPage() {
                   ))}
                 </ul>{" "}
                 <button
-                  onClick={() =>
-                    tier.name === "Pro"
-                      ? hasUsedTrial
-                        ? handleSubscribe(tier)
-                        : startTrial()
-                      : handleSubscribe(tier)
-                  }
+                  onClick={() => {
+                    if (tier.name === "Enterprise") {
+                      window.location.href = "mailto:dom@brandalyze.io?subject=Enterprise%20Plan%20Inquiry";
+                      return;
+                    }
+                    if (tier.name === "Pro") {
+                      if (hasUsedTrial) {
+                        handleSubscribe(tier);
+                      } else {
+                        startTrial();
+                      }
+                    } else {
+                      handleSubscribe(tier);
+                    }
+                  }}
                   disabled={
                     isLoading === tier.name ||
                     isLoading === "trial" ||
@@ -313,18 +331,31 @@ export default function PricingPage() {
                           <Laptop02 className="w-4 h-4 mr-2" />
                           {tier.buttonText}
                         </>
+                      ) : tier.name === "Enterprise" ? (
+                        <>
+                          <Building07 className="w-4 h-4 mr-2" />
+                          {tier.buttonText}
+                        </>
                       ) : (
                         <>
                           <CreditCard02 className="w-4 h-4 mr-2" />
-                          {tier.name === "Pro" && hasUsedTrial
-                            ? "Get Started"
-                            : tier.buttonText}
+                          {hasUsedTrial ? "Subscribe Now" : tier.buttonText}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       )}
                     </>
                   )}
                 </button>
+                {tier.name === "Pro" && !hasUsedTrial && isSignedIn && (
+                  <button
+                    onClick={() => handleSubscribe(tier)}
+                    disabled={isLoading === tier.name}
+                    className="w-full mt-2 py-2 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <CreditCard02 className="w-4 h-4 mr-2" />
+                    Skip Trial, Subscribe Now
+                  </button>
+                )}
               </div>
             );
           })}

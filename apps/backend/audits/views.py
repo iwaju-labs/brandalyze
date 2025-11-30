@@ -296,6 +296,158 @@ def usage_stats(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([ClerkAuthenticated])
+def analytics(request):
+    """
+    Get analytics data for the user's audits
+    
+    GET /api/audits/analytics?days=30&brand_id=1
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Avg, Count, Min, Max
+    from django.db.models.functions import TruncDate
+    
+    # Parse query params
+    days = request.query_params.get('days', 30)
+    try:
+        days = int(days)
+        days = min(days, 90)  # Max 90 days
+    except ValueError:
+        days = 30
+    
+    brand_id = request.query_params.get('brand_id')
+    
+    # Date range
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+    
+    # Base queryset
+    audits = PostAudit.objects.filter(
+        user=request.user,
+        created_at__gte=start_date
+    )
+    
+    if brand_id:
+        try:
+            audits = audits.filter(brand_id=int(brand_id))
+        except ValueError:
+            pass
+    
+    # Overall stats
+    overall_stats = audits.aggregate(
+        total_audits=Count('id'),
+        avg_score=Avg('score'),
+        min_score=Min('score'),
+        max_score=Max('score')
+    )
+    
+    # Score trend over time (daily averages)
+    score_trend = list(
+        audits.annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(
+            avg_score=Avg('score'),
+            count=Count('id')
+        )
+        .order_by('date')
+    )
+    
+    # Platform breakdown
+    platform_stats = list(
+        audits.values('platform')
+        .annotate(
+            count=Count('id'),
+            avg_score=Avg('score')
+        )
+        .order_by('-count')
+    )
+    
+    # Score distribution (buckets: 0-20, 20-40, 40-60, 60-80, 80-100)
+    score_distribution = {
+        '0-20': audits.filter(score__lt=20).count(),
+        '20-40': audits.filter(score__gte=20, score__lt=40).count(),
+        '40-60': audits.filter(score__gte=40, score__lt=60).count(),
+        '60-80': audits.filter(score__gte=60, score__lt=80).count(),
+        '80-100': audits.filter(score__gte=80).count(),
+    }
+    
+    # Brand breakdown (if no specific brand filter)
+    brand_stats = []
+    if not brand_id:
+        brand_stats = list(
+            audits.values('brand__id', 'brand__name')
+            .annotate(
+                count=Count('id'),
+                avg_score=Avg('score')
+            )
+            .order_by('-count')[:10]
+        )
+    
+    # Recent performance (last 7 days vs previous 7 days)
+    seven_days_ago = end_date - timedelta(days=7)
+    fourteen_days_ago = end_date - timedelta(days=14)
+    
+    recent_avg = audits.filter(created_at__gte=seven_days_ago).aggregate(
+        avg=Avg('score')
+    )['avg'] or 0
+    
+    previous_avg = audits.filter(
+        created_at__gte=fourteen_days_ago,
+        created_at__lt=seven_days_ago
+    ).aggregate(avg=Avg('score'))['avg'] or 0
+    
+    trend_direction = 'up' if recent_avg > previous_avg else ('down' if recent_avg < previous_avg else 'stable')
+    trend_change = recent_avg - previous_avg
+    
+    return Response({
+        'period': {
+            'days': days,
+            'start_date': start_date.date().isoformat(),
+            'end_date': end_date.date().isoformat()
+        },
+        'overall': {
+            'total_audits': overall_stats['total_audits'] or 0,
+            'avg_score': round(overall_stats['avg_score'] or 0, 1),
+            'min_score': round(overall_stats['min_score'] or 0, 1),
+            'max_score': round(overall_stats['max_score'] or 0, 1),
+        },
+        'trend': {
+            'direction': trend_direction,
+            'change': round(trend_change, 1),
+            'recent_avg': round(recent_avg, 1),
+            'previous_avg': round(previous_avg, 1)
+        },
+        'score_trend': [
+            {
+                'date': item['date'].isoformat() if item['date'] else None,
+                'avg_score': round(item['avg_score'] or 0, 1),
+                'count': item['count']
+            }
+            for item in score_trend
+        ],
+        'platform_stats': [
+            {
+                'platform': item['platform'],
+                'count': item['count'],
+                'avg_score': round(item['avg_score'] or 0, 1)
+            }
+            for item in platform_stats
+        ],
+        'score_distribution': score_distribution,
+        'brand_stats': [
+            {
+                'brand_id': item['brand__id'],
+                'brand_name': item['brand__name'],
+                'count': item['count'],
+                'avg_score': round(item['avg_score'] or 0, 1)
+            }
+            for item in brand_stats
+        ]
+    })
+
+
 def _check_for_drift(user, brand, score):
     """
     Internal helper to check if drift alert should be created
