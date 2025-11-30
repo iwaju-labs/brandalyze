@@ -154,6 +154,7 @@ def analyze_post(request):
 
 
 @api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def audit_history(request):
     """
@@ -197,6 +198,7 @@ def audit_history(request):
 
 
 @api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def audit_detail(request, audit_id):
     """
@@ -211,6 +213,7 @@ def audit_detail(request, audit_id):
 
 
 @api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def drift_alerts(request):
     """
@@ -235,6 +238,7 @@ def drift_alerts(request):
 
 
 @api_view(['POST'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def acknowledge_alert(request, alert_id):
     """
@@ -254,6 +258,7 @@ def acknowledge_alert(request, alert_id):
 
 
 @api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def usage_stats(request):
     """
@@ -297,6 +302,7 @@ def usage_stats(request):
 
 
 @api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
 def analytics(request):
     """
