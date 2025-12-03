@@ -19,4 +19,7 @@ urlpatterns = [
     path('analyze/profile/voice/', views.analyze_profile_voice, name='extension_profile_voice_analyze'),
     path('analyze/content/alignment/', views.analyze_content_alignment, name='extension_content_alignment'),
     path('usage/check/', views.check_usage_limits, name='extension_usage_check'),
+    path('analysis/history/', views.profile_analysis_history, name='extension_analysis_history'),
+    path('analysis/<int:analysis_id>/delete/', views.delete_profile_analysis, name='extension_analysis_delete'),
+    path('analysis/clear-all/', views.clear_all_profile_analyses, name='extension_analysis_clear_all'),
 ]

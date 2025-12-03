@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from brands.models import Brand
+from extensions.models import ProfileAnalysis
 
 class ExtensionBrandSerializer(serializers.ModelSerializer):
     """Lightweight brand serializer for extension use"""
@@ -26,3 +27,18 @@ class ExtensionAnalysisResponseSerializer(serializers.Serializer):
     key_insights = serializers.ListField(child=serializers.CharField())
     suggestions = serializers.ListField(child=serializers.CharField(), required=False)
     analysis_id = serializers.CharField()
+
+class ProfileAnalysisSerializer(serializers.ModelSerializer):
+    """Serialzer for extension profile analysis"""
+    platform_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfileAnalysis
+        fields = [
+            'id', 'handle', 'platform', 'platform_display',
+            'confidence_score', 'voice_analysis', 'emotional_indicators',
+            'brand_recommendations', 'post_analyzed', 'bio_used', 'created_at'
+        ]
+
+    def get_platform_display(self, obj):
+        return obj.get_platform_display()

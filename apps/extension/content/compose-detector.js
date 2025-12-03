@@ -1,4 +1,5 @@
-console.log("compose detector script loaded successfully");
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+debug.log("Compose detector loaded");
 
 (function () {
   "use strict";

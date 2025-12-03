@@ -212,6 +212,40 @@ def audit_detail(request, audit_id):
     return Response(serializer.data)
 
 
+@api_view(['DELETE'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def delete_audit(request, audit_id):
+    """
+    Delete a specific audit
+    
+    DELETE /api/audits/{audit_id}/delete/
+    """
+    audit = get_object_or_404(PostAudit, id=audit_id, user=request.user)
+    audit.delete()
+    
+    return Response({
+        'message': 'Audit deleted successfully'
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def clear_all_audits(request):
+    """
+    Delete all audits for the user
+    
+    DELETE /api/audits/clear-all/
+    """
+    deleted_count, _ = PostAudit.objects.filter(user=request.user).delete()
+    
+    return Response({
+        'message': f'{deleted_count} audits deleted successfully',
+        'deleted_count': deleted_count
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([ClerkAuthenticated])
@@ -452,7 +486,6 @@ def analytics(request):
             for item in brand_stats
         ]
     })
-
 
 def _check_for_drift(user, brand, score):
     """

@@ -1,4 +1,7 @@
-console.log("Brandalyze Twitter content script loaded");
+// Get debug utility (loaded before this script via manifest)
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+
+debug.log("Brandalyze Twitter content script loaded");
 
 // Wait for shared utilities to be available
 function waitForBrandalyzeUtils() {
@@ -18,7 +21,7 @@ function waitForBrandalyzeUtils() {
     // Timeout after 5 seconds
     setTimeout(() => {
       clearInterval(checkInterval);
-      console.error("BrandalyzeUtils not available after 5 seconds");
+      debug.error("BrandalyzeUtils not available after 5 seconds");
       resolve();
     }, 5000);
   });
@@ -28,19 +31,19 @@ let sessionId;
 
 // Enhanced tweet processing with better selectors
 async function processTweets() {
-  console.log("🐦 Processing tweets...");
-  console.log("🔍 Current URL:", window.location.href);
-  console.log("🔍 Current pathname:", window.location.pathname);
+  debug.log("Processing tweets...");
+  debug.log("Current URL:", globalThis.location.href);
+  debug.log("Current pathname:", globalThis.location.pathname);
 
   // First check if we're on a profile page
   const currentProfile = getCurrentProfileHandle();
 
   if (!currentProfile) {
-    console.log("❌ Not on a profile page or unable to detect profile handle");
+    debug.log("Not on a profile page or unable to detect profile handle");
     // Remove any existing button since we're not on a profile page
     const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
     if (existingButton) {
-      console.log("🗑️ Removing analyze button (not on profile page)");
+      debug.log("Removing analyze button (not on profile page)");
       existingButton.remove();
       currentButtonHandle = null;
     }
@@ -58,33 +61,33 @@ async function processTweets() {
     userNameElement ||
     userDescElement;
 
-  console.log("🔍 Profile validation:");
-  console.log(
+  debug.log("Profile validation:");
+  debug.log(
     "  - URL match:",
     globalThis.location.pathname === `/${currentProfile}` ||
       globalThis.location.pathname.startsWith(`/${currentProfile}/`)
   );
-  console.log("  - UserName element:", !!userNameElement);
-  console.log("  - UserDescription element:", !!userDescElement);
-  console.log("  - Final isProfilePage:", isProfilePage);
+  debug.log("  - UserName element:", !!userNameElement);
+  debug.log("  - UserDescription element:", !!userDescElement);
+  debug.log("  - Final isProfilePage:", isProfilePage);
 
   if (!isProfilePage) {
-    console.log(`❌ Not on a profile page for @${currentProfile}`);
+    debug.log(`Not on a profile page for @${currentProfile}`);
     // Remove any existing button since we're not on a valid profile page
     const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
     if (existingButton) {
-      console.log("🗑️ Removing analyze button (not on valid profile page)");
+      debug.log("Removing analyze button (not on valid profile page)");
       existingButton.remove();
       currentButtonHandle = null;
     }
     return;
   }
 
-  console.log(`✅ On profile page: @${currentProfile}`);
+  debug.log(`On profile page: @${currentProfile}`);
 
   // Look for profile analysis section or add one  // Wait a bit for the page to fully load
   setTimeout(async () => {
-    console.log("🔄 Attempting to add analyze button...");
+    debug.log("Attempting to add analyze button...");
     await addAnalyzeButtonToProfile(currentProfile);
   }, 2000);
 }
@@ -95,24 +98,24 @@ let currentButtonHandle = null;
 
 // Simplified function to add analyze button to profile
 async function addAnalyzeButtonToProfile(handle) {
-  console.log(`🔍 Trying to add analyze button for @${handle}`);
+  debug.log(`Trying to add analyze button for @${handle}`);
 
   // Prevent concurrent button additions
   if (isAddingButton) {
-    console.log("⏳ Button addition already in progress");
+    debug.log("Button addition already in progress");
     return;
   }
 
   // Check if button already exists for this handle
   const existingButton = document.querySelector(".brandalyze-analyze-profile-btn");
   if (existingButton && currentButtonHandle === handle) {
-    console.log("✅ Analyze button already exists for this profile");
+    debug.log("Analyze button already exists for this profile");
     return;
   }
 
   // Remove existing button if it's for a different profile
   if (existingButton && currentButtonHandle !== handle) {
-    console.log(`🗑️ Removing button for old profile @${currentButtonHandle}`);
+    debug.log(`Removing button for old profile @${currentButtonHandle}`);
     existingButton.remove();
     currentButtonHandle = null;
   }
@@ -124,27 +127,25 @@ async function addAnalyzeButtonToProfile(handle) {
     'a[href="/settings/profile"][data-testid="editProfileButton"]'
   );
   if (editProfileButton) {
-    console.log(
-      "📝 Found edit profile button, checking subscription access..."
-    );
+    debug.log("Found edit profile button, checking subscription access...");
     
     // Check if user has subscription access before adding analyze button
     const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
     if (!hasAccess) {
-      console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      debug.log("User does not have Pro/Enterprise subscription - analyze button not shown");
       isAddingButton = false;
       return;
     }
     
-    console.log("✅ User has subscription access, adding analyze button");
-    console.log("🔍 Edit button container:", editProfileButton.parentElement);    // Insert analyze button directly before the edit profile button
+    debug.log("User has subscription access, adding analyze button");
+    debug.log("Edit button container:", editProfileButton.parentElement);    // Insert analyze button directly before the edit profile button
     insertAnalyzeButton(editProfileButton.parentElement, handle);
     currentButtonHandle = handle;
     isAddingButton = false;
     return;
   }
 
-  console.log("❌ Edit profile button not found");
+  debug.log("Edit profile button not found");
   isAddingButton = false;
 }
 
@@ -184,7 +185,7 @@ function getCurrentProfileHandle() {
       !handle.includes(".") &&
       !/^(api|www|app|mail|support|help|admin|root)$/i.test(handle)
     ) {
-      console.log(`Detected profile handle from URL: @${handle}`);
+      debug.log(`Detected profile handle from URL: @${handle}`);
       return handle;
     }
   }
@@ -197,12 +198,12 @@ function getCurrentProfileHandle() {
     const href = profileLink.getAttribute("href");
     const match = href.match(/\/([^/]+)$/);
     if (match && !systemPaths.has(match[1])) {
-      console.log(`Detected profile handle from DOM: @${match[1]}`);
+      debug.log(`Detected profile handle from DOM: @${match[1]}`);
       return match[1];
     }
   }
 
-  console.log("No valid profile handle detected");
+  debug.log("No valid profile handle detected");
   return null;
 }
 
@@ -275,7 +276,7 @@ function insertAnalyzeButton(container, handle) {
 
   // Insert the button before the edit profile button (or as first child)
   container.insertBefore(analyzeButton, container.firstChild);
-  console.log(`✅ Added native-style profile analysis button for @${handle}`);
+  debug.log(`Added native-style profile analysis button for @${handle}`);
 }
 
 // Handle profile analysis with loading states
@@ -285,7 +286,7 @@ async function handleProfileAnalysis(handle, button) {
   try {
     // Extract bio information from the current page
     const extractedBio = extractProfileBioFromPage(handle);
-    console.log(`🔍 Extracted profile bio for @${handle}:`, extractedBio);
+    debug.log(`Extracted profile bio for @${handle}:`, extractedBio);
 
     // Send profile analysis request to background script
     const response = await new Promise((resolve, reject) => {
@@ -321,7 +322,7 @@ async function handleProfileAnalysis(handle, button) {
       throw new Error(errorMsg);
     }
   } catch (error) {
-    console.error("Profile analysis error:", error);
+    debug.error("Profile analysis error:", error);
     alert("Profile analysis failed: " + error.message);
   } finally {
     setAnalyzeButtonLoading(button, false);
@@ -350,7 +351,7 @@ function setAnalyzeButtonLoading(button, loading) {
 
 // Extract profile bio and information from current Twitter profile page
 function extractProfileBioFromPage(handle) {
-  console.log(`🔍 Extracting profile bio for @${handle}`);
+  debug.log(`Extracting profile bio for @${handle}`);
 
   const profileInfo = {
     handle: handle,
@@ -421,10 +422,10 @@ function extractProfileBioFromPage(handle) {
       }
     }
 
-    console.log("✅ Extracted profile info:", profileInfo);
+    debug.log("Extracted profile info:", profileInfo);
     return profileInfo;
   } catch (error) {
-    console.error("⚠️ Error extracting profile bio:", error);
+    debug.error("Error extracting profile bio:", error);
     return profileInfo; // Return what we have
   }
 }
@@ -432,7 +433,7 @@ function extractProfileBioFromPage(handle) {
 // Display analysis results on the page with enhanced styling and save functionality
 function showProfileAnalysisResult(analysisData, targetElement) {
   try {
-    console.log("📊 Displaying X analysis results:", analysisData);
+    debug.log("Displaying X analysis results:", analysisData);
 
     // Remove any existing results display
     const existingResults = document.getElementById("brandalyze-analysis-results");
@@ -786,9 +787,9 @@ function showProfileAnalysisResult(analysisData, targetElement) {
             saveButton.style.backgroundColor = "#0f1419";
           }, 2000);
 
-          console.log(`✅ X analysis saved with key: ${storageKey}`);
+          debug.log(`X analysis saved with key: ${storageKey}`);
         } catch (error) {
-          console.error("❌ Error saving X analysis:", error);
+          debug.error("Error saving X analysis:", error);
           saveButton.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Save Failed';
           saveButton.style.backgroundColor = "#f91880";
 
@@ -800,35 +801,35 @@ function showProfileAnalysisResult(analysisData, targetElement) {
       };
     }
   } catch (error) {
-    console.error("❌ Error displaying X analysis results:", error);
+    debug.error("Error displaying X analysis results:", error);
     alert("Failed to display analysis results");
   }
 }
 
 // Initialize and observe for new content
 async function initializeTwitterScript() {
-  console.log("🐦 Initializing Twitter/X content script...");
+  debug.log("Initializing Twitter/X content script...");
 
   // Wait for shared utilities
   await waitForBrandalyzeUtils();
 
   if (!globalThis.BrandalyzeUtils) {
-    console.error("❌ BrandalyzeUtils still not available, cannot proceed");
+    debug.error("BrandalyzeUtils still not available, cannot proceed");
     return;
   }
 
   sessionId = globalThis.BrandalyzeUtils.generateSessionId();
-  console.log("🆔 Generated session ID:", sessionId);
+  debug.log("Generated session ID:", sessionId);
 
   // Initial processing with delay to ensure page is loaded
   setTimeout(() => {
-    console.log("🚀 Starting initial tweet processing...");
+    debug.log("Starting initial tweet processing...");
     processTweets();
   }, 3000);
 
   // Also try again after a longer delay in case the page is still loading
   setTimeout(() => {
-    console.log("🔄 Second attempt at adding analyze button...");
+    debug.log("Second attempt at adding analyze button...");
     processTweets();
   }, 8000);
 
@@ -858,7 +859,7 @@ async function initializeTwitterScript() {
 
     if (shouldProcess) {
       if (isNavigation) {
-        console.log("🔄 Navigation detected, reprocessing profile...");
+        debug.log("Navigation detected, reprocessing profile...");
         setTimeout(processTweets, 2000);
       }
     }
@@ -869,7 +870,7 @@ async function initializeTwitterScript() {
     subtree: true,
   });
 
-  console.log("✅ Twitter content script initialized with observer");
+  debug.log("Twitter content script initialized with observer");
 }
 
 // Wait for page to be ready

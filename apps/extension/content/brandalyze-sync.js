@@ -1,5 +1,6 @@
 // Content script for the main Brandalyze site to sync authentication tokens
-console.log('Brandalyze token sync script loaded');
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+debug.log("Token sync script loaded");
 
 // Function to get the current Clerk session (token + user data)
 async function getCurrentClerkSession() {
@@ -26,7 +27,7 @@ async function getCurrentClerkSession() {
         }
         return null;
     } catch (error) {
-        console.error('Error getting Clerk session:', error);
+        debug.error("Error getting Clerk session:", error);
         return null;
     }
 }
@@ -49,10 +50,10 @@ async function syncSessionWithExtension() {
                     syncedAt: Date.now()
                 }
             });
-            console.log('Clerk session synced with extension');
+            debug.log("Clerk session synced with extension");
         }
     } catch (error) {
-        console.error('Failed to sync session with extension:', error);
+        debug.error("Failed to sync session with extension:", error);
     }
 }
 
@@ -76,12 +77,12 @@ if (typeof globalThis.window !== 'undefined') {
             
             // Listen for auth state changes
             globalThis.Clerk.addListener('session.updated', () => {
-                console.log('Clerk session updated, syncing...');
+                debug.log("Clerk session updated, syncing...");
                 setTimeout(syncSessionWithExtension, 1000);
             });
             
             globalThis.Clerk.addListener('user.updated', () => {
-                console.log('Clerk user updated, syncing...');
+                debug.log("Clerk user updated, syncing...");
                 setTimeout(syncSessionWithExtension, 1000);
             });
         } else {

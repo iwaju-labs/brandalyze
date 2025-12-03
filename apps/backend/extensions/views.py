@@ -6,6 +6,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.response import Response
 from brands.utils.responses import error_response, success_response
 from brands.permissions import ClerkAuthenticated
 from brands.views import ClerkAuthentication
@@ -20,7 +21,7 @@ import random
 
 from brands.models import Brand
 from analysis.models import UserSubscription
-from .models import ExtensionAnalysis, ExtensionSession, ExtensionToken
+from .models import ExtensionAnalysis, ExtensionSession, ExtensionToken, ProfileAnalysis
 from .serializers import (
     ExtensionBrandSerializer,
     ExtensionAnalysisRequestSerializer,
@@ -446,6 +447,18 @@ def analyze_profile_voice(request):
                 }
             )
 
+            ProfileAnalysis.objects.create(
+                user=request.user,
+                handle=handle,
+                platform=platform,
+                confidence_score=analysis_result.get('confidence_score', 0.7),
+                voice_analysis=analysis_result.get('voice_analysis', {}),
+                emotional_indicators=analysis_result.get('emotional_indicators', {}),
+                brand_recommendations=analysis_result.get('brand_recommendations', []),
+                post_analyzed=analysis_result.get('post_analyzed', 0),
+                bio_used=use_bio
+            )
+
         return success_response(
             data=analysis_result,
             message="Profile voice analysis completed successfully",
@@ -737,3 +750,62 @@ def check_usage_limits(request):
             code="USAGE_CHECK_FAILED",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+    
+@api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def profile_analysis_history(request):
+    """Get profile analysis history for the user"""
+    from .models import ProfileAnalysis
+    from .serializers import ProfileAnalysisSerializer
+
+    analyses = ProfileAnalysis.objects.filter(user=request.user)
+
+    platform = request.query_params.get('platform')
+    if platform:
+        analyses = analyses.filter(platform=platform)
+
+    limit = request.query_params.get('limit', 50)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 50
+
+    analyses = analyses[:limit]
+    serializer = ProfileAnalysisSerializer(analyses, many=True)
+
+    return Response({
+        'analyses': serializer.data,
+        'count': analyses.count()
+    })
+
+
+@api_view(['DELETE'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def delete_profile_analysis(request, analysis_id):
+    """Delete a specific profile analysis"""
+    from .models import ProfileAnalysis
+    from django.shortcuts import get_object_or_404
+    
+    analysis = get_object_or_404(ProfileAnalysis, id=analysis_id, user=request.user)
+    analysis.delete()
+    
+    return Response({
+        'message': 'Profile analysis deleted successfully'
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def clear_all_profile_analyses(request):
+    """Delete all profile analyses for the user"""
+    from .models import ProfileAnalysis
+    
+    deleted_count, _ = ProfileAnalysis.objects.filter(user=request.user).delete()
+    
+    return Response({
+        'message': f'{deleted_count} profile analyses deleted successfully',
+        'deleted_count': deleted_count
+    }, status=status.HTTP_200_OK)

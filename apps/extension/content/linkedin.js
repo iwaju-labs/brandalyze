@@ -2,7 +2,9 @@
 (function () {
   "use strict";
 
-  console.log("🟦 Brandalyze LinkedIn content script loaded");
+  const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+
+  debug.log("LinkedIn content script loaded");
 
   let analyzeButton = null;
   let buttonAddedToProfile = false;
@@ -26,7 +28,7 @@
   // Extract LinkedIn profile data from DOM
   function extractProfileData() {
     try {
-      console.log("🔍 Extracting LinkedIn profile data...");
+      debug.log("Extracting LinkedIn profile data...");
 
       // Get profile handle from URL
       const urlMatch = globalThis.location.href.match(
@@ -190,20 +192,11 @@
         extracted_at: new Date().toISOString(),
       };
 
-      console.log("✅ LinkedIn profile data extracted:");
-      console.log("🔍 Handle:", handle);
-      console.log("👤 Display Name:", displayName);
-      console.log("📄 Headline:", headline);
-      console.log("📝 Bio (length):", bio.length, "chars");
-      console.log("📍 Location:", location);
-      console.log("🔗 Connections:", connectionsCount);
-      console.log("🏢 Company:", company);
-      console.log("🏭 Industry:", industry);
-      console.log("📊 Full data:", profileData);
+      debug.log("LinkedIn profile data extracted:", profileData);
 
       return profileData;
     } catch (error) {
-      console.error("❌ Error extracting LinkedIn profile data:", error);
+      debug.error("Error extracting LinkedIn profile data:", error);
       return null;
     }
   }
@@ -211,7 +204,7 @@
   // Display analysis results on the page with save functionality
   function displayAnalysisResults(analysisData) {
     try {
-      console.log("📊 Displaying analysis results:", analysisData);
+      debug.log("Displaying analysis results:", analysisData);
 
       // Remove any existing results display
       const existingResults = document.getElementById(
@@ -731,9 +724,9 @@
               saveButton.style.background = "#0a66c2";
             }, 2000);
 
-            console.log(`✅ Analysis saved with key: ${storageKey}`);
+            debug.log(`Analysis saved with key: ${storageKey}`);
           } catch (error) {
-            console.error("❌ Error saving analysis:", error);
+            debug.error("Error saving analysis:", error);
             saveButton.textContent = "Save Failed";
             saveButton.style.background = "#ef4444";
 
@@ -745,7 +738,7 @@
         };
       }
     } catch (error) {
-      console.error("❌ Error displaying analysis results:", error);
+      debug.error("Error displaying analysis results:", error);
       showNotification("Failed to display analysis results", "error");
     }
   }
@@ -822,7 +815,7 @@
           platform: "linkedin",
           data: profileData,
         });
-        console.log("🔍 Full response from background:", response);
+        debug.log("Full response from background:", response);
 
         if (response && response.success) {
           // Display analysis results directly on the page
@@ -833,7 +826,7 @@
           showNotification(errorMsg, "error");
         }
       } catch (error) {
-        console.error("❌ Analysis error:", error);
+        debug.error("Analysis error:", error);
         showNotification(
           "Network error. Please check your connection and try again.",
           "error"
@@ -860,7 +853,7 @@
 
     // Prevent concurrent button additions
     if (isAddingButton) {
-      console.log("⏳ Button addition already in progress");
+      debug.log("Button addition already in progress");
       return;
     }
 
@@ -875,12 +868,12 @@
     // Check if user has subscription access before adding analyze button
     const hasAccess = await globalThis.BrandalyzeUtils.checkSubscriptionAccess();
     if (!hasAccess) {
-      console.log("❌ User does not have Pro/Enterprise subscription - analyze button not shown");
+      debug.log("User does not have Pro/Enterprise subscription - analyze button not shown");
       isAddingButton = false;
       return;
     }
     
-    console.log("✅ User has subscription access, adding analyze button");
+    debug.log("User has subscription access, adding analyze button");
 
     // Wait for profile actions container to load
     const actionContainer = document.querySelector(
@@ -917,7 +910,7 @@
 
     buttonAddedToProfile = true;
     isAddingButton = false;
-    console.log("✅ LinkedIn analyze button added");
+    debug.log("LinkedIn analyze button added");
   }
 
   // Show notification
@@ -979,7 +972,8 @@
   // Initialize and monitor for changes
   function init() {
     // Initial setup
-    if (isLinkedInProfile()) {      console.log("🟦 LinkedIn profile detected, adding analyze button...");
+    if (isLinkedInProfile()) {
+      debug.log("LinkedIn profile detected, adding analyze button...");
       setTimeout(async () => await addAnalyzeButtonToLinkedIn(), 1000);
     }
 
@@ -988,10 +982,9 @@
     const observer = new MutationObserver(() => {
       if (globalThis.location.href !== currentUrl) {
         currentUrl = globalThis.location.href;
-        buttonAddedToProfile = false;        if (isLinkedInProfile()) {
-          console.log(
-            "🟦 Navigated to LinkedIn profile, adding analyze button..."
-          );
+        buttonAddedToProfile = false;
+        if (isLinkedInProfile()) {
+          debug.log("Navigated to LinkedIn profile, adding analyze button...");
           setTimeout(async () => await addAnalyzeButtonToLinkedIn(), 1500);
         }
       } else if (isLinkedInProfile() && !buttonAddedToProfile) {

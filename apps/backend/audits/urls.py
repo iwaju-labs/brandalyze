@@ -10,6 +10,8 @@ urlpatterns = [
     # Audit history and details
     path('history/', views.audit_history, name='history'),
     path('<int:audit_id>/', views.audit_detail, name='detail'),
+    path('<int:audit_id>/delete/', views.delete_audit, name='delete'),
+    path('clear-all/', views.clear_all_audits, name='clear-all'),
     
     # Analytics
     path('analytics/', views.analytics, name='analytics'),

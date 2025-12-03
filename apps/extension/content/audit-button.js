@@ -1,4 +1,5 @@
-console.log("Brandalyze audit button loaded");
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+debug.log("Audit button loaded");
 
 (function () {
   "use strict";
@@ -447,7 +448,7 @@ console.log("Brandalyze audit button loaded");
             ? response.error
             : JSON.stringify(response?.error || "Audit failed");
 
-        console.error("Audit failed:", errorMsg, response);
+        debug.error("Audit failed:", errorMsg, response);
 
         // Check for specific error types
         if (errorMsg.includes("No brand found")) {
@@ -470,7 +471,7 @@ console.log("Brandalyze audit button loaded");
         throw new Error(errorMsg);
       }
     } catch (error) {
-      console.error("Audit error:", error);
+      debug.error("Audit error:", error);
       updateButtonState(auditButton, "error");
 
       // Reset to idle after 3 seconds
@@ -489,7 +490,7 @@ console.log("Brandalyze audit button loaded");
    */
   function showAuditResults(data) {
     // This will be implemented in Step 2.3 (Audit Panel)
-    console.log("Audit results:", data);
+    debug.log("Audit results:", data);
 
     if (globalThis.BrandalyzeAuditPanel) {
       globalThis.BrandalyzeAuditPanel.open(data);

@@ -1,4 +1,5 @@
-console.log("Brandalyze audit panel loaded");
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+debug.log("Audit panel loaded");
 
 (function () {
   "use strict";

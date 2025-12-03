@@ -56,3 +56,47 @@ class ExtensionToken(models.Model):
 
     def is_valid(self):
         return self.is_active and not self.is_expired()
+    
+class ProfileAnalysis(models.Model):
+    """Store profile voice analysis results"""
+    PLATFORM_CHOICES = [
+        ('twitter', 'Twitter/X'),
+        ('linkedin', 'LinkedIn')
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='profile_analyses')
+    handle = models.CharField(max_length=100)
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    confidence_score = models.FloatField(help_text="Analysis confidence (0-1)")
+
+    voice_analysis = models.JSONField(
+        default=dict,
+        help_text="Tone, style, content themes, communication patterns"
+    )
+
+    emotional_indicators = models.JSONField(
+        default=dict,
+        help_text="Scores for selected emotional indicators"
+    )
+
+    brand_recommendations = models.JSONField(
+        default=list,
+        help_text="AI-generated brand recommendations"
+    )
+
+    post_analyzed = models.IntegerField(default=0)
+    bio_used = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'profile_analyses'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['platform', 'created_at']),
+            models.Index(fields=['handle'])
+        ]
+
+    def __str__(self):
+        return f"@{self.handle} ({self.platform}) - {self.created_at.date()}"

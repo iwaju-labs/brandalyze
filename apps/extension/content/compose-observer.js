@@ -1,5 +1,5 @@
 
-console.log("Brandalyze compose observer loaded");
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
 
 (function() {
   "use strict";
@@ -112,7 +112,7 @@ console.log("Brandalyze compose observer loaded");
     // Periodic check as backup
     checkInterval = setInterval(checkComposeField, 2000);
 
-    console.log('Brandalyze compose observer started');
+    debug.log('Compose observer started');
   }
 
   /**
@@ -140,14 +140,14 @@ console.log("Brandalyze compose observer loaded");
     const supported = ['twitter.com', 'x.com', 'linkedin.com', 'instagram.com'];
     
     if (!supported.some(p => platform.includes(p))) {
-      console.log('Brandalyze: Platform not supported for compose detection');
+      debug.log('Platform not supported for compose detection');
       return;
     }
 
     await waitForDependencies();
     
     if (!globalThis.BrandalyzeComposeDetector) {
-      console.error('Brandalyze: Compose detector not loaded');
+      debug.error('Compose detector not loaded');
       return;
     }
 

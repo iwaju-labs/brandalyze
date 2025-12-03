@@ -26,10 +26,10 @@ export const Navbar = () => {
             analyze
           </Link>
           <Link
-            href="/audits"
+            href="/history"
             className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
-            audits
+            history
           </Link>
           <Link
             href="/analytics"

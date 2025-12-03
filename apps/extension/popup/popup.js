@@ -1,5 +1,8 @@
 // Clean popup.js - centralized auth via background script
 
+// Debug utility fallback
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+
 // Global variables
 let currentUser = null;
 let currentPlatform = null;
@@ -12,7 +15,7 @@ async function openBrandalyzeApp() {
     });
     globalThis.close();
   } catch (error) {
-    console.error("Failed to open Brandalyze app:", error);
+    debug.error("Failed to open Brandalyze app:", error);
     alert("Please manually navigate to Brandalyze and sign in.");
   }
 }
@@ -41,7 +44,7 @@ async function detectCurrentPlatform() {
     }
     return null;
   } catch (error) {
-    console.error("Platform detection error:", error);
+    debug.error("Platform detection error:", error);
     return null;
   }
 }
@@ -80,7 +83,7 @@ async function navigateToTwitter() {
     await chrome.tabs.create({ url });
     globalThis.close();
   } catch (error) {
-    console.error("Failed to navigate to Twitter:", error);
+    debug.error("Failed to navigate to Twitter:", error);
   }
 }
 
@@ -97,7 +100,7 @@ async function navigateToLinkedIn() {
     await chrome.tabs.create({ url });
     globalThis.close();
   } catch (error) {
-    console.error("Failed to navigate to LinkedIn:", error);
+    debug.error("Failed to navigate to LinkedIn:", error);
   }
 }
 
@@ -173,7 +176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
-      console.error("Auth check error:", error);
+      debug.error("Auth check error:", error);
     }
   }
 
@@ -202,7 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       globalThis.close();
     } catch (error) {
       hideLoading();
-      console.error("Auth initiation error:", error);
+      debug.error("Auth initiation error:", error);
     }
   }
 
@@ -220,12 +223,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Background script will open new auth tab
         updateAuthUI({ isAuthenticated: false });
       } else {
-        console.error('Force refresh failed:', response.error);
+        debug.error('Force refresh failed:', response.error);
       }
     } catch (error) {
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
-      console.error("Force refresh error:", error);
+      debug.error("Force refresh error:", error);
     }
   }
   // Format time ago in human readable format
@@ -266,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     if (authState.isAuthenticated && authState.userInfo) {
       const userInfo = authState.userInfo;
-      const displayText = userInfo.display_name || userInfo.email;
+      const displayText = userInfo.display_name || userInfo.displayName || userInfo.name || userInfo.first_name || userInfo.email;
       setText(elements.userEmail, displayText);
       
       updateSubscriptionUI({

@@ -1,4 +1,7 @@
-console.log('Brandalyze shared utilities loaded');
+// Get debug utility (loaded before this script via manifest)
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+
+debug.log('Brandalyze shared utilities loaded');
 
 globalThis.BrandalyzeUtils = {
   // Check if user has required subscription for extension features
@@ -15,7 +18,7 @@ globalThis.BrandalyzeUtils = {
       
       return false;
     } catch (error) {
-      console.log('Error checking auth:', error);
+      debug.log('Error checking auth:', error);
       return false;
     }
   },

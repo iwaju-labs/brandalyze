@@ -1,3 +1,7 @@
+// Import debug utility
+importScripts('../src/debug.js');
+const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+
 // API CONFIG - Environment-aware API URLs
 const DEV_API_BASE_URL = "http://localhost:8000/api";
 const PROD_API_BASE_URL = "https://brandalyze.onrender.com/api";
@@ -40,8 +44,8 @@ class ExtensionAuth {
       const appUrl = this.getAppUrl();
       const authUrl = `${appUrl}/extension-auth?source=chrome&extension_id=${extensionId}`;
 
-      console.log(`Initiating OAuth auth with: ${authUrl}`);
-      console.log(
+      debug.log(`Initiating OAuth auth with: ${authUrl}`);
+      debug.log(
         `Environment detected: ${
           this.authState.apiUrl === DEV_API_BASE_URL
             ? "Development"
@@ -57,7 +61,7 @@ class ExtensionAuth {
 
       return true;
     } catch (error) {
-      console.error("Failed to initiate auth:", error);
+      debug.error("Failed to initiate auth:", error);
       return false;
     }
   }
@@ -99,10 +103,7 @@ class ExtensionAuth {
         const result = results[0]?.result;
 
         if (result?.hasSuccess && result?.authCode) {
-          console.log(
-            "Auth success detected, processing auth code:",
-            result.authCode
-          );
+          debug.log("Auth success detected, processing auth code:", result.authCode);
           const success = await this.handleAuthCallback(result.authCode);
 
           if (success) {
@@ -115,7 +116,7 @@ class ExtensionAuth {
         // Continue monitoring if auth not complete
         setTimeout(checkAuthCompletion, 2000);
       } catch (error) {
-        console.log("Auth monitoring error:", error);
+        debug.log("Auth monitoring error:", error);
         // Tab might be closed or inaccessible, stop monitoring
       }
     };
@@ -125,7 +126,7 @@ class ExtensionAuth {
   }
   async handleAuthCallback(authCode) {
     try {
-      console.log("Exchanging auth code for extension token...");
+      debug.log("Exchanging auth code for extension token...");
 
       const response = await fetch(
         `${this.getApiUrl()}/extension/auth/exchange-code/`,
@@ -166,10 +167,10 @@ class ExtensionAuth {
         lastChecked: Date.now(),
       };
 
-      console.log("Extension authentication successful!");
+      debug.log("Extension authentication successful!");
       return true;
     } catch (error) {
-      console.error("Auth exchange failed:", error);
+      debug.error("Auth exchange failed:", error);
       return false;
     }
   }
@@ -197,7 +198,7 @@ class ExtensionAuth {
       if (stored.extensionToken) {
         // Check if token is expired
         if (stored.tokenExpiry && Date.now() > stored.tokenExpiry) {
-          console.log("Extension token expired");
+          debug.log("Extension token expired");
           await this.clearAuth();
           return { isAuthenticated: false };
         }
@@ -218,14 +219,14 @@ class ExtensionAuth {
           };
           return this.authState;
         } else {
-          console.log("Extension token validation failed");
+          debug.log("Extension token validation failed");
           await this.clearAuth();
         }
       }
 
       return { isAuthenticated: false };
     } catch (error) {
-      console.error("Auth check failed:", error);
+      debug.error("Auth check failed:", error);
       return { isAuthenticated: false };
     }
   }
@@ -255,7 +256,7 @@ class ExtensionAuth {
 
       return false;
     } catch (error) {
-      console.error("Token validation failed:", error);
+      debug.error("Token validation failed:", error);
       return false;
     }
   }
@@ -373,9 +374,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "getAuthState":
       chrome.storage.local.get(['extensionToken', 'userInfo', 'currentApiUrl', 'lastSynced'])
         .then((stored) => {
-          console.log('getAuthState - stored data:', stored);
+          debug.log('getAuthState - stored data:', stored);
           if (stored.extensionToken && stored.userInfo) {
-            console.log('getAuthState - returning authenticated with userInfo:', stored.userInfo);
+            debug.log('getAuthState - returning authenticated with userInfo:', stored.userInfo);
             sendResponse({ 
               success: true, 
               data: {
@@ -448,7 +449,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse(responseData);
           })
           .catch((error) => {
-            console.error("❌ LinkedIn analysis error:", error);
+            debug.error("LinkedIn analysis error:", error);
             const errorData = { success: false, message: error.message };
             sendResponse(errorData);
           });
@@ -485,7 +486,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
       return true;
     case "forceAuthRefresh":
-      console.log("Forcing auth refresh - clearing all tokens...");
+      debug.log("Forcing auth refresh - clearing all tokens...");
       // Clear all stored auth data
       chrome.storage.local.remove([
         "extensionToken",
@@ -519,7 +520,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           });
         })
         .catch((error) => {
-          console.error("Failed to clear auth data:", error);
+          debug.error("Failed to clear auth data:", error);
           sendResponse({ success: false, error: error.message });
         });
       return true;
@@ -532,14 +533,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
       return true;
     default:
-      console.warn("Unknown action:", request.action);
+      debug.warn("Unknown action:", request.action);
       sendResponse({ success: false, error: "Unknown action" });
   }
 });
 
 // Handle messages from external websites (brandalyze.io)
 chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
-  console.log("External message received:", request, "from:", sender.url);
+  debug.log("External message received:", request, "from:", sender.url);
   
   // Only allow messages from brandalyze.io domains
   const allowedOrigins = [
@@ -550,7 +551,7 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
   
   const senderOrigin = new URL(sender.url).origin;
   if (!allowedOrigins.includes(senderOrigin)) {
-    console.error("Message from unauthorized origin:", senderOrigin);
+    debug.error("Message from unauthorized origin:", senderOrigin);
     sendResponse({ success: false, error: "Unauthorized origin" });
     return;
   }
@@ -558,20 +559,20 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
   // Handle the same actions as internal messages
   switch (request.action) {
     case "storeExtensionToken":
-      console.log("Storing extension token from external website");
+      debug.log("Storing extension token from external website");
       storeExtensionToken(request.token)
         .then((response) => {
-          console.log("Token stored successfully:", response);
+          debug.log("Token stored successfully:", response);
           sendResponse(response);
         })
         .catch((error) => {
-          console.error("Failed to store token:", error);
+          debug.error("Failed to store token:", error);
           sendResponse({ success: false, error: error.message });
         });
       return true;
       
     default:
-      console.warn("Unknown external action:", request.action);
+      debug.warn("Unknown external action:", request.action);
       sendResponse({ success: false, error: "Unknown action" });
   }
 });
@@ -622,7 +623,7 @@ async function checkClerkAuth() {
 
     // Check for extension token first (90-day token, no expiry check needed)
     if (result.extensionToken && result.userInfo) {
-      console.log("Found stored extension token, using it");
+      debug.log("Found stored extension token, using it");
       authState.isAuthenticated = true;
       authState.extensionToken = result.extensionToken;
       authState.userInfo = result.userInfo;
@@ -635,11 +636,11 @@ async function checkClerkAuth() {
 
     // Fallback to Clerk token if no extension token
     if (result.clerkToken) {
-      console.log("Found stored token, checking validity...");
+      debug.log("Found stored token, checking validity...");
 
       // Check if token is expired (if we have expiry info)
       if (result.tokenExpiry && Date.now() > result.tokenExpiry) {
-        console.log("Stored token expired, will fetch new one");
+        debug.log("Stored token expired, will fetch new one");
       } else {
         // Verify the stored token is still valid
         const isValid = await verifyClerkToken(
@@ -656,14 +657,14 @@ async function checkClerkAuth() {
           authState.apiUrl = authState.currentApiUrl;
           return authState;
         } else {
-          console.log("Stored token invalid, will fetch new one");
+          debug.log("Stored token invalid, will fetch new one");
         }
       }
 
       // Clear invalid/expired token
       await clearAuthData();
     } else {
-      console.log("No stored token found, will fetch from main app");
+      debug.log("No stored token found, will fetch from main app");
     }
 
     // Only fetch from main app if we don't have a valid stored token
@@ -703,7 +704,7 @@ async function checkClerkAuth() {
     authState.isAuthenticated = false;
     return authState;
   } catch (error) {
-    console.error("Clerk auth check failed", error);
+    debug.error("Clerk auth check failed", error);
     authState.isAuthenticated = false;
     return authState;
   }
@@ -711,7 +712,7 @@ async function checkClerkAuth() {
 
 async function getClerkTokenFromBrandalyzeApp() {
   try {
-    console.log("Looking for Brandalyze app tabs...");
+    debug.log("Looking for Brandalyze app tabs...");
 
     // Look for open Brandalyze tabs (dev and prod)
     const tabs = await chrome.tabs.query({
@@ -727,7 +728,7 @@ async function getClerkTokenFromBrandalyzeApp() {
 
     // Check if any Brandalyze tabs were found
     if (!tabs || tabs.length === 0) {
-      console.log("No Brandalyze app tabs found");
+      debug.log("No Brandalyze app tabs found");
       return null;
     }
 
@@ -745,7 +746,7 @@ async function getClerkTokenFromBrandalyzeApp() {
               if (token) return token;
             }
           } catch (e) {
-            console.log("Failed to get token from Clerk.session:", e);
+            // Silent fail in page context
           }
         }
 
@@ -782,7 +783,7 @@ async function getClerkTokenFromBrandalyzeApp() {
             }
           }
         } catch (e) {
-          console.log("Failed to check localStorage:", e);
+          // Silent fail in page context
         }
 
         try {
@@ -790,7 +791,6 @@ async function getClerkTokenFromBrandalyzeApp() {
 
           for (let cookie of cookies) {
             const [name, value] = cookie.trim().split("=");
-            console.log(`Cookie: ${name} = ${value}`);
             if (
               name &&
               (name.includes("__session") || name.includes("clerk")) &&
@@ -803,7 +803,7 @@ async function getClerkTokenFromBrandalyzeApp() {
             }
           }
         } catch (e) {
-          console.log("Failed to check cookies:", e);
+          // Silent fail in page context
         }
 
         const possibleSessionKeys = Object.keys(localStorage).filter(
@@ -815,7 +815,6 @@ async function getClerkTokenFromBrandalyzeApp() {
 
         for (const key of possibleSessionKeys) {
           const value = localStorage.getItem(key);
-          console.log(`${key}:`, value);
           if (
             value &&
             typeof value === "string" &&
@@ -833,7 +832,7 @@ async function getClerkTokenFromBrandalyzeApp() {
     const token = results[0]?.result;
 
     if (token) {
-      console.log("Token found, determining API URL...");
+      debug.log("Token found, determining API URL...");
       // Determine environment and API URL based on tab URL
       const isLocalhost = tabUrl.includes("localhost:3000");
       const tokenData = {
@@ -846,7 +845,7 @@ async function getClerkTokenFromBrandalyzeApp() {
 
     return null;
   } catch (error) {
-    console.error("Failed to get Clerk token from main app:", error);
+    debug.error("Failed to get Clerk token from main app:", error);
     return null;
   }
 }
@@ -856,7 +855,7 @@ async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
     // Try the specified API URL first
     let response;
     try {
-      console.log(`Trying API: ${apiUrl}/brands/`);
+      debug.log(`Trying API: ${apiUrl}/brands/`);
       response = await fetch(`${apiUrl}/brands/`, {
         method: "GET",
         headers: {
@@ -872,10 +871,10 @@ async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
         const errorText = await response
           .text()
           .catch(() => "Could not read error");
-        console.log("API response error:", errorText);
+        debug.log("API response error:", errorText);
       }
     } catch (error) {
-      console.log(`API ${apiUrl} not accessible:`, error.message);
+      debug.log(`API ${apiUrl} not accessible:`, error.message);
     }
 
     // If first API fails, try the other one
@@ -893,16 +892,16 @@ async function verifyClerkToken(token, apiUrl = PROD_API_BASE_URL) {
       if (response.ok) {
         authState.currentApiUrl = fallbackUrl;
         await chrome.storage.local.set({ currentApiUrl: fallbackUrl });
-        console.log(`Switched to ${fallbackUrl} API`);
+        debug.log(`Switched to ${fallbackUrl} API`);
         return true;
       }
     } catch (error) {
-      console.log(`Fallback API ${fallbackUrl} not accessible:`, error.message);
+      debug.log(`Fallback API ${fallbackUrl} not accessible:`, error.message);
     }
 
     return false;
   } catch (error) {
-    console.error("Token verification failed:", error);
+    debug.error("Token verification failed:", error);
     return false;
   }
 }
@@ -958,7 +957,7 @@ async function fetchUserDataFromBrands(token, apiUrl) {
     // Fallback: extract basic info from JWT
     return extractUserDataFromJWT(token);
   } catch (error) {
-    console.error("Failed to fetch user data:", error);
+    debug.error("Failed to fetch user data:", error);
     // Fallback: extract basic info from JWT
     return extractUserDataFromJWT(token);
   }
@@ -992,7 +991,7 @@ async function getUserDataFromAPI(token, apiUrl) {
     // Fallback: try to extract from JWT if API fails
     return extractUserDataFromJWT(token);
   } catch (error) {
-    console.error("Failed to get user data from API:", error);
+    debug.error("Failed to get user data from API:", error);
     // Fallback: try to extract from JWT
     return extractUserDataFromJWT(token);
   }
@@ -1086,7 +1085,7 @@ async function handleProfileAnalysis(analysisData) {
     }
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("❌ API Error:", errorData);
+      debug.error("API Error:", errorData);
 
       // Return structured error for frontend
       throw new Error(
@@ -1103,7 +1102,7 @@ async function handleProfileAnalysis(analysisData) {
 
     return data.data || data;
   } catch (error) {
-    console.error("Profile analysis error:", error);
+    debug.error("Profile analysis error:", error);
     throw error;
   }
 }
@@ -1206,7 +1205,7 @@ async function handleLinkedInProfileAnalysis(profileData, platform) {
 
     return data.data || data;
   } catch (error) {
-    console.error("LinkedIn profile analysis error:", error);
+    debug.error("LinkedIn profile analysis error:", error);
     throw error;
   }
 }
@@ -1250,7 +1249,7 @@ async function handleContentAnalysis(analysisData) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("Analysis error:", error);
+    debug.error("Analysis error:", error);
     throw error;
   }
 }
@@ -1259,7 +1258,7 @@ async function handleContentAnalysis(analysisData) {
 async function handleContentAlignmentAnalysis(analysisData) {
   try {
     // Ensure we have authentication - check for extension token first
-    console.log("⚠️ Checking auth for content alignment...");
+    debug.log("Checking auth for content alignment...");
     await checkClerkAuth();
     
     if (!authState.isAuthenticated) {
@@ -1330,7 +1329,7 @@ async function handleContentAlignmentAnalysis(analysisData) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("❌ API Error:", errorData);
+      debug.error("API Error:", errorData);
       throw new Error(
         errorData.message ||
           `Content alignment analysis failed: ${response.status}`
@@ -1340,7 +1339,7 @@ async function handleContentAlignmentAnalysis(analysisData) {
     const data = await response.json();
     return data.data || data;
   } catch (error) {
-    console.error("Content alignment analysis error:", error);
+    debug.error("Content alignment analysis error:", error);
     throw error;
   }
 }
@@ -1427,7 +1426,7 @@ async function handlePostAudit(auditData) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       
-      console.error("Audit API error:", response.status, errorData);
+      debug.error("Audit API error:", response.status, errorData);
       
       // Handle upgrade required
       if (errorData.code === 'UPGRADE_REQUIRED') {
@@ -1445,7 +1444,7 @@ async function handlePostAudit(auditData) {
 
     return await response.json();
   } catch (error) {
-    console.error("Post audit error:", error);
+    debug.error("Post audit error:", error);
     throw error;
   }
 }
@@ -1480,7 +1479,7 @@ async function openBrandalyzeApp() {
       await chrome.tabs.create({ url: appUrl });
     }
   } catch (error) {
-    console.error("Failed to open Brandalyze app:", error);
+    debug.error("Failed to open Brandalyze app:", error);
     throw error;
   }
 }
@@ -1540,11 +1539,11 @@ function extractUserDataFromJWT(token) {
           "Unknown User",
       };
 
-      console.log("Extracted user data:", userData); // Debug log
+      debug.log("Extracted user data:", userData);
       return userData;
     }
   } catch (error) {
-    console.error("Failed to decode JWT:", error);
+    debug.error("Failed to decode JWT:", error);
   }
 
   return {
@@ -1564,7 +1563,7 @@ function generateSessionId() {
 // Debug function to check what tabs are open
 async function debugTabInfo() {
   const allTabs = await chrome.tabs.query({});
-  console.log(
+  debug.log(
     "All open tabs:",
     allTabs.map((t) => ({ id: t.id, url: t.url, title: t.title }))
   );
@@ -1572,7 +1571,7 @@ async function debugTabInfo() {
   const brandalyzeTabs = await chrome.tabs.query({
     url: ["http://localhost:3000/*", "https://brandalyze.io/*"],
   });
-  console.log(
+  debug.log(
     "Brandalyze tabs found:",
     brandalyzeTabs.map((t) => ({ id: t.id, url: t.url }))
   );
@@ -1589,7 +1588,7 @@ async function getAuthState() {
     authState.lastChecked &&
     now - authState.lastChecked < authState.cacheTimeout
   ) {
-    console.log(
+    debug.log(
       "Using cached auth state (age:",
       Math.round((now - authState.lastChecked) / 1000),
       "seconds)"
@@ -1603,7 +1602,7 @@ async function getAuthState() {
   }
 
   // Cache is stale or doesn't exist, refresh auth
-  console.log("Auth cache stale or missing, refreshing...");
+  debug.log("Auth cache stale or missing, refreshing...");
   const freshAuthState = await checkClerkAuth();
   authState.lastChecked = now;
 
@@ -1615,7 +1614,7 @@ async function getAuthState() {
 
 // Invalidate auth cache (call when user signs out or token becomes invalid)
 function invalidateAuthCache() {
-  console.log("Invalidating auth cache");
+  debug.log("Invalidating auth cache");
   authState.lastChecked = null;
   authState.isAuthenticated = false;
   authState.clerkToken = null;
@@ -1650,10 +1649,10 @@ async function updateStoredToken(tokenData) {
     authState.apiUrl = authState.currentApiUrl;
     authState.lastChecked = Date.now();
 
-    console.log("Successfully updated stored token");
+    debug.log("Successfully updated stored token");
     return authState;
   } catch (error) {
-    console.error("Failed to update stored token:", error);
+    debug.error("Failed to update stored token:", error);
     throw error;
   }
 }
@@ -1693,10 +1692,10 @@ async function storeExtensionToken(token) {
     authState.apiUrl = apiUrl;
     authState.lastChecked = Date.now();
 
-    console.log("Extension token stored and validated successfully");
+    debug.log("Extension token stored and validated successfully");
     return { success: true, userInfo };
   } catch (error) {
-    console.error("Failed to store extension token:", error);
+    debug.error("Failed to store extension token:", error);
     throw error;
   }
 }
@@ -1726,7 +1725,7 @@ async function validateExtensionToken(token, apiUrl) {
     
     return null;
   } catch (error) {
-    console.error("Failed to validate extension token:", error);
+    debug.error("Failed to validate extension token:", error);
     return null;
   }
 }
@@ -1764,10 +1763,10 @@ async function syncClerkSession(sessionData) {
     authState.apiUrl = apiUrl;
     authState.lastChecked = Date.now();
 
-    console.log("Clerk session synced successfully");
+    debug.log("Clerk session synced successfully");
     return authState;
   } catch (error) {
-    console.error("Failed to sync Clerk session:", error);
+    debug.error("Failed to sync Clerk session:", error);
     throw error;
   }
 }
@@ -1797,7 +1796,7 @@ async function fetchUserInfoFromBackend(clerkToken, apiUrl) {
     
     return null;
   } catch (error) {
-    console.error("Failed to fetch user info from backend:", error);
+    debug.error("Failed to fetch user info from backend:", error);
     return null;
   }
 }
