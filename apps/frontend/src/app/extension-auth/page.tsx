@@ -179,19 +179,68 @@ function ExtensionAuthContent() {
         }
       } catch (error) {
         console.error("Extension auth failed:", error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to connect to extension. Please ensure you have a Pro or Enterprise subscription.";
+        
+        // Parse error for user-friendly messages
+        let errorTitle = "Connection Error";
+        let errorMessage = "An unexpected error occurred. Please try again.";
+        let showPricingLink = false;
+        let showRetryLink = true;
+        
+        if (error instanceof Error) {
+          const msg = error.message.toLowerCase();
+          
+          if (msg.includes("403") || msg.includes("forbidden") || msg.includes("extension_requires_paid_plan")) {
+            errorTitle = "Subscription Required";
+            errorMessage = "The browser extension requires a Pro or Enterprise subscription to use.";
+            showPricingLink = true;
+            showRetryLink = false;
+          } else if (msg.includes("401") || msg.includes("unauthorized") || msg.includes("not authenticated")) {
+            errorTitle = "Authentication Required";
+            errorMessage = "Please sign in to your Brandalyze account to continue.";
+            showRetryLink = true;
+          } else if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch")) {
+            errorTitle = "Connection Failed";
+            errorMessage = "Unable to connect to Brandalyze servers. Please check your internet connection and try again.";
+          } else if (msg.includes("token")) {
+            errorTitle = "Authentication Failed";
+            errorMessage = "Failed to generate authentication token. Please try again or contact support.";
+          } else if (msg.includes("extension")) {
+            errorTitle = "Extension Error";
+            errorMessage = "Could not communicate with the extension. Make sure the extension is installed and enabled.";
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
         document.body.innerHTML = `
-          <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div class="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
               <div class="text-center">
-                <h1 class="text-xl font-semibold text-red-600 mb-2">Connection Error</h1>
-                <p class="text-gray-600 mb-4">${errorMessage}</p>
-                <a href="/pricing" class="inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                  View Pricing
-                </a>
+                <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </div>
+                <h1 class="text-xl font-semibold text-red-600 mb-2">${errorTitle}</h1>
+                <p class="text-gray-600 mb-6">${errorMessage}</p>
+                <div class="flex flex-col gap-3">
+                  ${showPricingLink ? `
+                    <a href="/pricing" class="inline-block bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-medium transition-colors">
+                      View Pricing Plans
+                    </a>
+                  ` : ''}
+                  ${showRetryLink ? `
+                    <button 
+                      onclick="window.location.reload()" 
+                      class="inline-block bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded font-medium transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  ` : ''}
+                  <a href="/" class="text-sm text-gray-500 hover:text-gray-700">
+                    Return to Dashboard
+                  </a>
+                </div>
               </div>
             </div>
           </div>
