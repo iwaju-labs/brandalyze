@@ -45,6 +45,7 @@ async function processTweets() {
       debug.log("Removing analyze button (not on profile page)");
       existingButton.remove();
       currentButtonHandle = null;
+      isAddingButton = false;
     }
     return;
   }
@@ -78,6 +79,7 @@ async function processTweets() {
       debug.log("Removing analyze button (not on valid profile page)");
       existingButton.remove();
       currentButtonHandle = null;
+      isAddingButton = false;
     }
     return;
   }
@@ -120,6 +122,19 @@ async function addAnalyzeButtonToProfile(handle) {
   }
 
   isAddingButton = true;
+
+  // Get user's set handle from storage
+  const result = await chrome.storage.local.get(['userTwitterHandle']);
+  const userHandle = result.userTwitterHandle;
+  
+  debug.log(`Current profile: @${handle}, User's handle: @${userHandle}`);
+  
+  // Only show button if this is the user's own profile
+  if (!userHandle || handle.toLowerCase() !== userHandle.toLowerCase()) {
+    debug.log("Not user's profile - analyze button not shown");
+    isAddingButton = false;
+    return;
+  }
 
   // Simple strategy: Look for the specific edit profile button
   const editProfileButton = document.querySelector(
