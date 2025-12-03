@@ -1024,34 +1024,53 @@ document.addEventListener("DOMContentLoaded", async () => {
       title: "Analysis Preferences",
       subtitle: "Customize your analysis settings and emotional indicators",
     },
+    about: {
+      title: "About & Help",
+      subtitle: "Learn how to use Brandalyze and access resources",
+    },
   };
+
+  // Helper function to switch to a section
+  function switchToSection(sectionName) {
+    // Update nav item styles
+    for (const nav of navItems) {
+      nav.style.background = "transparent";
+      nav.style.color = "#6b7280";
+    }
+    const activeNav = document.querySelector(`[data-section="${sectionName}"]`);
+    if (activeNav) {
+      activeNav.style.background = "#dbeafe";
+      activeNav.style.color = "#1e40af";
+    }
+
+    // Show target section, hide others
+    for (const section of contentSections) {
+      section.classList.add("hidden");
+    }
+    const targetElement = document.getElementById(sectionName + "-section");
+    if (targetElement) {
+      targetElement.classList.remove("hidden");
+    }
+
+    // Update header
+    if (sectionData[sectionName]) {
+      contentTitle.textContent = sectionData[sectionName].title;
+      contentSubtitle.textContent = sectionData[sectionName].subtitle;
+    }
+  }
+
+  // Check if first time user and show About section
+  chrome.storage.local.get(['hasSeenOnboarding'], (result) => {
+    if (!result.hasSeenOnboarding) {
+      switchToSection('about');
+      chrome.storage.local.set({ hasSeenOnboarding: true });
+    }
+  });
 
   for (const item of navItems) {
     item.addEventListener("click", function () {
       const targetSection = this.dataset.section;
-
-      // Update nav item styles
-      for (const nav of navItems) {
-        nav.style.background = "transparent";
-        nav.style.color = "#6b7280";
-      }
-      this.style.background = "#dbeafe";
-      this.style.color = "#1e40af";
-
-      // Show target section, hide others
-      for (const section of contentSections) {
-        section.classList.add("hidden");
-      }
-      const targetElement = document.getElementById(targetSection + "-section");
-      if (targetElement) {
-        targetElement.classList.remove("hidden");
-      }
-
-      // Update header
-      if (sectionData[targetSection]) {
-        contentTitle.textContent = sectionData[targetSection].title;
-        contentSubtitle.textContent = sectionData[targetSection].subtitle;
-      }
+      switchToSection(targetSection);
     });
   }
 });

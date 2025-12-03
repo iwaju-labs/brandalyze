@@ -2,6 +2,13 @@
 importScripts('../src/debug.js');
 const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
 
+// Open options page on first install
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('popup/options.html') });
+  }
+});
+
 // API CONFIG - Environment-aware API URLs
 const DEV_API_BASE_URL = "http://localhost:8000/api";
 const PROD_API_BASE_URL = "https://brandalyze.onrender.com/api";
