@@ -1,4 +1,4 @@
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
 debug.log("Audit button loaded");
 
 (function () {
@@ -75,7 +75,6 @@ debug.log("Audit button loaded");
     styles.id = "brandalyze-audit-styles";
     styles.textContent = `
       .brandalyze-audit-btn {
-        position: fixed;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -88,7 +87,7 @@ debug.log("Audit button loaded");
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         cursor: pointer;
         z-index: 10000;
-        transition: background-color 0.2s ease, top 0.15s ease, left 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+        transition: background-color 0.2s ease, opacity 0.15s ease, transform 0.15s ease;
         border: none;
         min-width: 100px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -186,7 +185,7 @@ debug.log("Audit button loaded");
     button.id = "brandalyze-audit-btn";
     button.className =
       "brandalyze-audit-btn brandalyze-audit-idle brandalyze-audit-btn-enter";
-
+    
     updateButtonState(button, "idle");
 
     button.addEventListener("click", handleAuditClick);
@@ -214,7 +213,7 @@ debug.log("Audit button loaded");
 
     const element = composeField.element;
     const rect = element.getBoundingClientRect();
-    
+
     // Get actual button dimensions after it's in DOM
     const buttonWidth = button.offsetWidth || 120;
     const buttonHeight = button.offsetHeight || 36;
@@ -222,9 +221,10 @@ debug.log("Audit button loaded");
 
     // Find the compose container/dialog
     const dialog = element.closest('[role="dialog"]');
-    const container = dialog || 
+    const container =
+      dialog ||
       element.closest('[data-testid="primaryColumn"]') ||
-      element.closest('form') || 
+      element.closest("form") ||
       element.parentElement;
 
     // Find X/Twitter's Post button to position relative to it
@@ -243,7 +243,8 @@ debug.log("Audit button loaded");
       // If button would go off-screen left, position above the toolbar instead
       if (left < margin) {
         // Find the toolbar/action bar
-        const toolbar = postButton.closest('[role="group"]') || postButton.parentElement;
+        const toolbar =
+          postButton.closest('[role="group"]') || postButton.parentElement;
         if (toolbar) {
           const toolbarRect = toolbar.getBoundingClientRect();
           top = toolbarRect.top - buttonHeight - margin;
@@ -301,7 +302,10 @@ debug.log("Audit button loaded");
    */
   function handleReposition() {
     if (auditButton && currentComposeField) {
-      positionButton(auditButton, currentComposeField);
+      const element = currentComposeField.element;
+      if (!document.body.contains(element)) {
+        hideButton(true);
+      }
     }
   }
 
@@ -327,26 +331,88 @@ debug.log("Audit button loaded");
 
     currentComposeField = composeField;
 
-    if (!auditButton) {
+    const element = composeField.element;
+
+    // Find the compose container/dialog
+    const dialog = element.closest('[role="dialog"]');
+    const container =
+      dialog ||
+      element.closest('[data-testid="primaryColumn"]') ||
+      element.closest("form") ||
+      element.parentElement;
+
+    // Find X/Twitter's Post button
+    const postButton = container?.querySelector(
+      '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+    );
+
+    // Find the toolbar row - try multiple strategies
+    let toolbar = postButton?.closest('[role="group"]') || postButton?.parentElement;
+    
+    // Fallback: find toolbar directly if Post button not found yet
+    if (!toolbar) {
+      // Look for the toolbar container that holds the media/emoji/poll buttons
+      toolbar = container?.querySelector('[role="group"][id]') ||
+                container?.querySelector('[data-testid="toolBar"]') ||
+                container?.querySelector('[role="toolbar"]');
+    }
+
+    if (!toolbar) {
+      debug.warn("Could not find toolbar to insert audit button");
+      // Fallback to fixed positioning if toolbar not found
+      if (!auditButton) {
+        auditButton = createButton();
+        auditButton.style.position = 'fixed';
+        document.body.appendChild(auditButton);
+      }
+      positionButton(auditButton, composeField);
+    } else {
+      // Remove old button/wrapper if it exists
+      if (auditButton) {
+        const oldWrapper = auditButton.closest("#brandalyze-audit-btn-wrapper");
+        if (oldWrapper) oldWrapper.remove();
+        else auditButton.remove();
+        auditButton = null;
+      }
+      
+      // Clean up any stray wrappers in the toolbar
+      const strayWrapper = toolbar.querySelector("#brandalyze-audit-btn-wrapper");
+      if (strayWrapper) strayWrapper.remove();
+
       auditButton = createButton();
-      document.body.appendChild(auditButton);
+      
+      // Apply margins for even spacing
+      // Use 12px to match standard spacing, but allow flex gap to work if present
+      auditButton.style.marginLeft = "12px";
+      auditButton.style.marginRight = "12px";
+
+      // Insert before the Post button directly
+      // We insert into the immediate parent of the post button to ensure we are 
+      // inside the same layout group (e.g. the right-side actions group)
+      if (postButton && postButton.parentElement) {
+        postButton.parentElement.insertBefore(auditButton, postButton);
+      } else {
+        // Append to toolbar if no post button
+        toolbar.appendChild(auditButton);
+      }
     }
 
     // Apply dark mode class based on current theme
-    if (isDarkMode()) {
-      auditButton.classList.add("brandalyze-dark");
-    } else {
-      auditButton.classList.remove("brandalyze-dark");
+    if (auditButton) {
+      if (isDarkMode()) {
+        auditButton.classList.add("brandalyze-dark");
+      } else {
+        auditButton.classList.remove("brandalyze-dark");
+      }
+
+      updateButtonState(auditButton, "idle");
+
+      // Animate in
+      requestAnimationFrame(() => {
+        auditButton.classList.remove("brandalyze-audit-btn-enter");
+        auditButton.classList.add("brandalyze-audit-btn-visible");
+      });
     }
-
-    positionButton(auditButton, composeField);
-    updateButtonState(auditButton, "idle");
-
-    // Animate in
-    requestAnimationFrame(() => {
-      auditButton.classList.remove("brandalyze-audit-btn-enter");
-      auditButton.classList.add("brandalyze-audit-btn-visible");
-    });
   }
 
   /**
@@ -356,8 +422,13 @@ debug.log("Audit button loaded");
     if (!auditButton || isAnalyzing) return;
 
     if (immediate) {
-      // Immediate removal without animation
-      auditButton.remove();
+      // Immediate removal - remove entire wrapper
+      const wrapper = auditButton.closest("#brandalyze-audit-btn-wrapper");
+      if (wrapper) {
+        wrapper.remove();
+      } else {
+        auditButton.remove();
+      }
       auditButton = null;
       currentComposeField = null;
     } else {
@@ -367,11 +438,16 @@ debug.log("Audit button loaded");
 
       setTimeout(() => {
         if (auditButton && !isAnalyzing) {
-          auditButton.remove();
+          const wrapper = auditButton.closest("#brandalyze-audit-btn-wrapper");
+          if (wrapper) {
+            wrapper.remove();
+          } else {
+            auditButton.remove();
+          }
           auditButton = null;
           currentComposeField = null;
         }
-      }, 150); // Reduced from 200ms
+      }, 150);
     }
   }
 

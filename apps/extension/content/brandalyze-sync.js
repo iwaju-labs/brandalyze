@@ -1,5 +1,5 @@
 // Content script for the main Brandalyze site to sync authentication tokens
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
 debug.log("Token sync script loaded");
 
 // Function to get the current Clerk session (token + user data)

@@ -1,6 +1,5 @@
 // Import debug utility
 importScripts('../src/debug.js');
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
 
 // Open options page on first install
 chrome.runtime.onInstalled.addListener((details) => {

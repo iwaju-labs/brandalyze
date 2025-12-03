@@ -1,5 +1,4 @@
-// Get debug utility (loaded before this script via manifest)
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
 
 debug.log("Brandalyze Twitter content script loaded");
 

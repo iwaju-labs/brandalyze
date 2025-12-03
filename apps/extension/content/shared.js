@@ -1,5 +1,5 @@
-// Get debug utility (loaded before this script via manifest)
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
+// Access via globalThis.BrandalyzeDebug - do not redeclare
 
 debug.log('Brandalyze shared utilities loaded');
 

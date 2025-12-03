@@ -1,5 +1,4 @@
-
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
 
 (function() {
   "use strict";

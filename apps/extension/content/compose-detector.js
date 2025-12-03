@@ -1,4 +1,4 @@
-const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, error: console.error, info: () => {} };
+// Use debug utility loaded via manifest (src/debug.js)
 debug.log("Compose detector loaded");
 
 (function () {
@@ -50,10 +50,10 @@ debug.log("Compose detector loaded");
         element.matches(COMPOSE_SELECTORS.twitter.dm);
       if (isDM) return false;
 
-      // Skip replies - multiple detection methods
+      // Skip replies - check for reply-specific indicators
       const container = element.closest('[role="dialog"]') || element.closest('[data-testid="primaryColumn"]');
       
-      // Check for reply indicators
+      // Check for explicit reply indicators
       const isReply = 
         // Direct reply testid
         element.closest('[data-testid="reply"]') ||
@@ -62,13 +62,7 @@ debug.log("Compose detector loaded");
         // Reply aria label on the compose field
         element.getAttribute('aria-label')?.toLowerCase().includes('reply') ||
         // "Replying to" text in the compose container
-        container?.querySelector('[data-testid="Tweet-User-Avatar"]') !== null ||
-        // Reply thread indicator (shows who you're replying to)
-        container?.textContent?.includes('Replying to') ||
-        // Check URL for reply context
-        globalThis.location.pathname.includes('/status/') ||
-        // Check for the reply indicator element (blue line connecting to original tweet)
-        container?.querySelector('[data-testid="tweetPhoto"]')?.closest('[role="dialog"]') === container;
+        container?.textContent?.includes('Replying to');
       
       if (isReply) return false;
     }
