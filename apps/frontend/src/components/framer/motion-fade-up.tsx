@@ -22,11 +22,12 @@ export default function MotionFadeUp({
 }: MotionFadeProps) {
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1}}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ amount, once }}
             transition={{ duration, delay, ease: "easeOut" }}
             className={className}
+            style={{ transform: 'translateZ(0)' }}
         >
             {children}
         </motion.div>

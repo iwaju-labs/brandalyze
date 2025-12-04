@@ -13,6 +13,7 @@ import Image from "next/image";
 import Typewriter from "@/components/utils/Typewriter";
 import MotionFadeUp from "@/components/framer/motion-fade-up";
 import ParticleLink from "@/components/framer/particle-link";
+import NativeVideoFacade from "@/components/ui/video-facade/native-vide-facade";
 
 export const metadata: Metadata = {
   title: "Brandalyze - AI Brand Voice Analysis",
@@ -93,7 +94,7 @@ export default async function HomePage() {
                 alt="Like Grammarly but for brands!"
                 width={300}
                 height={300}
-                className="flex items-center justify-center pointer-events-none -rotate-12 dark:invert md:block lg:block"
+                className="flex items-center justify-center pointer-events-none -rotate-12 dark:brightness-0 dark:contrast-200 md:block lg:block"
               />
             </div>
             {/* Two Column Hero Layout */}
@@ -183,20 +184,15 @@ export default async function HomePage() {
                       content.
                     </p>
                   </div>
-                  {/* Right Column - Video Placeholder */}
+                  {/* Right Column - Video */}
                   <div className="order-1 lg:order-2">
-                    <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                      <video loop muted autoPlay>
-                        <source
-                          src="/assets/landing/brandalyze-content-input-demo.mp4"
-                          type="video/mp4"
-                        />
-                        <source
-                          src="/assets/landing/brandalyze-content-input-demo.webm"
-                          type="video/webm"
-                        />
-                      </video>
-                    </div>
+                    <NativeVideoFacade
+                      videoSrc="/assets/landing/brandalyze-content-input-demo.mp4"
+                      posterImage="/assets/landing/brandalyze-content-input.png"
+                      title="Upload Brand Samples & Get Instant Analysis"
+                      aspectRatio="16/9"
+                      priority={false}
+                    />
                   </div>
                 </div>
               </MotionFadeUp>
@@ -204,18 +200,15 @@ export default async function HomePage() {
               <MotionFadeUp>
                 {/* Second Demo - Social Media Analysis */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                  {/* Left Column - Video Placeholder */}
+                  {/* Left Column - Video */}
                   <div className="order-1">
-                    <video loop muted autoPlay>
-                      <source
-                        src="/assets/landing/brandalyze-profile-analysis-demo0.mp4"
-                        type="video/mp4"
-                      />
-                      <source
-                        src="/assets/landing/brandalyze-profile-analysis-demo0.webm"
-                        type="video/webm"
-                      />
-                    </video>
+                    <NativeVideoFacade
+                      videoSrc="/assets/landing/brandalyze-profile-analysis.mp4"
+                      posterImage="/assets/landing/brandalyze-profile-analysis.png"
+                      title="Real-Time Social Media Profile Analysis"
+                      aspectRatio="16/9"
+                      priority={false}
+                    />
                   </div>
                   {/* Right Column - Title and Description */}
                   <div className="text-center lg:text-left px-4 order-2">
@@ -231,6 +224,32 @@ export default async function HomePage() {
                   </div>
                 </div>
               </MotionFadeUp>
+
+              <MotionFadeUp delay={0.25} duration={1.5}>
+                {/* Third Demo - Placeholder for new video */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                  {/* Left Column - Title and Description */}
+                  <div className="text-center lg:text-left px-4 order-2 lg:order-1">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-4 font-mono">
+                      &gt; Post Audits
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
+                      Test your post for tone and style alignment before publishing. Get real-time suggestions to improve phrasing and tone. All to help you get better engagement on your posts.
+                    </p>
+                  </div>
+                  {/* Right Column - Video */}
+                  <div className="order-1 lg:order-2">
+                    <NativeVideoFacade
+                      videoSrc="/assets/landing/post-audits.mp4"
+                      posterImage="/assets/landing/post-audits.png"
+                      title="Post Audits"
+                      aspectRatio="16/9"
+                      priority={false}
+                    />
+                  </div>
+                </div>
+              </MotionFadeUp>
+
             </div>
           </div>
 
@@ -272,7 +291,7 @@ export default async function HomePage() {
                 height={54}
                 width={216}
                 unoptimized
-                className="drop-shadow-md"
+                className="shadow-md"
               />
             </a>
             <Link

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force GPU layer isolation to prevent Chromium rendering artifacts */
+* {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
 :root {
   --background: transparent;
   --foreground: #0a0a0a;
@@ -37,4 +45,6 @@
 body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

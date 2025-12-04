@@ -12,7 +12,7 @@ export function ProGateModal({ featureName }: ProGateModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-white/80 dark:bg-black/80" />
       <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 p-8">
         <div className="flex flex-col items-center text-center">
           <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center mb-6">

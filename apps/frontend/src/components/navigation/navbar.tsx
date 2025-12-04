@@ -8,7 +8,7 @@ import { AdminLink } from "./admin-link";
 
 export const Navbar = () => {
   return (
-    <nav className="relative z-50 bg-white dark:bg-black px-4 py-3 border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm transition-colors">
+    <nav className="relative z-50 bg-white dark:bg-black px-4 py-3 border-b border-gray-200 dark:border-gray-800 transition-colors">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link
           href="/"
