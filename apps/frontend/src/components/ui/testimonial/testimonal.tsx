@@ -87,7 +87,7 @@ export default function TestimonialSection() {
               onFocus={() => setHoveredId(testimonial.id)}
               onBlur={() => setHoveredId(null)}
             >
-              <span className="relative flex size-8 shrink-0 overflow-hidden rounded-lg h-9 w-9 sm:h-11 sm:w-11 border border-gray-200 dark:border-gray-700 ring-2 ring-white dark:ring-black shadow-sm transition-transform duration-200 ease-out hover:scale-105 hover:z-10 bg-gray-100 dark:bg-gray-800">
+              <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full h-9 w-9 sm:h-11 sm:w-11 border border-gray-200 dark:border-gray-700 ring-2 ring-white dark:ring-black shadow-sm transition-transform duration-200 ease-out hover:scale-105 hover:z-10 bg-gray-100 dark:bg-gray-800">
                 <Image
                   className="aspect-square size-full object-cover"
                   alt={`@${testimonial.username}`}
@@ -100,7 +100,7 @@ export default function TestimonialSection() {
 
             {/* Testimonial Dialog */}
             {hoveredId === testimonial.id && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <div className="flex items-start gap-2 mb-2">
                   <Image
                     className="rounded-full"
