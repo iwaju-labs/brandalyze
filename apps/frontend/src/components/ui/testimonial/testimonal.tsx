@@ -5,77 +5,82 @@ import Image from "next/image";
 import { apiFetch } from "../../../../lib/api";
 
 interface Testimonal {
-    id: number;
-    username: string;
-    twitterHandle: string;
-    avatar: string;
-    testimonial?: string;
+  id: number;
+  username: string;
+  twitterHandle: string;
+  avatar: string;
+  testimonial?: string;
 }
 
 const testimonials: Testimonal[] = [
-    {
-        id: 0,
-        username: "emanueledpt",
-        twitterHandle: "@emanueledpt",
-        avatar: "/assets/testimonial/emanuele.jpeg",
-        testimonial: ""
-    },
-    {
-        id: 1,
-        username: "offpaths",
-        twitterHandle: "@offpaths",
-        avatar: "/assets/testimonial/offpaths.jpg",
-        testimonial: ""
-    },
-    {
-        id: 2,
-        username: "andi_losing",
-        twitterHandle: "@andi_losing",
-        avatar: "/assets/testimonial/andi_losing.jpg",
-        testimonial: ""
-    },
-    {
-        id: 3,
-        username: "kappaemme",
-        twitterHandle: "@kappaemme",
-        avatar: "/assets/testimonial/kappaemme.jpg",
-        testimonial: "I love it! It's easy to use!"
-    },
-    {
-        id: 4,
-        username: "VynseDev",
-        twitterHandle: "@vynsedev",
-        avatar: "/assets/testimonial/vynsedev.png",
-        testimonial: ""
-    }
-]
+  {
+    id: 0,
+    username: "emanueledpt",
+    twitterHandle: "@emanueledpt",
+    avatar: "/assets/testimonial/emanuele.jpeg",
+    testimonial: `I needed something like this
+
+Everytime I’m posting I’m using it to see if it aligns with my style
+
+Because I want to bring myself to others and do not want to fall off character
+
+And this extension allows me to do that!`,
+  },
+  {
+    id: 1,
+    username: "offpaths",
+    twitterHandle: "@offpaths",
+    avatar: "/assets/testimonial/offpaths.jpg",
+    testimonial: `I have actually been looking for a solution like this, something that can help me stay true to my voice while being X algorithm friendly.
+
+Brandalyze helps me do just that. I would recommend anyone trying grow personal brand to use this tool.`,
+  },
+  {
+    id: 2,
+    username: "andi_losing",
+    twitterHandle: "@andi_losing",
+    avatar: "/assets/testimonial/andi_losing.jpg",
+    testimonial: "",
+  },
+  {
+    id: 3,
+    username: "kappaemme",
+    twitterHandle: "@kappaemme",
+    avatar: "/assets/testimonial/kappaemme.jpg",
+    testimonial: "I love it! It's easy to use!",
+  },
+  {
+    id: 4,
+    username: "VynseDev",
+    twitterHandle: "@vynsedev",
+    avatar: "/assets/testimonial/vynsedev.png",
+    testimonial: "",
+  },
+];
 
 export default function TestimonialSection() {
-    const [hoveredId, setHoveredId] = useState<number | null>(null);
-    const [totalUsers, setTotalUsers] = useState<number>(800);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [totalUsers, setTotalUsers] = useState<number>(800);
 
-    useEffect(() => {
-        const fetchUserCount = async () => {
-            try {
-                const response = await apiFetch("/payments/stats/");
-                setTotalUsers(response.data?.total_users || 800);
-            } catch (error) {
-                console.error("Could not fetch user count", error);
-                // Keep fallback value
-            }
-        };
-        fetchUserCount();
-    }, []);
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const response = await apiFetch("/payments/stats/");
+        setTotalUsers(response.data?.total_users || 800);
+      } catch (error) {
+        console.error("Could not fetch user count", error);
+        // Keep fallback value
+      }
+    };
+    fetchUserCount();
+  }, []);
 
   return (
     <div className="flex items-center justify-center gap-4 sm:gap-5 py-8">
       {/* Avatar Group */}
       <div className="group inline-flex -space-x-2 relative">
         {testimonials.map((testimonial) => (
-          <div
-            key={testimonial.id}
-            className="relative"
-          >
+          <div key={testimonial.id} className="relative">
             <a
               target="_blank"
               rel="noopener noreferrer"
