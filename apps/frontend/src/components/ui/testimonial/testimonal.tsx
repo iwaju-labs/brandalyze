@@ -136,7 +136,7 @@ export default function TestimonialSection() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Trusted by{" "}
           <span className="font-medium text-gray-900 dark:text-white">
-            {totalUsers.toLocaleString()} users
+            {totalUsers.toLocaleString()}+ users
           </span>
         </p>
       )}
