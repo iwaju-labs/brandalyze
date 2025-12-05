@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+  title: "Brandalyze - Best Social Media Brand Analysis Tool",
   description:
     "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency. Perfect for marketers, content creators, and businesses.",
   keywords: [
@@ -38,8 +38,9 @@ export const metadata: Metadata = {
     "grammarly for brands",
     "AI copywriting tool",
     "marketing analytics",
+    "social media audit"
   ],
-  authors: [{ name: "Brandalyze" }, { name: "IWAJU LABS" }],
+  authors: [{ name: "Brandalyze" }, { name: "DNGI"}, { name: "IWAJU LABS" }],
   creator: "Brandalyze",
   publisher: "Brandalyze",
   icons: {
@@ -61,7 +62,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://brandalyze.io",
-    title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+    title: "Brandalyze - Best Social Media Brand Analysis Tool",
     description:
       "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency.",
     siteName: "Brandalyze",
@@ -70,13 +71,13 @@ export const metadata: Metadata = {
         url: "https://brandalyze.io/assets/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Brandalyze - AI Brand Voice Analysis Tool",
+        alt: "Brandalyze - Best Social Media Brand Analysis Tool",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Brandalyze - AI-Powered Brand Voice Analysis Tool",
+    title: "Brandalyze - Best Social Media Brand Analysis Tool",
     description:
       "Ensure consistent brand voice across all your content with AI-powered analysis. Get instant feedback on brand alignment, tone, and messaging consistency.",
     images: ["https://brandalyze.io/assets/og-image.png"],
