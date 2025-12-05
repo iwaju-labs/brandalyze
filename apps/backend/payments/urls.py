@@ -14,7 +14,8 @@ from .admin_views import (
     list_users,
     update_user_subscription,
     sync_stripe_subscription,
-    admin_stats
+    admin_stats,
+    public_stats
 )
 
 urlpatterns = [
@@ -25,6 +26,9 @@ urlpatterns = [
     path('billing-info/', get_billing_info, name='get_billing_info'),    path('portal/', create_customer_portal, name='create_customer_portal'),
     path('cancel/', cancel_subscription, name='cancel_subscription'),
     path('test-auth/', test_auth, name='test_auth'),
+    
+    # Public endpoints
+    path('stats/', public_stats, name='public_stats'),
     
     # Admin endpoints
     path('admin/check-status/', check_admin_status, name='check_admin_status'),

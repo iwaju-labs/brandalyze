@@ -458,3 +458,24 @@ def admin_stats(request):
             f"Failed to fetch admin stats: {str(e)}",
             code="ADMIN_STATS_ERROR"
         )
+
+
+@api_view(['GET'])
+@permission_classes([])  # Public endpoint
+def public_stats(request):
+    """Get public statistics - total user count only"""
+    try:
+        total_users = User.objects.count()
+        
+        return success_response(
+            data={
+                'total_users': total_users
+            },
+            message="Public statistics fetched successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            f"Failed to fetch public stats: {str(e)}",
+            code="PUBLIC_STATS_ERROR"
+        )

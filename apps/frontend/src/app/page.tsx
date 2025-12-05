@@ -14,9 +14,10 @@ import Typewriter from "@/components/utils/Typewriter";
 import MotionFadeUp from "@/components/framer/motion-fade-up";
 import ParticleLink from "@/components/framer/particle-link";
 import NativeVideoFacade from "@/components/ui/video-facade/native-vide-facade";
+import TestimonialSection from "@/components/ui/testimonial/testimonal";
 
 export const metadata: Metadata = {
-  title: "Brandalyze - AI Brand Voice Analysis",
+  title: "Brandalyze - Best Social Media Brand Analysis Tool",
   description:
     "Transform your brand consistency with AI-powered voice analysis. Get instant feedback on tone, and brand alignment across all your content.",
   keywords: [
@@ -88,13 +89,14 @@ export default async function HomePage() {
         <div className="w-full">
           {/* Grammarly comparison ink stamp */}
           <MotionFadeUp delay={0.5} duration={1}>
-            <div className="grammarly-comp flex items-center justify-center">
+            <div className="grammarly-comp flex items-center justify-center -mt-8">
               <Image
                 src="/assets/landing/inkstamp.png"
                 alt="Like Grammarly but for brands!"
                 width={300}
                 height={300}
-                className="flex items-center justify-center pointer-events-none -rotate-12 dark:brightness-0 dark:contrast-200 md:block lg:block"
+                priority
+                className="flex items-center justify-center pointer-events-none -rotate-12 dark:invert md:block lg:block"
               />
             </div>
             {/* Two Column Hero Layout */}
@@ -125,7 +127,7 @@ export default async function HomePage() {
                     particleCount={12}
                     particleSizeRange={[12, 24]}
                   >
-                    Get Started For Free
+                    Check Brand Alignment For Free
                     <ArrowSquareRight className="ml-2 h-5 w-5" />
                   </ParticleLink>
                 </div>
@@ -142,12 +144,15 @@ export default async function HomePage() {
                 </div>
               </div>
 
+
               {/* Right Column - Description and Image Space */}
               <div className="text-center lg:text-left space-y-6">
                 <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                  Upload your brand samples, analyze new content, and get
-                  AI-powered feedback on tone, style, and messaging consistency.
-                  Keep your brand voice unified across all channels.
+                  Upload brand samples, analyze social profiles, and audit
+                  content before posting. Get AI-powered brand alignment scores
+                  with actionable feedback. Pro users unlock the browser
+                  extension for real-time profile analysis and pre-publish
+                  auditing across Twitter/X and LinkedIn.
                 </p>
               </div>
             </div>
@@ -156,6 +161,9 @@ export default async function HomePage() {
           {/* Demo Videos Section */}
           <div className="mt-16 sm:mt-20 max-w-6xl mx-auto">
             <MotionFadeUp delay={1} duration={1.5}>
+              <div>
+                <TestimonialSection />
+              </div>
               <div className="text-center mb-12 sm:mb-16">
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-mono">
                   &gt; See Brandalyze in Action
@@ -234,7 +242,10 @@ export default async function HomePage() {
                       &gt; Post Audits
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base sm:text-lg">
-                      Test your post for tone and style alignment before publishing. Get real-time suggestions to improve phrasing and tone. All to help you get better engagement on your posts.
+                      Test your post for tone and style alignment before
+                      publishing. Get real-time suggestions to improve phrasing
+                      and tone. All to help you get better engagement on your
+                      posts.
                     </p>
                   </div>
                   {/* Right Column - Video */}
@@ -249,7 +260,6 @@ export default async function HomePage() {
                   </div>
                 </div>
               </MotionFadeUp>
-
             </div>
           </div>
 

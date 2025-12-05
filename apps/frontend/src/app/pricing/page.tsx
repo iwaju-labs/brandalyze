@@ -36,7 +36,7 @@ const pricingTiers = [
     name: "Pro",
     price: 9.49,
     billing: "month",
-    description: "For growing businesses and agencies",
+    description: "For independent creators and agencies",
     features: [
       "50 analyses per day",
       "Unlimited brand samples",

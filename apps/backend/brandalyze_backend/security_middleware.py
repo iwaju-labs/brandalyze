@@ -13,6 +13,18 @@ class SecurityHeadersMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         
+        # MIME type sniffing protection
+        response['X-Content-Type-Options'] = 'nosniff'
+        
+        # Referrer Policy
+        response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Permissions Policy
+        response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+        
+        # XSS Protection (legacy but still useful for older browsers)
+        response['X-XSS-Protection'] = '1; mode=block'
+        
         # Add Content Security Policy
         response['Content-Security-Policy'] = (
             "default-src 'self'; "

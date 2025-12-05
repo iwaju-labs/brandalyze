@@ -12,11 +12,15 @@ import { ClerkProvider } from "@clerk/nextjs";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -118,6 +122,10 @@ export default function RootLayout({
           <link rel="icon" href="/icon.png" type="image/png" />
           <link rel="apple-touch-icon" href="/icon.png" />
           <link rel="manifest" href="/manifest.json" />
+          <link rel="preconnect" href="https://brandalyze.onrender.com" />
+          <link rel="dns-prefetch" href="https://brandalyze.onrender.com" />
+          <link rel="preconnect" href="https://clerk.brandalyze.io" />
+          <link rel="dns-prefetch" href="https://clerk.brandalyze.io" />
 
           {/* OpenGraph Meta Tags */}
           <meta
