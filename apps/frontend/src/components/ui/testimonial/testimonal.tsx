@@ -87,7 +87,7 @@ export default function TestimonialSection() {
               onFocus={() => setHoveredId(testimonial.id)}
               onBlur={() => setHoveredId(null)}
             >
-              <span className="relative flex size-8 shrink-0 overflow-hidden rounded-full h-9 w-9 sm:h-11 sm:w-11 border border-gray-200 dark:border-gray-700 ring-2 ring-white dark:ring-black shadow-sm transition-transform duration-200 ease-out hover:scale-105 hover:z-10 bg-gray-100 dark:bg-gray-800">
+              <span className="relative flex size-8 shrink-0 overflow-hidden rounded-lg h-9 w-9 sm:h-11 sm:w-11 border border-gray-200 dark:border-gray-700 ring-2 ring-white dark:ring-black shadow-sm transition-transform duration-200 ease-out hover:scale-105 hover:z-10 bg-gray-100 dark:bg-gray-800">
                 <Image
                   className="aspect-square size-full object-cover"
                   alt={`@${testimonial.username}`}
