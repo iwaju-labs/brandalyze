@@ -299,16 +299,151 @@ def perform_profile_voice_analysis(
 ):
     """Analyze a profile to extract brand voice and style characteristics using AI"""
     try:
-        if use_bio:
+        # If we have both bio and posts, do a combined analysis
+        if use_bio and extracted_posts and len(extracted_posts) > 0:
+            return perform_combined_analysis(
+                handle, platform, extracted_bio, extracted_posts, emotional_indicators
+            )
+        elif use_bio:
             # Use bio analysis (more efficient for rate limits)
             return perform_profile_bio_analysis(handle, platform, extracted_bio, emotional_indicators)
         else:
             # Use posts analysis (original method)
-            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts)
+            return perform_profile_posts_analysis(handle, platform, posts_count, extracted_posts, emotional_indicators)
 
     except Exception as e:
         error_msg = str(e)
         print(f"Profile voice analysis error: {error_msg}")
+        raise Exception(error_msg)
+
+
+def perform_combined_analysis(handle, platform, extracted_bio, extracted_posts, emotional_indicators=None):
+    """Perform analysis using both bio and selected posts for higher accuracy"""
+    try:
+        print(f"🎯 Performing combined bio + posts analysis for @{handle}")
+        
+        # Build profile data from bio
+        profile_data = extracted_bio if extracted_bio else {}
+        
+        # Combine bio and posts text
+        text_parts = []
+        
+        if profile_data.get('bio'):
+            text_parts.append(f"Bio: {profile_data['bio']}")
+        
+        if profile_data.get('display_name'):
+            text_parts.append(f"Display Name: {profile_data['display_name']}")
+        
+        # Add posts
+        for i, post in enumerate(extracted_posts[:10], 1):
+            post_text = post.get('text', '') if isinstance(post, dict) else str(post)
+            if post_text.strip():
+                text_parts.append(f"Post {i}: {post_text}")
+        
+        combined_text = "\n\n".join(text_parts)
+        
+        if not combined_text.strip():
+            raise Exception("NO_CONTENT_EXTRACTED - No analyzable content found.")
+        
+        print(f"✅ Combined text length: {len(combined_text)} characters from bio + {len(extracted_posts)} posts")
+        
+        try:
+            from ai_core.analysis import BrandAnalyzer
+            from django.conf import settings
+
+            api_key = getattr(settings, "OPENAI_API_KEY", None)
+            if not api_key:
+                raise Exception("AI_SERVICE_NOT_CONFIGURED - OpenAI API key not configured")
+
+            analyzer = BrandAnalyzer(api_key)
+            voice_analysis = analyze_combined_voice_with_ai(
+                analyzer, combined_text, profile_data, handle, len(extracted_posts), emotional_indicators
+            )
+
+        except ImportError:
+            raise Exception("AI_CORE_NOT_AVAILABLE - AI analysis module not available")
+
+        confidence_score = calculate_analysis_confidence(
+            analysis_type="posts_analysis",
+            content_length=len(combined_text),
+            posts_count=len(extracted_posts),
+            requested_posts=10,
+            has_bio=bool(profile_data.get('bio')),
+            has_display_name=bool(profile_data.get('display_name')),
+            has_location=bool(profile_data.get('location')),
+            has_website=bool(profile_data.get('website')),
+            follower_count=profile_data.get('metrics', {}).get('followers', 0) if profile_data.get('metrics') else 0,
+            ai_response_parsed_successfully=True
+        )
+
+        return {
+            "handle": handle,
+            "platform": platform,
+            "analysis_type": "combined_analysis",
+            "profile_data": profile_data,
+            "posts_analyzed": len(extracted_posts),
+            "voice_analysis": voice_analysis,
+            "confidence_score": confidence_score,
+            "analysis_summary": f"@{handle} analyzed using bio and {len(extracted_posts)} selected posts.",
+        }
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Combined analysis error: {error_msg}")
+        raise Exception(error_msg)
+
+
+def analyze_combined_voice_with_ai(analyzer, combined_text, profile_data, handle, posts_count, emotional_indicators=None):
+    """Use AI to analyze voice from combined bio and posts content"""
+    try:
+        if not emotional_indicators:
+            emotional_indicators = ["enthusiasm", "professionalism", "approachability", "authority"]
+
+        indicators_json_structure = ",\n".join([f'"{ind}": 0.0' for ind in emotional_indicators])
+
+        prompt = f"""
+        Analyze the brand voice and communication style of @{handle} based on their profile bio and {posts_count} posts:
+
+        {combined_text}
+
+        You must respond with ONLY a valid JSON object in this exact format:
+        {{
+            "tone": "A concise description of their overall communication tone",
+            "style": "Their communication style",
+            "personality_traits": ["Trait 1", "Trait 2", "Trait 3", "Trait 4"],
+            "communication_patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+            "content_themes": ["Theme 1", "Theme 2", "Theme 3"],
+            "emotional_indicators": {{
+                {indicators_json_structure}
+            }}
+        }}
+        """
+
+        print(f"🤖 Sending combined analysis prompt for @{handle}")
+        response = analyzer.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600,
+            temperature=0.3,
+        )
+
+        ai_response = response.choices[0].message.content
+        print(f"🎯 AI Response for @{handle}: {ai_response[:200]}...")
+        
+        return parse_voice_analysis_response(ai_response, combined_text, emotional_indicators)
+
+    except Exception as e:
+        print(f"AI combined analysis error: {e}")
+        fallback_indicators = calculate_emotional_indicators(combined_text, emotional_indicators)
+        return {
+            "tone": "Professional and engaging",
+            "style": "Balanced communication with personal insights",
+            "personality_traits": ["Strategic thinker", "Community-focused", "Authentic voice", "Goal-oriented"],
+            "communication_patterns": ["Consistent messaging", "Engaging content style", "Personal touch"],
+            "content_themes": ["Professional topics", "Industry insights", "Personal perspectives"],
+            "emotional_indicators": fallback_indicators,
+        }
+
 
 def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None, emotional_indicators=None):
     """Analyze a profile's bio and information to extract brand voice characteristics using AI"""
@@ -362,13 +497,24 @@ def perform_profile_bio_analysis(handle, platform="twitter", extracted_bio=None,
         except ImportError:
             raise Exception("AI_CORE_NOT_AVAILABLE - AI analysis module not available")
 
+        confidence_score = calculate_analysis_confidence(
+            analysis_type="bio_analysis",
+            content_length=len(profile_text),
+            has_bio=bool(profile_data.get('bio')),
+            has_display_name=bool(profile_data.get('display_name')),
+            has_location=bool(profile_data.get('location')),
+            has_website=bool(profile_data.get('website')),
+            follower_count=profile_data.get('metrics', {}).get('followers', 0),
+            ai_response_parsed_successfully=True
+        )
+
         return {
             "handle": handle,
             "platform": platform,
             "analysis_type": "bio_analysis",
             "profile_data": profile_data,
             "voice_analysis": voice_analysis,
-            "confidence_score": 0.75,  # Bio analysis has good confidence but lower than posts
+            "confidence_score": confidence_score,
             "analysis_summary": f"@{handle} profile bio analysis completed with {len(profile_text)} characters of content.",
         }
 
@@ -421,6 +567,13 @@ def perform_profile_posts_analysis(
         except ImportError:
             raise Exception("AI_CORE_NOT_AVAILABLE - AI analysis module not available")
 
+        confidence_score = calculate_analysis_confidence(
+            analysis_type="posts_analysis",
+            content_length=len(posts_text),
+            posts_count=len(posts_data),
+            requested_posts=posts_count,
+            ai_response_parsed_successfully=True
+        )
         return {
             "handle": handle,
             "platform": platform,
@@ -428,9 +581,7 @@ def perform_profile_posts_analysis(
             "posts_analyzed": len(posts_data),
             "sample_posts": posts_data[:3],  # Include first 3 posts as samples
             "voice_analysis": voice_analysis,
-            "confidence_score": min(
-                0.95, max(0.6, len(posts_data) / posts_count * 0.8 + 0.2)
-            ),
+            "confidence_score": confidence_score,
             "analysis_summary": f"@{handle} demonstrates clear voice patterns across {len(posts_data)} analyzed posts.",
         }
 
@@ -1147,3 +1298,85 @@ def perform_extension_analysis(content, brand):
             "alignment_score": 0.5,
             "feedback": {"ai_feedback": f"Analysis error: {str(e)}"},
         }
+
+def calculate_analysis_confidence(
+    analysis_type: str,
+    content_length: int,
+    posts_count: int = 0,
+    requested_posts: int = 10,
+    has_bio: bool = False,
+    has_display_name: bool = False,
+    has_location: bool = False,
+    has_website: bool = False,
+    follower_count: int = 0,
+    emotional_indicator_variance: float = 0.0,
+    ai_response_parsed_successfully: bool = True
+) -> float:
+    """
+    Calculate meaningful confidence score based on analysis inputs and quality.
+
+    Returns a score between 0.0 and 1.0
+    """
+    score = 0.0
+
+    if analysis_type == "bio_analysis":
+        # base score
+        score = 0.5
+
+        if content_length >= 150:
+            score += 0.15
+        elif content_length > 100:
+            score += 0.10
+        elif content_length > 50:
+            score += 0.05
+        
+        if has_bio:
+            score += 0.10
+        if has_display_name:
+            score += 0.05
+        if has_location:
+            score += 0.05
+        if has_website:
+            score += 0.05
+
+        if follower_count > 10000:
+            score += 0.10
+        elif follower_count > 1000:
+            score += 0.05
+        elif follower_count > 100:
+            score += 0.02
+
+    elif analysis_type == "posts_analysis":
+        score = 0.55
+
+        post_ratio = posts_count / max(requested_posts, 1)
+        score += min(post_ratio * 0.25, 0.25)
+
+        if content_length > 2000:
+            score += 0.10
+        elif content_length > 1000:
+            score += 0.07
+        elif content_length > 500:
+            score += 0.04
+
+        if posts_count >= 5:
+            score += 0.05
+        if posts_count >= 10:
+            score += 0.05
+        
+    if ai_response_parsed_successfully:
+        score += 0.05
+    else:
+        score -= 0.10
+
+    # emotional indicator consistency (low variance = more confident)
+    # high variance might be an indicator of inconsistent content
+    if emotional_indicator_variance < 2.0:
+        score += 0.05
+    elif emotional_indicator_variance > 4.0:
+        score -= 0.05
+
+    return round(min(max(score, 0.1), 0.98), 2)
+
+
+

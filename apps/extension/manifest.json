@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Brandalyze - Social Media Brand Analysis",
-  "version": "1.0.1",
+  "name": "Brandalyze - Best Social Media Brand Analysis Tool",
+  "version": "1.0.2",
   "description": "Real-time brand analysis for social media content. Analyse posts/profiles for brand alignment while browsing social media.",
   "permissions": ["activeTab", "storage", "identity", "scripting", "tabs"],
   "host_permissions": [
@@ -28,6 +28,7 @@
         "content/compose-detector.js",
         "content/audit-button.js",
         "content/audit-panel.js",
+        "content/profile-panel.js",
         "content/compose-observer.js",
         "content/twitter.js"
       ],

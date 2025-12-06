@@ -568,6 +568,15 @@ debug.log("Audit button loaded");
     // This will be implemented in Step 2.3 (Audit Panel)
     debug.log("Audit results:", data);
 
+    // Store the result for "View Last" functionality
+    chrome.storage.local.set({
+      lastAuditResult: {
+        data: data,
+        timestamp: Date.now(),
+        platform: "twitter"
+      }
+    });
+
     if (globalThis.BrandalyzeAuditPanel) {
       globalThis.BrandalyzeAuditPanel.open(data);
     } else {

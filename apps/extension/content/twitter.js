@@ -124,8 +124,8 @@ async function addAnalyzeButtonToProfile(handle) {
   isAddingButton = true;
 
   // Get user's set handle from storage
-  const result = await chrome.storage.local.get(['userTwitterHandle']);
-  const userHandle = result.userTwitterHandle;
+  const result = await chrome.storage.local.get(['twitterHandle']);
+  const userHandle = result.twitterHandle;
   
   debug.log(`Current profile: @${handle}, User's handle: @${userHandle}`);
   
@@ -152,7 +152,7 @@ async function addAnalyzeButtonToProfile(handle) {
     }
     
     debug.log("User has subscription access, adding analyze button");
-    debug.log("Edit button container:", editProfileButton.parentElement);    // Insert analyze button directly before the edit profile button
+    debug.log("Edit button container:", editProfileButton.parentElement);
     insertAnalyzeButton(editProfileButton.parentElement, handle);
     currentButtonHandle = handle;
     isAddingButton = false;
@@ -293,53 +293,127 @@ function insertAnalyzeButton(container, handle) {
   debug.log(`Added native-style profile analysis button for @${handle}`);
 }
 
-// Handle profile analysis with loading states
-async function handleProfileAnalysis(handle, button) {
-  setAnalyzeButtonLoading(button, true);
+// Extract visible posts from the current profile page (excluding replies and retweets)
+function extractVisiblePostsFromPage() {
+  const posts = [];
+  const tweetArticles = document.querySelectorAll('article[data-testid="tweet"]');
 
-  try {
-    // Extract bio information from the current page
-    const extractedBio = extractProfileBioFromPage(handle);
-    debug.log(`Extracted profile bio for @${handle}:`, extractedBio);
+  tweetArticles.forEach((article, index) => {
+    // Skip retweets - they have a "Retweeted" indicator
+    const retweetIndicator = article.querySelector('[data-testid="socialContext"]');
+    if (retweetIndicator && retweetIndicator.textContent.toLowerCase().includes('repost')) {
+      return;
+    }
 
-    // Send profile analysis request to background script
-    const response = await new Promise((resolve, reject) => {
-      try {
-        chrome.runtime.sendMessage(
-          {
-            action: "analyzeProfile",
-            data: {
-              handle: handle,
-              platform: "twitter",
-              sessionId: sessionId,
-              extractedBio: extractedBio,
-              use_bio: true,
-            },
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(response);
-            }
-          }
-        );
-      } catch (error) {
-        reject(error);
+    // Skip replies - they typically show "Replying to" text
+    const replyIndicator = article.querySelector('div[dir="ltr"]');
+    if (replyIndicator && replyIndicator.textContent.toLowerCase().includes('replying to')) {
+      return;
+    }
+
+    // Alternative: check if the tweet has a reply thread indicator at the top
+    const replyThread = article.querySelector('[data-testid="Tweet-User-Avatar"]')?.closest('div')?.previousElementSibling;
+    if (replyThread && replyThread.querySelector('svg[viewBox="0 0 24 24"]')) {
+      // This might be a reply in a thread - check for connecting line
+      const hasConnectingLine = article.querySelector('div[style*="border-left"]') || 
+                                 article.parentElement?.querySelector('div[data-testid="cellInnerDiv"] > div > div:first-child[style*="height"]');
+      if (hasConnectingLine) {
+        return;
       }
+    }
+
+    const textElement = article.querySelector('[data-testid="tweetText"]');
+    const timeElement = article.querySelector("time");
+
+    if (textElement && textElement.textContent.trim()) {
+      posts.push({
+        id: index,
+        text: textElement.textContent.trim(),
+        timestamp: timeElement ? timeElement.getAttribute("datetime") : null,
+      });
+    }
+  });
+
+  debug.log(`Extracted ${posts.length} original posts from page (excluding replies/retweets)`);
+  return posts;
+}
+
+// Handle profile analysis with post selection sidebar
+async function handleProfileAnalysis(handle, button) {
+  // Extract visible posts from the page
+  const visiblePosts = extractVisiblePostsFromPage();
+  const extractedBio = extractProfileBioFromPage(handle);
+
+  debug.log(`Found ${visiblePosts.length} posts for selection`);
+
+  // Open the profile panel for post selection
+  if (globalThis.BrandalyzeProfilePanel) {
+    globalThis.BrandalyzeProfilePanel.openForSelection(handle, visiblePosts, async (selectedPosts) => {
+      await performProfileAnalysisRequest(handle, button, extractedBio, selectedPosts);
+    });
+  } else {
+    // Fallback to bio-only analysis if panel not loaded
+    debug.warn("Profile panel not available, falling back to bio-only analysis");
+    setAnalyzeButtonLoading(button, true);
+    await performProfileAnalysisRequest(handle, button, extractedBio, []);
+    setAnalyzeButtonLoading(button, false);
+  }
+}
+
+// Perform the actual profile analysis API request
+async function performProfileAnalysisRequest(handle, button, extractedBio, selectedPosts) {
+  try {
+    debug.log(`Performing analysis for @${handle} with ${selectedPosts.length} posts`);
+
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(
+        {
+          action: "analyzeProfile",
+          data: {
+            handle: handle,
+            platform: "twitter",
+            sessionId: sessionId,
+            extractedBio: extractedBio,
+            extractedPosts: selectedPosts.length > 0 ? selectedPosts : null,
+            use_bio: true,
+          },
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        }
+      );
     });
 
     if (response && response.success) {
-      showProfileAnalysisResult(response.data, button);
+      // Store the result for "View Last" functionality
+      await chrome.storage.local.set({
+        lastProfileAnalysisResult: {
+          data: response.data,
+          timestamp: Date.now(),
+          platform: "twitter"
+        }
+      });
+
+      // Show results in the sidebar panel
+      if (globalThis.BrandalyzeProfilePanel) {
+        globalThis.BrandalyzeProfilePanel.showResults(response.data);
+      } else {
+        showProfileAnalysisResult(response.data, button);
+      }
     } else {
       const errorMsg = response ? response.error : "Unknown error";
       throw new Error(errorMsg);
     }
   } catch (error) {
     debug.error("Profile analysis error:", error);
+    if (globalThis.BrandalyzeProfilePanel) {
+      globalThis.BrandalyzeProfilePanel.close();
+    }
     alert("Profile analysis failed: " + error.message);
-  } finally {
-    setAnalyzeButtonLoading(button, false);
   }
 }
 
@@ -886,6 +960,31 @@ async function initializeTwitterScript() {
 
   debug.log("Twitter content script initialized with observer");
 }
+
+// Listen for messages from popup to open panels
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  debug.log("Twitter content script received message:", request.action);
+
+  if (request.action === "openProfilePanel") {
+    if (globalThis.BrandalyzeProfilePanel && request.data) {
+      globalThis.BrandalyzeProfilePanel.openWithResults(request.data);
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: "Panel not available" });
+    }
+    return true;
+  }
+
+  if (request.action === "openAuditPanel") {
+    if (globalThis.BrandalyzeAuditPanel && request.data) {
+      globalThis.BrandalyzeAuditPanel.open(request.data);
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: "Panel not available" });
+    }
+    return true;
+  }
+});
 
 // Wait for page to be ready
 if (document.readyState === "loading") {

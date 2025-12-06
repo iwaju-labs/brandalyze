@@ -129,6 +129,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Navigation buttons
     goToTwitterBtn: getElement("goToTwitterBtn"),
     goToLinkedInBtn: getElement("goToLinkedInBtn"),
+    // Recent results section
+    recentResultsSection: getElement("recentResultsSection"),
+    viewLastAuditBtn: getElement("viewLastAuditBtn"),
+    viewLastProfileBtn: getElement("viewLastProfileBtn"),
+    lastAuditLabel: getElement("lastAuditLabel"),
+    lastAuditTime: getElement("lastAuditTime"),
+    lastProfileLabel: getElement("lastProfileLabel"),
+    lastProfileTime: getElement("lastProfileTime"),
   };
 
   // Utility functions
@@ -313,13 +321,106 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Hide platform navigation for free users
       hideElement(elements.platformNavigationSection);
       hideElement(elements.profileAnalysisSection);
+      hideElement(elements.recentResultsSection);
     } else {
       hideElement(elements.upgradeNotice);
       // Show platform navigation for paid users
       showElement(elements.platformNavigationSection);
       showElement(elements.profileAnalysisSection);
+      // Load and show recent results
+      loadRecentResults();
     }
   }
+
+  // Load recent audit and profile analysis results
+  async function loadRecentResults() {
+    try {
+      const stored = await chrome.storage.local.get([
+        "lastAuditResult",
+        "lastProfileAnalysisResult"
+      ]);
+
+      let hasResults = false;
+
+      // Check for last audit
+      if (stored.lastAuditResult && stored.lastAuditResult.data) {
+        hasResults = true;
+        const audit = stored.lastAuditResult;
+        const score = Math.round(audit.data.audit?.score || audit.data.score || 0);
+        
+        if (elements.lastAuditLabel) {
+          elements.lastAuditLabel.textContent = `Post Audit (${score}%)`;
+        }
+        if (elements.lastAuditTime) {
+          elements.lastAuditTime.textContent = formatTimeAgo(audit.timestamp);
+        }
+        if (elements.viewLastAuditBtn) {
+          elements.viewLastAuditBtn.disabled = false;
+        }
+      }
+
+      // Check for last profile analysis
+      if (stored.lastProfileAnalysisResult && stored.lastProfileAnalysisResult.data) {
+        hasResults = true;
+        const profile = stored.lastProfileAnalysisResult;
+        const handle = profile.data.handle || "Profile";
+        
+        if (elements.lastProfileLabel) {
+          elements.lastProfileLabel.textContent = `@${handle} Analysis`;
+        }
+        if (elements.lastProfileTime) {
+          elements.lastProfileTime.textContent = formatTimeAgo(profile.timestamp);
+        }
+        if (elements.viewLastProfileBtn) {
+          elements.viewLastProfileBtn.disabled = false;
+        }
+      }
+
+      // Show the section if we have any results
+      if (hasResults) {
+        showElement(elements.recentResultsSection);
+      }
+    } catch (error) {
+      debug.error("Error loading recent results:", error);
+    }
+  }
+
+  // Open panel on current tab with stored data
+  async function openPanelWithData(panelType, data) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab || !tab.id) {
+        debug.error("No active tab found");
+        return;
+      }
+
+      // Check if we're on a supported platform
+      const url = tab.url || "";
+      const isTwitter = url.includes("twitter.com") || url.includes("x.com");
+      const isLinkedIn = url.includes("linkedin.com");
+
+      if (!isTwitter && !isLinkedIn) {
+        // Navigate to Twitter first, then show panel
+        await chrome.tabs.update(tab.id, { url: "https://x.com" });
+        // Store the data to show after navigation
+        await chrome.storage.local.set({ pendingPanelData: { type: panelType, data } });
+        globalThis.close();
+        return;
+      }
+
+      // Send message to content script to open the panel
+      await chrome.tabs.sendMessage(tab.id, {
+        action: panelType === "audit" ? "openAuditPanel" : "openProfilePanel",
+        data: data
+      });
+
+      globalThis.close();
+    } catch (error) {
+      debug.error("Error opening panel:", error);
+    }
+  }
+
   // Event listeners
   if (elements.signInBtn) {
     elements.signInBtn.addEventListener("click", initiateAuth);
@@ -334,6 +435,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     elements.goToTwitterBtn.addEventListener("click", navigateToTwitter);
   if (elements.goToLinkedInBtn)
     elements.goToLinkedInBtn.addEventListener("click", navigateToLinkedIn);
+
+  // Recent results button handlers
+  if (elements.viewLastAuditBtn) {
+    elements.viewLastAuditBtn.addEventListener("click", async () => {
+      const stored = await chrome.storage.local.get(["lastAuditResult"]);
+      if (stored.lastAuditResult && stored.lastAuditResult.data) {
+        await openPanelWithData("audit", stored.lastAuditResult.data);
+      }
+    });
+  }
+
+  if (elements.viewLastProfileBtn) {
+    elements.viewLastProfileBtn.addEventListener("click", async () => {
+      const stored = await chrome.storage.local.get(["lastProfileAnalysisResult"]);
+      if (stored.lastProfileAnalysisResult && stored.lastProfileAnalysisResult.data) {
+        await openPanelWithData("profile", stored.lastProfileAnalysisResult.data);
+      }
+    });
+  }
 
   if (elements.upgradeLink) {
     elements.upgradeLink.addEventListener("click", (e) => {
