@@ -637,7 +637,7 @@ debug.log("Profile analysis panel loaded");
       html += `
         <div class="brandalyze-results-section">
           <div class="brandalyze-voice-card" style="background: linear-gradient(135deg, rgb(239, 248, 255) 0%, rgb(243, 232, 255) 100%);">
-            <div style="font-size: 14px; line-height: 1.5;">${escapeHtml(data.analysis_summary)}</div>
+            <div style="font-size: 14px; line-height: 1.5; color: rgb(15, 20, 25);">${escapeHtml(data.analysis_summary)}</div>
           </div>
         </div>
       `;
