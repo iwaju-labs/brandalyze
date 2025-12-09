@@ -1,4 +1,4 @@
-// Use debug utility loaded via manifest (src/debug.js)
+// Debug utility loaded from shared.js
 debug.log("Compose detector loaded");
 
 (function () {

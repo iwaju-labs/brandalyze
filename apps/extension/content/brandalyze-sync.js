@@ -1,5 +1,34 @@
 // Content script for the main Brandalyze site to sync authentication tokens
-// Use debug utility loaded via manifest (src/debug.js)
+// Debug utility inlined below
+let DEBUG_MODE = false;
+
+if (typeof chrome !== 'undefined' && chrome.storage) {
+  chrome.storage.local.get(['debugMode'], (result) => {
+    DEBUG_MODE = result.debugMode || false;
+  });
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.debugMode) {
+      DEBUG_MODE = changes.debugMode.newValue || false;
+    }
+  });
+}
+
+const debug = {
+  log: (...args) => {
+    if (DEBUG_MODE) console.log('[Brandalyze]', ...args);
+  },
+  warn: (...args) => {
+    if (DEBUG_MODE) console.warn('[Brandalyze]', ...args);
+  },
+  error: (...args) => {
+    console.error('[Brandalyze]', ...args);
+  },
+  info: (...args) => {
+    if (DEBUG_MODE) console.info('[Brandalyze]', ...args);
+  }
+};
+
 debug.log("Token sync script loaded");
 
 // Function to get the current Clerk session (token + user data)

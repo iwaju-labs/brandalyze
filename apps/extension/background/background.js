@@ -1,5 +1,32 @@
-// Import debug utility
-importScripts('../src/debug.js');
+// Debug logging utility
+let DEBUG_MODE = false;
+
+chrome.storage.local.get(['debugMode'], (result) => {
+  DEBUG_MODE = result.debugMode || false;
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.debugMode) {
+    DEBUG_MODE = changes.debugMode.newValue || false;
+  }
+});
+
+const debug = {
+  log: (...args) => {
+    if (DEBUG_MODE) console.log('[Brandalyze]', ...args);
+  },
+  warn: (...args) => {
+    if (DEBUG_MODE) console.warn('[Brandalyze]', ...args);
+  },
+  error: (...args) => {
+    console.error('[Brandalyze]', ...args);
+  },
+  info: (...args) => {
+    if (DEBUG_MODE) console.info('[Brandalyze]', ...args);
+  }
+};
+
+globalThis.BrandalyzeDebug = debug;
 
 // Open options page on first install
 chrome.runtime.onInstalled.addListener((details) => {

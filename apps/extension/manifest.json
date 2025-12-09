@@ -3,7 +3,7 @@
   "name": "Brandalyze - Best Social Media Brand Analysis Tool",
   "version": "1.0.2",
   "description": "Real-time brand analysis for social media content. Analyse posts/profiles for brand alignment while browsing social media.",
-  "permissions": ["activeTab", "storage", "identity", "scripting", "tabs"],
+  "permissions": ["activeTab", "storage", "scripting", "tabs"],
   "host_permissions": [
     "https://twitter.com/*",
     "https://x.com/*",
@@ -23,7 +23,6 @@
     {
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": [
-        "src/debug.js",
         "content/shared.js",
         "content/compose-detector.js",
         "content/audit-button.js",
@@ -37,7 +36,7 @@
     },
     {
       "matches": ["https://linkedin.com/*", "https://www.linkedin.com/*"],
-      "js": ["src/debug.js", "content/shared.js", "content/linkedin.js"],
+      "js": ["content/shared.js", "content/linkedin.js"],
       "css": [],
       "run_at": "document_idle"
     },
@@ -47,7 +46,7 @@
         "https://brandalyze.io/*",
         "https://www.brandalyze.io/*"
       ],
-      "js": ["src/debug.js", "content/brandalyze-sync.js"],
+      "js": ["content/brandalyze-sync.js"],
       "css": [],
       "run_at": "document_idle"
     }

@@ -1,5 +1,5 @@
 // Profile Analysis Panel - Sidebar UI for post selection and results
-// Uses debug utility loaded via manifest (src/debug.js)
+// Debug utility loaded from shared.js
 debug.log("Profile analysis panel loaded");
 
 (function () {
