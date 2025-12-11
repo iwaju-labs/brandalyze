@@ -56,6 +56,12 @@ Brandalyze helps me do just that. I would recommend anyone trying grow personal 
     avatar: "/assets/testimonial/vynsedev.png",
     testimonial: "",
   },
+  {
+    id: 5,
+    username: "Anna",
+    twitterHandle: "_annakulina",
+    avatar: "/assets/testimonial/annakulina.jpg"
+  }
 ];
 
 export default function TestimonialSection() {
@@ -141,7 +147,7 @@ export default function TestimonialSection() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Trusted by{" "}
           <span className="font-medium text-gray-900 dark:text-white">
-            {totalUsers.toLocaleString()}+ users
+            {totalUsers > 10 ? Math.floor(totalUsers / 10) * 10 : totalUsers}+ users
           </span>
         </p>
       )}
