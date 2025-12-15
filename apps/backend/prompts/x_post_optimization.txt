@@ -3,17 +3,22 @@ Analyze this X/Twitter post for algorithm optimization. Be concise and actionabl
 POST:
 {content}
 
-Evaluate these 3 key metrics for the November 2025 X algorithm:
+HAS MEDIA: {has_media}
 
-1. HOOK (first line): Does it grab attention immediately? Is it a strong one-liner that makes people stop scrolling?
+Evaluate these 4 key metrics for the December 2025 Grok-powered X algorithm (prioritizes "unregretted user seconds" — entertainment and humor are just as valid as insight):
 
-2. BODY: Is the content valuable, authentic, and engaging? Does it provide insight, tell a story, or share something relatable?
+1. HOOK (first line): Does it grab attention immediately? Is it a strong one-liner that makes people stop scrolling? (disregard if the post is a one liner or an obvious joke posts/shitpost)
 
-3. CLOSER: Does it end with something that drives engagement? (question, call to discussion, provocative statement, or clear takeaway)
+2. BODY: Is the content entertaining, funny, relatable, or valuable? Does it spark a reaction — whether through insight, humor, absurdity, or storytelling? Shitposts and memes are valid if they land.
+
+3. MEDIA: Does it include an image, meme, or screenshot? Plain text jokes die fast — visuals amplify reach significantly.
+
+4. CLOSER: Does it end with something that drives engagement? (question, call to discussion, provocative statement, punchline, or clear takeaway)
 
 Format your response as:
 HOOK: [score /10] - [brief feedback]
-BODY: [score /10] - [brief feedback]  
+BODY: [score /10] - [brief feedback on entertainment/humor/value/relatability]
+MEDIA: [score /10] - [brief feedback on visual content]
 CLOSER: [score /10] - [brief feedback]
 
-SUGGESTION: [One specific actionable improvement]
+SUGGESTION: [One specific actionable improvement based on the type of content]

@@ -369,6 +369,71 @@ debug.log("Audit panel loaded");
         white-space: pre-wrap;
       }
 
+      /* AI Metrics Grid (structured feedback) */
+      .brandalyze-ai-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .brandalyze-ai-metric-item {
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .brandalyze-panel.dark .brandalyze-ai-metric-item {
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .brandalyze-ai-metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .brandalyze-ai-metric-label {
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgb(83, 100, 113);
+      }
+
+      .brandalyze-panel.dark .brandalyze-ai-metric-label {
+        color: rgb(139, 152, 165);
+      }
+
+      .brandalyze-ai-metric-score {
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .brandalyze-ai-metric-feedback {
+        font-size: 12px;
+        line-height: 1.4;
+        color: rgb(15, 20, 25);
+      }
+
+      .brandalyze-panel.dark .brandalyze-ai-metric-feedback {
+        color: rgb(231, 233, 234);
+      }
+
+      .brandalyze-ai-suggestion {
+        background: rgba(147, 51, 234, 0.1);
+        border-left: 3px solid rgb(147, 51, 234);
+        padding: 12px;
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .brandalyze-ai-suggestion strong {
+        color: rgb(147, 51, 234);
+      }
+
       /* Panel Footer */
       .brandalyze-panel-footer {
         padding: 16px 20px;
@@ -452,6 +517,73 @@ debug.log("Audit panel loaded");
       }
     }
     return false;
+  }
+
+  /**
+   * Format AI feedback with structured display for HOOK/BODY/MEDIA/CLOSER format
+   */
+  function formatAiFeedback(feedback) {
+    if (!feedback) return '';
+    
+    // Check if feedback follows the structured format
+    const hookMatch = feedback.match(/HOOK:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
+    const bodyMatch = feedback.match(/BODY:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
+    const mediaMatch = feedback.match(/MEDIA:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
+    const closerMatch = feedback.match(/CLOSER:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
+    const suggestionMatch = feedback.match(/SUGGESTION:\s*([^\n]+)/i);
+    
+    // If structured format detected, render as cards
+    if (hookMatch || bodyMatch || closerMatch) {
+      const items = [];
+      
+      if (hookMatch) {
+        items.push(createFeedbackItem('Hook', hookMatch[1], hookMatch[2]));
+      }
+      if (bodyMatch) {
+        items.push(createFeedbackItem('Body', bodyMatch[1], bodyMatch[2]));
+      }
+      if (mediaMatch) {
+        items.push(createFeedbackItem('Media', mediaMatch[1], mediaMatch[2]));
+      }
+      if (closerMatch) {
+        items.push(createFeedbackItem('Closer', closerMatch[1], closerMatch[2]));
+      }
+      
+      let html = '<div class="brandalyze-ai-metrics">' + items.join('') + '</div>';
+      
+      if (suggestionMatch) {
+        html += `<div class="brandalyze-ai-suggestion">
+          <strong>Suggestion:</strong> ${escapeHtml(suggestionMatch[1].trim())}
+        </div>`;
+      }
+      
+      return html;
+    }
+    
+    // Fallback to plain text display
+    return `<div class="brandalyze-ai-feedback-content">${escapeHtml(feedback)}</div>`;
+  }
+
+  /**
+   * Create a feedback item for the structured AI analysis
+   */
+  function createFeedbackItem(label, score, feedback) {
+    const numScore = Number.parseInt(score, 10);
+    let color = 'rgb(244, 33, 46)';
+    if (numScore >= 7) {
+      color = 'rgb(0, 186, 124)';
+    } else if (numScore >= 5) {
+      color = 'rgb(255, 173, 31)';
+    }
+    return `
+      <div class="brandalyze-ai-metric-item">
+        <div class="brandalyze-ai-metric-header">
+          <span class="brandalyze-ai-metric-label">${escapeHtml(label)}</span>
+          <span class="brandalyze-ai-metric-score" style="color: ${color}">${numScore}/10</span>
+        </div>
+        <div class="brandalyze-ai-metric-feedback">${escapeHtml(feedback.trim())}</div>
+      </div>
+    `;
   }
 
   /**
@@ -567,7 +699,7 @@ debug.log("Audit panel loaded");
               AI Analysis
             </div>
             <div class="brandalyze-ai-feedback">
-              <div class="brandalyze-ai-feedback-content">${escapeHtml(aiFeedback)}</div>
+              ${formatAiFeedback(aiFeedback)}
             </div>
           </div>
         ` : ''}

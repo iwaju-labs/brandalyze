@@ -13,6 +13,7 @@ class XAlgorithmChecker:
         self.high_performing_themes = load_data_list('x_high_performing_themes.txt')
         self.engagement_triggers = load_data_list('x_engagement_triggers.txt')
         self.authentic_words = load_data_list('authentic_words.txt')
+        self.humor_indicators = load_data_list('humor_indicators.txt')
     
     def analyze(self, content: str, context: Dict) -> Dict:
         """
@@ -153,6 +154,15 @@ class XAlgorithmChecker:
         """Detect if content matches high-performing themes"""
         lower_content = content.lower()
         
+        # Shitpost/humor detection (check first - entertainment is prioritized in Dec 2025 algorithm)
+        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
+        if humor_count >= 2:
+            return 'shitpost'
+        
+        # Meme format detection
+        if re.search(r'pov:|nobody:|me:|when you|that moment when|mfw|tfw', lower_content, re.IGNORECASE):
+            return 'meme_format'
+        
         # Payments/revenue theme
         if any(word in lower_content for word in ['payment', 'revenue', 'mrr', 'arr', '$', 'paid', 'stripe']):
             if 'screenshot' in lower_content or 'dashboard' in lower_content:
@@ -167,8 +177,8 @@ class XAlgorithmChecker:
         if any(phrase in lower_content for phrase in ['building', 'build in public', '#buildinpublic', 'shipping']):
             return 'build_in_public'
         
-        # Shitpost/ragebait indicators
-        if any(word in lower_content for word in ['unpopular opinion', 'hot take', 'controversial']):
+        # Engagement bait indicators
+        if any(word in lower_content for word in ['unpopular opinion', 'hot take', 'controversial', 'ratio', 'based']):
             return 'engagement_bait'
         
         return None

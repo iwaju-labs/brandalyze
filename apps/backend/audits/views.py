@@ -102,7 +102,8 @@ def analyze_post(request):
             x_optimization = x_checker.analyze(content, context_data)
             
             # Generate AI feedback for X posts
-            ai_feedback = scorer.generate_ai_feedback(content, platform)
+            has_media = context_data.get('has_media', False)
+            ai_feedback = scorer.generate_ai_feedback(content, platform, has_media)
         
         # Save audit in a transaction
         with transaction.atomic():

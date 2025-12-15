@@ -251,10 +251,10 @@ class BrandVoiceScorer:
         
         return deviations
 
-    def generate_ai_feedback(self, content: str, platform: str = 'twitter') -> Optional[str]:
+    def generate_ai_feedback(self, content: str, platform: str = 'twitter', has_media: bool = False) -> Optional[str]:
         """
         Generate AI feedback for post optimization
-        Focuses on X algorithm best practices (November 2025 update)
+        Focuses on X algorithm best practices (December 2025 Grok-powered algorithm)
         """
         if platform != 'twitter':
             return None
@@ -264,7 +264,11 @@ class BrandVoiceScorer:
             
             # Load prompt template and format it
             prompt_template = load_prompt('x_post_optimization.txt')
-            prompt = format_prompt(prompt_template, content=content)
+            prompt = format_prompt(
+                prompt_template, 
+                content=content,
+                has_media="Yes" if has_media else "No"
+            )
             
             # Load system message
             system_message = load_prompt('x_system_message.txt')
@@ -281,7 +285,7 @@ class BrandVoiceScorer:
                         "content": prompt
                     }
                 ],
-                max_tokens=300,
+                max_tokens=400,
                 temperature=0.7
             )
             
