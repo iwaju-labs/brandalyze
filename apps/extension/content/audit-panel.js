@@ -306,11 +306,13 @@ debug.log("Audit panel loaded");
       .brandalyze-tip-icon.warning { background: rgb(254, 243, 199); color: rgb(255, 173, 31); }
       .brandalyze-tip-icon.error { background: rgb(254, 226, 226); color: rgb(244, 33, 46); }
       .brandalyze-tip-icon.info { background: rgb(219, 234, 254); color: rgb(29, 155, 240); }
+      .brandalyze-tip-icon.suggestion { background: rgb(243, 232, 255); color: rgb(147, 51, 234); }
 
       .brandalyze-panel.dark .brandalyze-tip-icon.success { background: rgb(30, 70, 50); }
       .brandalyze-panel.dark .brandalyze-tip-icon.warning { background: rgb(51, 45, 30); }
       .brandalyze-panel.dark .brandalyze-tip-icon.error { background: rgb(70, 30, 30); }
       .brandalyze-panel.dark .brandalyze-tip-icon.info { background: rgb(30, 50, 70); }
+      .brandalyze-panel.dark .brandalyze-tip-icon.suggestion { background: rgb(49, 30, 63); }
 
       .brandalyze-tip-content {
         flex: 1;
@@ -762,8 +764,12 @@ debug.log("Audit panel loaded");
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01"/></svg>';
       case 'error':
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>';
+      case 'info':
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+      case 'suggestion':
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 11h.01"/><path d="M16 11h.01"/><path d="M8 11h.01"/></svg>';
       default:
-        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01"/></svg>';
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
     }
   }
 
