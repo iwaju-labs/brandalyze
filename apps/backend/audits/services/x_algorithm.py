@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 import re
+from utils.prompt_loader import load_data_list
 
 
 class XAlgorithmChecker:
@@ -9,13 +10,9 @@ class XAlgorithmChecker:
     """
     
     def __init__(self):
-        self.high_performing_themes = [
-            'stripe_screenshots', 'payments', 'follower_achievements',
-            'shitposts', 'ragebait', 'build_in_public'
-        ]
-        self.engagement_triggers = [
-            'question', 'controversial', 'achievement', 'number', 'emoji'
-        ]
+        self.high_performing_themes = load_data_list('x_high_performing_themes.txt')
+        self.engagement_triggers = load_data_list('x_engagement_triggers.txt')
+        self.authentic_words = load_data_list('authentic_words.txt')
     
     def analyze(self, content: str, context: Dict) -> Dict:
         """
@@ -105,8 +102,7 @@ class XAlgorithmChecker:
             score -= 10
         
         # 4. Check for relatability/authenticity
-        authentic_words = ['authentic', 'honest', 'real', 'truth', 'learned', 'failed', 'mistake']
-        if any(word in content.lower() for word in authentic_words):
+        if any(word in content.lower() for word in self.authentic_words):
             tips.append({
                 'type': 'success',
                 'message': 'Relatable/authentic language detected - this resonates well',

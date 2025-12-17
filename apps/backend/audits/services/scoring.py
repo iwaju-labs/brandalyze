@@ -4,6 +4,7 @@ from collections import Counter
 from brands.models import Brand, BrandSample
 from packages.ai_core.embeddings import EmbeddingGenerator, cosine_similarity, calculate_brand_alignment_score
 from django.conf import settings
+from utils.prompt_loader import load_prompt, load_data_list, format_prompt
 import openai
 
 class BrandVoiceScorer:
@@ -17,6 +18,7 @@ class BrandVoiceScorer:
         self.embedding_generator = EmbeddingGenerator(
             api_key=settings.OPENAI_API_KEY
         )
+        self.jargon_words = load_data_list('corporate_jargon.txt')
     
     def calculate_score(self, content: str) -> Dict:
         """
@@ -219,20 +221,13 @@ class BrandVoiceScorer:
         """
         deviations = []
         
-        # Check for corporate jargon (common anti-patterns)
-        jargon_words = [
-            'synergy', 'leverage', 'circle back', 'touch base', 'move the needle',
-            'paradigm shift', 'low-hanging fruit', 'think outside the box',
-            'core competency', 'bandwidth', 'deep dive', 'drill down'
-        ]
-        
         sentences = [s.strip() for s in re.split(r'[.!?]+', content) if s.strip()]
         
         for sentence in sentences:
             sentence_lower = sentence.lower()
             
             # Check jargon
-            for jargon in jargon_words:
+            for jargon in self.jargon_words:
                 if jargon in sentence_lower:
                     deviations.append({
                         'phrase': jargon,
@@ -267,32 +262,19 @@ class BrandVoiceScorer:
         try:
             client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
             
-            prompt = f"""Analyze this X/Twitter post for algorithm optimization. Be concise and actionable.
-
-POST:
-{content}
-
-Evaluate these 3 key metrics for the November 2025 X algorithm:
-
-1. HOOK (first line): Does it grab attention immediately? Is it a strong one-liner that makes people stop scrolling?
-
-2. BODY: Is the content valuable, authentic, and engaging? Does it provide insight, tell a story, or share something relatable?
-
-3. CLOSER: Does it end with something that drives engagement? (question, call to discussion, provocative statement, or clear takeaway)
-
-Format your response as:
-HOOK: [score /10] - [brief feedback]
-BODY: [score /10] - [brief feedback]  
-CLOSER: [score /10] - [brief feedback]
-
-SUGGESTION: [One specific actionable improvement]"""
+            # Load prompt template and format it
+            prompt_template = load_prompt('x_post_optimization.txt')
+            prompt = format_prompt(prompt_template, content=content)
+            
+            # Load system message
+            system_message = load_prompt('x_system_message.txt')
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an X/Twitter algorithm expert. Give brief, actionable feedback. No fluff."
+                        "content": system_message
                     },
                     {
                         "role": "user", 

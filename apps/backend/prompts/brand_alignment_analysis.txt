@@ -1,0 +1,17 @@
+Analyze the brand alignment of the new text against the brand samples.
+
+Brand Samples:
+{brand_context}
+
+New Text to Analyze:
+{new_text}
+
+Alignment Score: {score}/100
+
+Provide feedback in this format:
+1. Key tone differences (if any)
+2. Style consistency analysis
+3. Specific suggestions for improvements
+4. What's working well
+
+Keep feedback concise and actionable. Focus on tone, voice, and style.

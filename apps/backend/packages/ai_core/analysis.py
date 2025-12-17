@@ -2,6 +2,15 @@ import openai
 import json
 from typing import Dict, List, Any
 from .embeddings import EmbeddingGenerator, calculate_brand_alignment_score
+import os
+import sys
+
+# Add backend directory to path for imports
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+from utils.prompt_loader import load_prompt, format_prompt
 
 class BrandAnalyzer:
     def __init__(self, api_key: str):
@@ -62,25 +71,14 @@ class BrandAnalyzer:
         brand_context = "\n".join([f"Brand Sample {i+1}: {sample[:200]}..."
                                    for i, sample in enumerate(brand_samples[:3])])
         
-        prompt = f"""
-        Analyze the brand alignment of the new text against the brand samples.
-
-        Brand Samples:
-        {brand_context}
-
-        New Text to Analyze:
-        {new_text}
-
-        Alignment Score: {score}/100
-
-        Provide feedback in this format:
-        1. Key tone differences (if any)
-        2. Style consistency analysis
-        3. Specific suggestions for improvements
-        4. What's working well
-
-        Keep feedback concise and actionable. Focus on tone, voice, and style.
-        """
+        # Load and format prompt template
+        prompt_template = load_prompt('brand_alignment_analysis.txt')
+        prompt = format_prompt(
+            prompt_template,
+            brand_context=brand_context,
+            new_text=new_text,
+            score=score
+        )
 
         ai_feedback = ""
 
@@ -114,25 +112,14 @@ class BrandAnalyzer:
         brand_context = "\n".join([f"Brand Sample {i+1}: {sample[:200]}..."
                                    for i, sample in enumerate(brand_samples[:3])])
         
-        prompt = f"""
-        Analyze the brand alignment of the new text against the brand samples.
-
-        Brand Samples:
-        {brand_context}
-
-        New Text to Analyze:
-        {new_text}
-
-        Alignment Score: {score}/100
-
-        Provide feedback in this format:
-        1. Key tone differences (if any)
-        2. Style consistency analysis
-        3. Specific suggestions for improvements
-        4. What's working well
-
-        Keep feedback concise and actionable. Focus on tone, voice, and style.
-        """
+        # Load and format prompt template
+        prompt_template = load_prompt('brand_alignment_analysis.txt')
+        prompt = format_prompt(
+            prompt_template,
+            brand_context=brand_context,
+            new_text=new_text,
+            score=score
+        )
 
         ai_feedback = ""        
         try:
