@@ -73,14 +73,17 @@ class BrandVoiceScorer:
             style_score * 0.1
         )
         
+        breakdown = {
+            'tone_match': round(tone_score, 2),
+            'vocabulary_consistency': round(vocab_score, 2),
+            'emotional_alignment': round(emotion_score, 2),
+            'style_deviation': round(100 - style_score, 2)
+        }
+        
         return {
             'total': round(total_score, 2),
-            'breakdown': {
-                'tone_match': round(tone_score, 2),
-                'vocabulary_consistency': round(vocab_score, 2),
-                'emotional_alignment': round(emotion_score, 2),
-                'style_deviation': round(100 - style_score, 2)
-            },
+            'breakdown': breakdown,
+            'metric_tips': self._generate_metric_tips(breakdown),
             'content_embedding': content_embedding
         }
     
@@ -213,6 +216,56 @@ class BrandVoiceScorer:
         
         score = (sum(similarities) / len(similarities)) * 100 if similarities else 50
         return min(100, max(0, score))
+    
+    def _generate_metric_tips(self, breakdown: Dict) -> Dict[str, str]:
+        """Generate improvement tips based on metric scores"""
+        tips = {}
+        
+        # Tone match tips
+        tone = breakdown['tone_match']
+        if tone < 50:
+            tips['tone_tip'] = "Your tone differs significantly from your brand voice. Try matching the energy, formality, and attitude of your brand samples more closely."
+        elif tone < 70:
+            tips['tone_tip'] = "Your tone is somewhat off-brand. Consider adjusting your writing style to better reflect your brand's personality and communication approach."
+        elif tone < 85:
+            tips['tone_tip'] = "Good tone alignment. Fine-tune by using similar sentence structures and expressions as your brand samples."
+        else:
+            tips['tone_tip'] = "Excellent tone match. Your writing captures your brand voice well."
+        
+        # Vocabulary tips
+        vocab = breakdown['vocabulary_consistency']
+        if vocab < 50:
+            tips['vocabulary_tip'] = "Your word choices differ significantly from your brand vocabulary. Review your brand samples and incorporate more of those specific words and phrases."
+        elif vocab < 70:
+            tips['vocabulary_tip'] = "Consider using more words and phrases that appear in your brand samples. This helps maintain vocabulary consistency."
+        elif vocab < 85:
+            tips['vocabulary_tip'] = "Good vocabulary alignment. Try incorporating a few more brand-specific terms or expressions."
+        else:
+            tips['vocabulary_tip'] = "Great use of brand vocabulary. Your word choices align well with your brand voice."
+        
+        # Emotional alignment tips
+        emotion = breakdown['emotional_alignment']
+        if emotion < 50:
+            tips['emotion_tip'] = "The emotional tone of your content doesn't match your brand. Consider whether your brand voice is typically enthusiastic, calm, urgent, or casual, and adjust accordingly."
+        elif emotion < 70:
+            tips['emotion_tip'] = "Your emotional tone could better match your brand. Try to evoke similar feelings as your brand samples."
+        elif emotion < 85:
+            tips['emotion_tip'] = "Good emotional alignment. Small adjustments in enthusiasm or intensity could improve this further."
+        else:
+            tips['emotion_tip'] = "Excellent emotional alignment. Your content evokes the right feelings for your brand."
+        
+        # Style tips (note: style_deviation is inverted, lower is better)
+        style_score = 100 - breakdown['style_deviation']
+        if style_score < 50:
+            tips['style_tip'] = "Your writing style differs significantly from your brand. Check sentence length, punctuation usage, and formatting patterns in your brand samples."
+        elif style_score < 70:
+            tips['style_tip'] = "Consider matching your sentence structure and punctuation patterns more closely to your brand samples."
+        elif style_score < 85:
+            tips['style_tip'] = "Good style consistency. Minor adjustments to sentence length or punctuation could help."
+        else:
+            tips['style_tip'] = "Excellent style consistency. Your formatting and structure match your brand well."
+        
+        return tips
     
     def find_deviations(self, content: str) -> List[Dict]:
         """

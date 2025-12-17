@@ -14,4 +14,10 @@ Provide feedback in this format:
 3. Specific suggestions for improvements
 4. What's working well
 
+Additionally, provide brief improvement tips for each metric (1-2 sentences each):
+TONE_TIP: [Tip to improve tone alignment]
+VOCABULARY_TIP: [Tip to improve vocabulary consistency]
+EMOTION_TIP: [Tip to improve emotional alignment]
+STYLE_TIP: [Tip to improve style consistency]
+
 Keep feedback concise and actionable. Focus on tone, voice, and style.

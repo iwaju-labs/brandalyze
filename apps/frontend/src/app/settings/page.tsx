@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api"
 import toast from "react-hot-toast";
@@ -33,6 +33,10 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const { signOut } = useClerk();
   useEffect(() => {
     if (!isSignedIn) {
       router.push("/sign-in");
@@ -87,6 +91,34 @@ export default function SettingsPage() {
       toast.error("Failed to open billing portal");
     }
   };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      await authenticatedFetch("/accounts/delete/", getToken, {
+        method: "DELETE"
+      });
+      
+      toast.success("Account deleted successfully");
+      setShowDeleteDialog(false);
+      
+      // Sign out and redirect
+      await signOut();
+      router.push("/");
+      
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      toast.error("Failed to delete account");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!isSignedIn) {
     return null;
   }
@@ -218,7 +250,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Profile Section */}
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
           <div className="flex items-center mb-4">
             <User01 className="w-6 h-6 text-purple-600 mr-3" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -232,6 +264,28 @@ export default function SettingsPage() {
           >
             <LinkExternal01 className="w-4 h-4 mr-2" />
             Manage Profile
+          </button>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800 p-6">
+          <div className="flex items-center mb-4">
+            <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
+            <h2 className="text-xl font-semibold text-red-900 dark:text-red-200">
+              Danger Zone
+            </h2>
+          </div>
+          
+          <p className="text-red-700 dark:text-red-300 text-sm mb-4">
+            Deleting your account is permanent and cannot be undone. All your data, brands, and audit history will be permanently removed.
+          </p>
+          
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center"
+          >
+            <Trash01 className="w-4 h-4 mr-2" />
+            Delete Account
           </button>
         </div>
       </div>
@@ -290,6 +344,78 @@ export default function SettingsPage() {
                   <Trash01 className="w-4 h-4 mr-2" />
                 )}
                 {isCanceling ? 'Canceling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Account
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  This action is permanent
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Are you sure you want to delete your account? This will permanently remove:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>Your profile and account data</li>
+                <li>All brand profiles and samples</li>
+                <li>Post audit history and analytics</li>
+                <li>Extension tokens and settings</li>
+              </ul>
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="delete-confirm" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Type <span className="font-bold text-red-600">DELETE</span> to confirm
+              </label>
+              <input
+                id="delete-confirm"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="DELETE"
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setDeleteConfirmText("");
+                }}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || deleteConfirmText !== "DELETE"}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+              >
+                {isDeleting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Trash01 className="w-4 h-4 mr-2" />
+                )}
+                {isDeleting ? 'Deleting...' : 'Delete Account'}
               </button>
             </div>
           </div>

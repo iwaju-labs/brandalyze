@@ -231,6 +231,24 @@ debug.log("Audit panel loaded");
         transition: width 0.5s ease-out;
       }
 
+      /* Metric Header with Tooltip */
+      .brandalyze-metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+      }
+
+      .brandalyze-metric-tooltip-trigger {
+        cursor: help;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+
+      .brandalyze-metric-tooltip-trigger:hover {
+        opacity: 1;
+      }
+
       /* Section Headers */
       .brandalyze-section {
         margin-bottom: 24px;
@@ -643,10 +661,10 @@ debug.log("Audit panel loaded");
 
         <!-- Metrics Grid -->
         <div class="brandalyze-metrics-grid">
-          ${createMetricCard('Tone Match', metrics.tone_match, getScoreColor(metrics.tone_match))}
-          ${createMetricCard('Vocabulary', metrics.vocabulary_consistency, getScoreColor(metrics.vocabulary_consistency))}
-          ${createMetricCard('Emotion', metrics.emotional_alignment, getScoreColor(metrics.emotional_alignment))}
-          ${createMetricCard('Style', 100 - (metrics.style_deviation || 0), getScoreColor(100 - (metrics.style_deviation || 0)))}
+          ${createMetricCard('Tone Match', metrics.tone_match, getScoreColor(metrics.tone_match), metrics.metric_tips?.tone_tip)}
+          ${createMetricCard('Vocabulary', metrics.vocabulary_consistency, getScoreColor(metrics.vocabulary_consistency), metrics.metric_tips?.vocabulary_tip)}
+          ${createMetricCard('Emotion', metrics.emotional_alignment, getScoreColor(metrics.emotional_alignment), metrics.metric_tips?.emotion_tip)}
+          ${createMetricCard('Style', 100 - (metrics.style_deviation || 0), getScoreColor(100 - (metrics.style_deviation || 0)), metrics.metric_tips?.style_tip)}
         </div>
 
         <!-- Deviations Section -->
@@ -740,11 +758,23 @@ debug.log("Audit panel loaded");
   /**
    * Create a metric card HTML
    */
-  function createMetricCard(label, value, color) {
+  function createMetricCard(label, value, color, tip = null) {
     const displayValue = Math.round(value || 0);
+    const tooltipHtml = tip ? `
+      <div class="brandalyze-metric-tooltip-trigger" title="${escapeHtml(tip)}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 16v-4"/>
+          <path d="M12 8h.01"/>
+        </svg>
+      </div>
+    ` : '';
     return `
       <div class="brandalyze-metric-card">
-        <div class="brandalyze-metric-label">${label}</div>
+        <div class="brandalyze-metric-header">
+          <div class="brandalyze-metric-label">${label}</div>
+          ${tooltipHtml}
+        </div>
         <div class="brandalyze-metric-value" style="color: ${color}">${displayValue}</div>
         <div class="brandalyze-metric-bar">
           <div class="brandalyze-metric-bar-fill" style="width: ${displayValue}%; background: ${color}"></div>

@@ -91,6 +91,12 @@ class AuditMetrics(models.Model):
         help_text="AI-generated suggestions"
     )
 
+    metric_tips = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Improvement tips for each metric"
+    )
+
     class Meta:
         db_table = 'audit_metrics'
         verbose_name = 'Audit Metrics'

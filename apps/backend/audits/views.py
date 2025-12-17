@@ -127,7 +127,8 @@ def analyze_post(request):
                 style_deviation=score_result['breakdown']['style_deviation'],
                 deviations=deviations,
                 x_optimization=x_optimization,
-                ai_feedback=ai_feedback
+                ai_feedback=ai_feedback,
+                metric_tips=score_result.get('metric_tips', {})
             )
             
             # Increment usage count
