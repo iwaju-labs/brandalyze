@@ -518,10 +518,10 @@ debug.log("Audit panel loaded");
   }
 
   function getScoreStatus(score) {
-    if (score >= 80) return { text: 'Excellent', class: 'excellent' };
-    if (score >= 60) return { text: 'Good', class: 'good' };
-    if (score >= 40) return { text: 'Needs Work', class: 'needs-work' };
-    return { text: 'Poor', class: 'poor'};
+    if (score >= 80) return { text: "Excellent", class: "excellent" };
+    if (score >= 60) return { text: "Good", class: "good" };
+    if (score >= 40) return { text: "Needs Work", class: "needs-work" };
+    return { text: "Poor", class: "poor" };
   }
 
   /**
@@ -532,7 +532,11 @@ debug.log("Audit panel loaded");
     if (bgColor) {
       const rgb = bgColor.match(/\d+/g);
       if (rgb && rgb.length >= 3) {
-        const brightness = (Number.parseInt(rgb[0], 10) + Number.parseInt(rgb[1], 10) + Number.parseInt(rgb[2], 10)) / 3;
+        const brightness =
+          (Number.parseInt(rgb[0], 10) +
+            Number.parseInt(rgb[1], 10) +
+            Number.parseInt(rgb[2], 10)) /
+          3;
         return brightness < 128;
       }
     }
@@ -543,45 +547,54 @@ debug.log("Audit panel loaded");
    * Format AI feedback with structured display for HOOK/BODY/MEDIA/CLOSER format
    */
   function formatAiFeedback(feedback) {
-    if (!feedback) return '';
-    
+    if (!feedback) return "";
+
     // Check if feedback follows the structured format
     const hookMatch = feedback.match(/HOOK:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
     const bodyMatch = feedback.match(/BODY:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
-    const mediaMatch = feedback.match(/MEDIA:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
-    const closerMatch = feedback.match(/CLOSER:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i);
+    const mediaMatch = feedback.match(
+      /MEDIA:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i
+    );
+    const closerMatch = feedback.match(
+      /CLOSER:\s*(\d+)\s*\/\s*10\s*-\s*([^\n]+)/i
+    );
     const suggestionMatch = feedback.match(/SUGGESTION:\s*([^\n]+)/i);
-    
+
     // If structured format detected, render as cards
     if (hookMatch || bodyMatch || closerMatch) {
       const items = [];
-      
+
       if (hookMatch) {
-        items.push(createFeedbackItem('Hook', hookMatch[1], hookMatch[2]));
+        items.push(createFeedbackItem("Hook", hookMatch[1], hookMatch[2]));
       }
       if (bodyMatch) {
-        items.push(createFeedbackItem('Body', bodyMatch[1], bodyMatch[2]));
+        items.push(createFeedbackItem("Body", bodyMatch[1], bodyMatch[2]));
       }
       if (mediaMatch) {
-        items.push(createFeedbackItem('Media', mediaMatch[1], mediaMatch[2]));
+        items.push(createFeedbackItem("Media", mediaMatch[1], mediaMatch[2]));
       }
       if (closerMatch) {
-        items.push(createFeedbackItem('Closer', closerMatch[1], closerMatch[2]));
+        items.push(
+          createFeedbackItem("Closer", closerMatch[1], closerMatch[2])
+        );
       }
-      
-      let html = '<div class="brandalyze-ai-metrics">' + items.join('') + '</div>';
-      
+
+      let html =
+        '<div class="brandalyze-ai-metrics">' + items.join("") + "</div>";
+
       if (suggestionMatch) {
         html += `<div class="brandalyze-ai-suggestion">
           <strong>Suggestion:</strong> ${escapeHtml(suggestionMatch[1].trim())}
         </div>`;
       }
-      
+
       return html;
     }
-    
+
     // Fallback to plain text display
-    return `<div class="brandalyze-ai-feedback-content">${escapeHtml(feedback)}</div>`;
+    return `<div class="brandalyze-ai-feedback-content">${escapeHtml(
+      feedback
+    )}</div>`;
   }
 
   /**
@@ -589,11 +602,11 @@ debug.log("Audit panel loaded");
    */
   function createFeedbackItem(label, score, feedback) {
     const numScore = Number.parseInt(score, 10);
-    let color = 'rgb(244, 33, 46)';
+    let color = "rgb(244, 33, 46)";
     if (numScore >= 7) {
-      color = 'rgb(0, 186, 124)';
+      color = "rgb(0, 186, 124)";
     } else if (numScore >= 5) {
-      color = 'rgb(255, 173, 31)';
+      color = "rgb(255, 173, 31)";
     }
     return `
       <div class="brandalyze-ai-metric-item">
@@ -601,7 +614,9 @@ debug.log("Audit panel loaded");
           <span class="brandalyze-ai-metric-label">${escapeHtml(label)}</span>
           <span class="brandalyze-ai-metric-score" style="color: ${color}">${numScore}/10</span>
         </div>
-        <div class="brandalyze-ai-metric-feedback">${escapeHtml(feedback.trim())}</div>
+        <div class="brandalyze-ai-metric-feedback">${escapeHtml(
+          feedback.trim()
+        )}</div>
       </div>
     `;
   }
@@ -627,16 +642,17 @@ debug.log("Audit panel loaded");
     const circumference = 339.292;
     const offset = circumference - (score / 100) * circumference;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'brandalyze-panel-overlay';
-    overlay.addEventListener('click', closePanel);
+    const overlay = document.createElement("div");
+    overlay.className = "brandalyze-panel-overlay";
+    overlay.addEventListener("click", closePanel);
 
-    const panel = document.createElement('div');
-    panel.className = `brandalyze-panel${dark ? ' dark' : ''}`;
+    const panel = document.createElement("div");
+    panel.className = `brandalyze-panel${dark ? " dark" : ""}`;
     panel.innerHTML = `
       <div class="brandalyze-panel-header">
         <h2 class="brandalyze-panel-title">Audit Results</h2>
         <button class="brandalyze-panel-close" aria-label="Close">
+          <!-- Close/X icon for panel header -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -647,6 +663,7 @@ debug.log("Audit panel loaded");
         <!-- Score Section -->
         <div class="brandalyze-score-section">
           <div class="brandalyze-score-circle">
+            <!-- Circular progress indicator for main brand voice score -->
             <svg width="120" height="120" viewBox="0 0 120 120">
               <circle class="score-bg" cx="60" cy="60" r="54" fill="none" stroke-width="8"/>
               <circle class="score-fill" cx="60" cy="60" r="54" fill="none" stroke-width="8" 
@@ -656,63 +673,124 @@ debug.log("Audit panel loaded");
             <span class="brandalyze-score-value">${score}</span>
           </div>
           <div class="brandalyze-score-label">Brand Voice Score</div>
-          <div class="brandalyze-score-status ${scoreStatus.class}">${scoreStatus.text}</div>
+          <div class="brandalyze-score-status ${scoreStatus.class}">${
+      scoreStatus.text
+    }</div>
         </div>
 
         <!-- Metrics Grid -->
         <div class="brandalyze-metrics-grid">
-          ${createMetricCard('Tone Match', metrics.tone_match, getScoreColor(metrics.tone_match), metrics.metric_tips?.tone_tip)}
-          ${createMetricCard('Vocabulary', metrics.vocabulary_consistency, getScoreColor(metrics.vocabulary_consistency), metrics.metric_tips?.vocabulary_tip)}
-          ${createMetricCard('Emotion', metrics.emotional_alignment, getScoreColor(metrics.emotional_alignment), metrics.metric_tips?.emotion_tip)}
-          ${createMetricCard('Style', 100 - (metrics.style_deviation || 0), getScoreColor(100 - (metrics.style_deviation || 0)), metrics.metric_tips?.style_tip)}
+          ${createMetricCard(
+            "Tone Match",
+            metrics.tone_match,
+            getScoreColor(metrics.tone_match),
+            metrics.metric_tips?.tone_tip
+          )}
+          ${createMetricCard(
+            "Vocabulary",
+            metrics.vocabulary_consistency,
+            getScoreColor(metrics.vocabulary_consistency),
+            metrics.metric_tips?.vocabulary_tip
+          )}
+          ${createMetricCard(
+            "Emotion",
+            metrics.emotional_alignment,
+            getScoreColor(metrics.emotional_alignment),
+            metrics.metric_tips?.emotion_tip
+          )}
+          ${createMetricCard(
+            "Style",
+            100 - (metrics.style_deviation || 0),
+            getScoreColor(100 - (metrics.style_deviation || 0)),
+            metrics.metric_tips?.style_tip
+          )}
         </div>
 
         <!-- Deviations Section -->
-        ${deviations.length > 0 ? `
+        ${
+          deviations.length > 0
+            ? `
           <div class="brandalyze-section">
             <div class="brandalyze-section-header">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(255, 173, 31)" stroke-width="2">
-                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              <!-- Warning triangle icon for deviations section -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(255, 173, 31)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
               </svg>
               Deviations Found
             </div>
-            ${deviations.map(d => `
+            ${deviations
+              .map(
+                (d) => `
               <div class="brandalyze-deviation">
-                <div class="brandalyze-deviation-phrase">"${escapeHtml(d.phrase || d.text || '')}"</div>
-                <div class="brandalyze-deviation-reason">${escapeHtml(d.reason || d.message || '')}</div>
-                ${d.suggestion ? `<div class="brandalyze-deviation-suggestion">Try: "${escapeHtml(d.suggestion)}"</div>` : ''}
+                <div class="brandalyze-deviation-phrase">"${escapeHtml(
+                  d.phrase || d.text || ""
+                )}"</div>
+                <div class="brandalyze-deviation-reason">${escapeHtml(
+                  d.reason || d.message || ""
+                )}</div>
+                ${
+                  d.suggestion
+                    ? `<div class="brandalyze-deviation-suggestion">Try: "${escapeHtml(
+                        d.suggestion
+                      )}"</div>`
+                    : ""
+                }
               </div>
-            `).join('')}
+            `
+              )
+              .join("")}
           </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <!-- X Algorithm Tips -->
-        ${tips.length > 0 ? `
+        ${
+          tips.length > 0
+            ? `
           <div class="brandalyze-section">
             <div class="brandalyze-section-header">
+              <!-- X/Twitter logo icon for algorithm tips section -->
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
               Algorithm Tips
             </div>
-            ${tips.map(tip => `
+            ${tips
+              .map(
+                (tip) => `
               <div class="brandalyze-tip">
-                <div class="brandalyze-tip-icon ${tip.type || 'info'}">
+                <div class="brandalyze-tip-icon ${tip.type || "info"}">
                   ${getTipIcon(tip.type)}
                 </div>
                 <div class="brandalyze-tip-content">
-                  <div class="brandalyze-tip-message">${escapeHtml(tip.message)}</div>
-                  ${tip.impact ? `<div class="brandalyze-tip-impact">Impact: ${tip.impact}</div>` : ''}
+                  <div class="brandalyze-tip-message">${escapeHtml(
+                    tip.message
+                  )}</div>
+                  ${
+                    tip.impact
+                      ? `<div class="brandalyze-tip-impact">Impact: ${tip.impact}</div>`
+                      : ""
+                  }
                 </div>
               </div>
-            `).join('')}
+            `
+              )
+              .join("")}
           </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <!-- AI Feedback Section -->
-        ${aiFeedback ? `
+        ${
+          aiFeedback
+            ? `
           <div class="brandalyze-section">
             <div class="brandalyze-section-header">
+              <!-- Lightbulb icon for AI analysis section -->
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(147, 51, 234)" stroke-width="2">
                 <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
               </svg>
@@ -722,16 +800,23 @@ debug.log("Audit panel loaded");
               ${formatAiFeedback(aiFeedback)}
             </div>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
 
-        ${deviations.length === 0 && tips.length === 0 && !aiFeedback ? `
+        ${
+          deviations.length === 0 && tips.length === 0 && !aiFeedback
+            ? `
           <div class="brandalyze-empty">
+            <!-- Check circle icon for empty state (no issues found) -->
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 12px;">
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div>Great job! No issues found.</div>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
 
       <div class="brandalyze-panel-footer">
@@ -745,9 +830,15 @@ debug.log("Audit panel loaded");
     `;
 
     // Add event listeners
-    panel.querySelector('.brandalyze-panel-close').addEventListener('click', closePanel);
-    panel.querySelector('#brandalyze-close-panel').addEventListener('click', closePanel);
-    panel.querySelector('#brandalyze-copy-results').addEventListener('click', () => copyResults(data));
+    panel
+      .querySelector(".brandalyze-panel-close")
+      .addEventListener("click", closePanel);
+    panel
+      .querySelector("#brandalyze-close-panel")
+      .addEventListener("click", closePanel);
+    panel
+      .querySelector("#brandalyze-copy-results")
+      .addEventListener("click", () => copyResults(data));
 
     // Store references
     panelElement = { overlay, panel };
@@ -760,15 +851,18 @@ debug.log("Audit panel loaded");
    */
   function createMetricCard(label, value, color, tip = null) {
     const displayValue = Math.round(value || 0);
-    const tooltipHtml = tip ? `
+    const tooltipHtml = tip
+      ? `
       <div class="brandalyze-metric-tooltip-trigger" title="${escapeHtml(tip)}">
+        <!-- Info/help icon for metric tooltip triggers -->
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 16v-4"/>
           <path d="M12 8h.01"/>
         </svg>
       </div>
-    ` : '';
+    `
+      : "";
     return `
       <div class="brandalyze-metric-card">
         <div class="brandalyze-metric-header">
@@ -788,17 +882,23 @@ debug.log("Audit panel loaded");
    */
   function getTipIcon(type) {
     switch (type) {
-      case 'success':
+      case "success":
+        // Checkmark icon for success tips
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>';
-      case 'warning':
+      case "warning":
+        // Exclamation icon for warning tips
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01"/></svg>';
-      case 'error':
+      case "error":
+        // X/close icon for error tips
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>';
-      case 'info':
+      case "info":
+        // Info circle icon for info tips
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
-      case 'suggestion':
+      case "suggestion":
+        // Chat bubble icon for suggestion tips
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 11h.01"/><path d="M16 11h.01"/><path d="M8 11h.01"/></svg>';
       default:
+        // Default info icon
         return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
     }
   }
@@ -807,7 +907,7 @@ debug.log("Audit panel loaded");
    * Escape HTML to prevent XSS
    */
   function escapeHtml(text) {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -825,10 +925,10 @@ Emotion: ${Math.round(metrics.emotional_alignment || 0)}%
 Style: ${Math.round(100 - (metrics.style_deviation || 0))}%`;
 
     navigator.clipboard.writeText(text).then(() => {
-      const btn = document.querySelector('#brandalyze-copy-results');
+      const btn = document.querySelector("#brandalyze-copy-results");
       if (btn) {
         const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
+        btn.textContent = "Copied!";
         setTimeout(() => {
           btn.textContent = originalText;
         }, 2000);
@@ -850,14 +950,14 @@ Style: ${Math.round(100 - (metrics.style_deviation || 0))}%`;
 
     // Trigger animations
     requestAnimationFrame(() => {
-      overlay.classList.add('visible');
-      panel.classList.add('open');
+      overlay.classList.add("visible");
+      panel.classList.add("open");
     });
 
     isOpen = true;
 
     // Prevent body scroll
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   }
 
   /**
@@ -868,8 +968,8 @@ Style: ${Math.round(100 - (metrics.style_deviation || 0))}%`;
 
     const { overlay, panel } = panelElement;
 
-    overlay.classList.remove('visible');
-    panel.classList.remove('open');
+    overlay.classList.remove("visible");
+    panel.classList.remove("open");
 
     setTimeout(() => {
       overlay.remove();
@@ -880,14 +980,13 @@ Style: ${Math.round(100 - (metrics.style_deviation || 0))}%`;
     isOpen = false;
 
     // Restore body scroll
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   }
 
   // Expose API
   globalThis.BrandalyzeAuditPanel = {
     open: openPanel,
     close: closePanel,
-    isOpen: () => isOpen
+    isOpen: () => isOpen,
   };
-
 })();
