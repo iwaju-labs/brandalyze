@@ -637,6 +637,12 @@ debug.log("Audit panel loaded");
     const tips = xOptimization.optimization_tips || xOptimization.tips || [];
     const aiFeedback = metrics.ai_feedback || null;
     const dark = isDarkMode();
+    const contentType = metrics.content_type || 'standard';
+    
+    // Use different labels for shitpost vs standard content
+    const metricLabels = contentType === 'shitpost' 
+      ? { tone: 'Personality', vocabulary: 'Entertainment', emotion: 'Authenticity', style: 'Engagement' }
+      : { tone: 'Tone Match', vocabulary: 'Vocabulary', emotion: 'Emotion', style: 'Style' };
 
     // Calculate score circle offset
     const circumference = 339.292;
@@ -672,7 +678,7 @@ debug.log("Audit panel loaded");
             </svg>
             <span class="brandalyze-score-value">${score}</span>
           </div>
-          <div class="brandalyze-score-label">Brand Voice Score</div>
+          <div class="brandalyze-score-label">${contentType === 'shitpost' ? 'Shitpost Score' : 'Brand Voice Score'}</div>
           <div class="brandalyze-score-status ${scoreStatus.class}">${
       scoreStatus.text
     }</div>
@@ -681,25 +687,25 @@ debug.log("Audit panel loaded");
         <!-- Metrics Grid -->
         <div class="brandalyze-metrics-grid">
           ${createMetricCard(
-            "Tone Match",
+            metricLabels.tone,
             metrics.tone_match,
             getScoreColor(metrics.tone_match),
             metrics.metric_tips?.tone_tip
           )}
           ${createMetricCard(
-            "Vocabulary",
+            metricLabels.vocabulary,
             metrics.vocabulary_consistency,
             getScoreColor(metrics.vocabulary_consistency),
             metrics.metric_tips?.vocabulary_tip
           )}
           ${createMetricCard(
-            "Emotion",
+            metricLabels.emotion,
             metrics.emotional_alignment,
             getScoreColor(metrics.emotional_alignment),
             metrics.metric_tips?.emotion_tip
           )}
           ${createMetricCard(
-            "Style",
+            metricLabels.style,
             100 - (metrics.style_deviation || 0),
             getScoreColor(100 - (metrics.style_deviation || 0)),
             metrics.metric_tips?.style_tip
