@@ -154,14 +154,13 @@ class XAlgorithmChecker:
         """Detect if content matches high-performing themes"""
         lower_content = content.lower()
         
-        # Shitpost/humor detection (check first - entertainment is prioritized in Dec 2025 algorithm)
-        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
-        if humor_count >= 2:
-            return 'shitpost'
-        
-        # Meme format detection
+        # Meme format detection (check first - these are clear structural indicators)
         if re.search(r'pov:|nobody:|me:|when you|that moment when|mfw|tfw', lower_content, re.IGNORECASE):
             return 'meme_format'
+        
+        # Shitpost/humor detection with context awareness
+        if self._is_likely_shitpost(content, lower_content):
+            return 'shitpost'
         
         # Payments/revenue theme
         if any(word in lower_content for word in ['payment', 'revenue', 'mrr', 'arr', '$', 'paid', 'stripe']):
@@ -193,3 +192,98 @@ class XAlgorithmChecker:
             return "This post needs improvement. Address the warnings to increase visibility."
         else:
             return "Consider revising this post - it may significantly underperform. Fix critical issues first."
+
+    def _is_likely_shitpost(self, content: str, lower_content: str) -> bool:
+        """
+        More sophisticated shitpost detection considering context and intent
+        """
+        # Count humor indicators
+        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
+        
+        # If very few humor indicators, probably not a shitpost
+        if humor_count < 2:
+            return False
+        
+        # Strong shitpost signals (high confidence indicators)
+        strong_signals = [
+            'ratio', 'based', 'unhinged', 'chaotic', 'cursed', 'blessed',
+            'delulu', 'no cap', 'bussin', 'periodt', 'ate and left no crumbs',
+            'chronically online', 'terminally online', 'down bad', 'touch grass'
+        ]
+        
+        strong_signal_count = sum(1 for signal in strong_signals if signal in lower_content)
+        
+        # If has strong signals and multiple humor indicators, likely shitpost
+        if strong_signal_count >= 1 and humor_count >= 3:
+            return True
+        
+        # Check for absurdist/nonsensical patterns
+        if self._has_absurdist_patterns(content):
+            return True
+        
+        # Check content structure and intent
+        return self._analyze_shitpost_intent(content, lower_content, humor_count)
+    
+    def _has_absurdist_patterns(self, content: str) -> bool:
+        """Check for absurdist or nonsensical content patterns"""
+        # Random capitalization patterns (like "wHaT iS tHiS")
+        if re.search(r'[a-z][A-Z][a-z][A-Z]', content):
+            return True
+            
+        # Excessive punctuation for comedic effect
+        if re.search(r'[!?]{3,}', content):
+            return True
+            
+        # Copypasta-style repetition
+        if re.search(r'(.{10,})\1{2,}', content):
+            return True
+            
+        return False
+    
+    def _analyze_shitpost_intent(self, content: str, lower_content: str, humor_count: int) -> bool:
+        """
+        Analyze if the humor indicators suggest shitpost intent vs casual language
+        """
+        # Business/professional context indicators (less likely to be shitpost)
+        professional_indicators = [
+            'revenue', 'growth', 'startup', 'business', 'strategy', 'marketing',
+            'sales', 'customers', 'product', 'launch', 'metrics', 'conversion',
+            'roi', 'kpi', 'team', 'hiring', 'funding', 'investment'
+        ]
+        
+        professional_count = sum(1 for word in professional_indicators if word in lower_content)
+        
+        # If highly professional context, less likely shitpost even with humor
+        if professional_count >= 3 and humor_count < 5:
+            return False
+        
+        # Educational/informative content (less likely shitpost)
+        educational_indicators = [
+            'how to', 'tutorial', 'guide', 'tip', 'learn', 'steps', 'process',
+            'method', 'strategy', 'framework', 'lesson', 'insight', 'analysis'
+        ]
+        
+        if any(indicator in lower_content for indicator in educational_indicators):
+            # Educational content with some humor is probably just casual tone
+            if humor_count < 4:
+                return False
+        
+        # Personal story/experience sharing (could go either way)
+        story_indicators = ['story', 'experience', 'happened', 'remember', 'learned']
+        has_story = any(indicator in lower_content for indicator in story_indicators)
+        
+        if has_story and humor_count < 4:
+            return False  # Probably just casual storytelling
+        
+        # High humor count with no clear professional/educational context = likely shitpost
+        if humor_count >= 4 and professional_count == 0:
+            return True
+        
+        # Medium humor count needs more context
+        if humor_count == 3:
+            # Check for self-referential humor about posting/social media
+            meta_indicators = ['post', 'tweet', 'twitter', 'algorithm', 'engagement', 'viral']
+            if any(word in lower_content for word in meta_indicators):
+                return True  # Meta commentary about social media is often shitpost-adjacent
+        
+        return False
