@@ -19,11 +19,12 @@ class BrandVoiceScorer:
             api_key=settings.OPENAI_API_KEY
         )
         self.jargon_words = load_data_list('corporate_jargon.txt')
+        self.humor_indicators = load_data_list('humor_indicators.txt')
     
     def calculate_score(self, content: str) -> Dict:
         """
         Calculate comprehensive brand voice score
-        Returns dict with total score and breakdown
+        Routes to appropriate scoring method based on content type
         """
 
         brand_samples = self.brand.samples.all()
@@ -53,39 +54,233 @@ class BrandVoiceScorer:
             # Generate embeddings for samples if they don't exist
             brand_embeddings = self._generate_brand_embeddings(brand_samples)
         
-        # Calculate tone match using existing function (40% weight)
+        content_type = self._detect_content_type(content)
+
+        if content_type == 'shitpost':
+            return self._calculate_shitpost_score(content, brand_samples, brand_embeddings, content_embedding)
+        else:
+            return self._calculate_standard_score(content, brand_samples, brand_embeddings, content_embedding)
+        
+    def _detect_content_type(self, content: str) -> str:
+        """detect if post is a shitpost or a standard post"""
+        lower_content = content.lower()
+
+        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
+
+        strong_signals = [
+            'ratio', 'based', 'unhinged', 'chaotic', 'cursed', 'blessed',
+            'delulu', 'no cap', 'bussin', 'periodt', 'chronically online'
+        ]
+        strong_signal_count = sum(1 for signal in strong_signals if signal in lower_content)
+
+        if re.search(r'pov:|nobody:|me:|when you|that moment when|mfw|tfw', lower_content, re.IGNORECASE):
+            return 'shitpost'
+        
+        if strong_signal_count >= 1 and humor_count >= 3:
+            return 'shitpost'
+        
+        if humor_count >= 4:
+            return 'shitpost'
+        
+        return 'standard'
+    
+    def _calculate_standard_score(self, content: str, brand_samples, brand_embeddings, content_embedding) -> Dict:
+        """Standard scoring for professional/normal content"""
         tone_score = calculate_brand_alignment_score(content_embedding, brand_embeddings)
-        
-        # Vocabulary consistency (30% weight)
         vocab_score = self._calculate_vocabulary_score(content, brand_samples)
-        
-        # Emotional alignment (20% weight)
         emotion_score = self._calculate_emotional_score(content, brand_samples)
-        
-        # Style consistency (10% weight)
         style_score = self._calculate_style_score(content, brand_samples)
-        
-        # Weighted total
+
         total_score = (
             tone_score * 0.4 +
             vocab_score * 0.3 +
             emotion_score * 0.2 +
             style_score * 0.1
         )
-        
+
         breakdown = {
             'tone_match': round(tone_score, 2),
             'vocabulary_consistency': round(vocab_score, 2),
             'emotional_alignment': round(emotion_score, 2),
             'style_deviation': round(100 - style_score, 2)
         }
-        
+
         return {
             'total': round(total_score, 2),
             'breakdown': breakdown,
+            'content_type': 'standard',
             'metric_tips': self._generate_metric_tips(breakdown),
             'content_embedding': content_embedding
         }
+    
+    def _calculate_shitpost_score(self, content: str, brand_samples, brand_embeddings, content_embedding) -> Dict:
+        """Shitpost-specific scoring focused on entertainment value"""
+        
+        entertainment_score = self._calculate_entertainment_score(content)
+        personality_score = self._calculate_personality_fit(content, brand_samples, brand_embeddings, content_embedding)
+        authenticity_score = self._calculate_authenticity_score(content)
+        engagement_score = self._calculate_engagement_potential(content)
+
+        total_score = (
+            entertainment_score * 0.35 +
+            personality_score * 0.25 +
+            authenticity_score * 0.25 +
+            engagement_score * 0.15
+        )
+
+        breakdown = {
+            'tone_match': round(personality_score, 2),
+            'vocabulary_consistency': round(entertainment_score, 2),
+            'emotional_alignment': round(authenticity_score, 2),
+            'style_deviation': round(100 - engagement_score, 2)
+        }
+
+        return {
+            'total': round(total_score, 2),
+            'breakdown': breakdown,
+            'content_type': 'shitpost',
+            'metric_tips': self._generate_shitpost_tips(breakdown),
+            'content_embedding': content_embedding
+        }
+    
+    def _calculate_entertainment_score(self, content: str) -> float:
+        """Score based on humor density and creativity"""
+        lower_content = content.lower()
+        
+        # Humor indicator density
+        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
+        humor_density = min(humor_count / 3, 1.0) * 40  # Max 40 points from density
+        
+        # Creativity bonus - unexpected combinations, originality
+        creativity_bonus = 0
+        
+        # Absurdist elements
+        if re.search(r'[a-z][A-Z][a-z][A-Z]', content):  # Random caps
+            creativity_bonus += 15
+        if re.search(r'[!?]{3,}', content):  # Excessive punctuation
+            creativity_bonus += 10
+        
+        # Meme format recognition
+        if re.search(r'pov:|nobody:|me:|mfw|tfw', lower_content):
+            creativity_bonus += 20
+        
+        # Self-aware/meta humor
+        if any(word in lower_content for word in ['posting', 'tweet', 'algorithm', 'viral', 'ratio']):
+            creativity_bonus += 15
+        
+        return min(100, humor_density + creativity_bonus)
+    
+    def _calculate_personality_fit(self, content: str, brand_samples, brand_embeddings, content_embedding) -> float:
+        """Check if humor style matches brand personality"""
+        # Use embedding similarity but with humor-focused framing
+        humor_prompt = f"The humor style and comedic energy of: {content}"
+        humor_embedding = self.embedding_generator.generate_embedding(humor_prompt)
+        
+        if not humor_embedding or not brand_embeddings:
+            return 60.0  # Neutral-ish default
+        
+        # Compare against brand samples' energy/vibe
+        similarities = [cosine_similarity(humor_embedding, emb) for emb in brand_embeddings]
+        avg_similarity = sum(similarities) / len(similarities)
+        
+        # Convert to 0-100 scale
+        return min(100, max(0, (avg_similarity + 1) * 50))
+    
+    def _calculate_authenticity_score(self, content: str) -> float:
+        """Detect if humor feels natural vs forced"""
+        lower_content = content.lower()
+        score = 70  # Start with decent baseline
+        
+        # Penalize over-engineering (cramming too many trendy phrases)
+        trendy_phrases = ['no cap', 'fr fr', 'bussin', 'slay', 'ate', 'periodt']
+        trendy_count = sum(1 for phrase in trendy_phrases if phrase in lower_content)
+        if trendy_count > 3:
+            score -= (trendy_count - 3) * 10  # Penalty for trying too hard
+        
+        # Reward natural flow - shorter sentences in shitposts are better
+        words = content.split()
+        if len(words) < 20:
+            score += 15  # Brevity bonus
+        
+        # Penalize overly long "shitposts" - real ones are punchy
+        if len(words) > 50:
+            score -= 20
+        
+        return min(100, max(0, score))
+    
+    def _calculate_engagement_potential(self, content: str) -> float:
+        """Estimate likelihood of engagement"""
+        lower_content = content.lower()
+        score = 50
+        
+        # Controversy/hot take indicators
+        if any(word in lower_content for word in ['unpopular opinion', 'hot take', 'controversial', 'fight me']):
+            score += 25
+        
+        # Relatable content
+        if any(word in lower_content for word in ['when you', 'that feeling', 'we all', 'everyone']):
+            score += 20
+        
+        # Question or call for engagement
+        if '?' in content:
+            score += 15
+        
+        # Quotable/screenshot-worthy (strong one-liner)
+        sentences = [s.strip() for s in re.split(r'[.!?]+', content) if s.strip()]
+        if len(sentences) == 1 and len(content) < 100:
+            score += 15  # Punchy one-liner bonus
+        
+        return min(100, max(0, score))
+    
+    def _generate_shitpost_tips(self, breakdown: Dict) -> Dict[str, str]:
+        """Generate tips specific to shitpost content"""
+        tips = {}
+        
+        # Entertainment (mapped to vocabulary_consistency in breakdown)
+        entertainment = breakdown['vocabulary_consistency']
+        if entertainment < 50:
+            tips['vocabulary_tip'] = "Needs more comedic punch. Try adding unexpected elements, absurdist humor, or a stronger punchline."
+        elif entertainment < 70:
+            tips['vocabulary_tip'] = "Decent humor but could hit harder. Consider a more unexpected angle or sharper delivery."
+        elif entertainment < 85:
+            tips['vocabulary_tip'] = "Good entertainment value. A small twist or callback could make it even better."
+        else:
+            tips['vocabulary_tip'] = "Great comedic execution. This should land well."
+        
+        # Personality fit (mapped to tone_match)
+        personality = breakdown['tone_match']
+        if personality < 50:
+            tips['tone_tip'] = "This humor style doesn't match your brand's usual vibe. Stay consistent with your comedic voice."
+        elif personality < 70:
+            tips['tone_tip'] = "Somewhat on-brand. Try matching the energy level of your previous shitposts."
+        elif personality < 85:
+            tips['tone_tip'] = "Good personality fit. This feels like your brand's humor."
+        else:
+            tips['tone_tip'] = "Perfect brand personality match. Authentically your voice."
+        
+        # Authenticity (mapped to emotional_alignment)
+        authenticity = breakdown['emotional_alignment']
+        if authenticity < 50:
+            tips['emotion_tip'] = "Feels forced or try-hard. Let the humor come naturally instead of cramming in trendy phrases."
+        elif authenticity < 70:
+            tips['emotion_tip'] = "Slightly overengineered. Simplify and let the joke breathe."
+        elif authenticity < 85:
+            tips['emotion_tip'] = "Feels genuine. Good natural delivery."
+        else:
+            tips['emotion_tip'] = "Effortlessly funny. This feels authentically you."
+        
+        # Engagement (mapped to style_deviation, inverted)
+        engagement = 100 - breakdown['style_deviation']
+        if engagement < 50:
+            tips['style_tip'] = "Low engagement potential. Add a hook, question, or controversial element to spark reactions."
+        elif engagement < 70:
+            tips['style_tip'] = "Moderate engagement potential. A punchier closer could help drive comments."
+        elif engagement < 85:
+            tips['style_tip'] = "Good engagement potential. Should get solid reactions."
+        else:
+            tips['style_tip'] = "High engagement potential. This should spark conversation."
+        
+        return tips
     
     def _generate_brand_embeddings(self, brand_samples) -> List[List[float]]:
         """Generate and cache embeddings for brand samples"""
