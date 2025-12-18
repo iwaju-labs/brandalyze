@@ -21,4 +21,4 @@ BODY: [score /10] - [brief feedback on entertainment/humor/value/relatability]
 MEDIA: [score /10] - [brief feedback on visual content]
 CLOSER: [score /10] - [brief feedback]
 
-SUGGESTION: [One specific actionable improvement based on the type of content]
+SUGGESTION: [One specific actionable improvement based on the type of content. The context is important.]
