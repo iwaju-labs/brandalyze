@@ -548,14 +548,21 @@ debug.log("Audit button loaded");
       }
     } catch (error) {
       debug.error("Audit error:", error);
-      updateButtonState(auditButton, "error");
+      
+      // Check for context invalidation
+      if (globalThis.BrandalyzeUtils && globalThis.BrandalyzeUtils.isContextInvalidated(error)) {
+        globalThis.BrandalyzeUtils.showRefreshNotification();
+        updateButtonState(auditButton, "idle");
+      } else {
+        updateButtonState(auditButton, "error");
 
-      // Reset to idle after 3 seconds
-      setTimeout(() => {
-        if (auditButton) {
-          updateButtonState(auditButton, "idle");
-        }
-      }, 3000);
+        // Reset to idle after 3 seconds
+        setTimeout(() => {
+          if (auditButton) {
+            updateButtonState(auditButton, "idle");
+          }
+        }, 3000);
+      }
     } finally {
       isAnalyzing = false;
     }

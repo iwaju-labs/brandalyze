@@ -34,11 +34,117 @@ if (typeof globalThis !== 'undefined') {
 
 debug.log('Brandalyze shared utilities loaded');
 
+// Track if we've already shown the refresh notification
+let contextInvalidatedNotificationShown = false;
+
 globalThis.BrandalyzeUtils = {
+  // Check if error is due to extension context being invalidated
+  isContextInvalidated: function(error) {
+    if (!error) return false;
+    const message = error.message || error.toString();
+    return message.includes('Extension context invalidated') ||
+           message.includes('context invalidated') ||
+           message.includes('Receiving end does not exist');
+  },
+
+  // Show refresh notification to user
+  showRefreshNotification: function() {
+    if (contextInvalidatedNotificationShown) return;
+    contextInvalidatedNotificationShown = true;
+
+    const notification = document.createElement('div');
+    notification.id = 'brandalyze-refresh-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+      z-index: 2147483647;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      max-width: 320px;
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    notification.innerHTML = `
+      <style>
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      </style>
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <span style="font-size: 20px;">🔄</span>
+        <div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Brandalyze Updated</div>
+          <div style="opacity: 0.9; font-size: 13px; margin-bottom: 12px;">
+            Please refresh this page to continue using the extension.
+          </div>
+          <button id="brandalyze-refresh-btn" style="
+            background: white;
+            color: #6366f1;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+          ">Refresh Page</button>
+          <button id="brandalyze-dismiss-btn" style="
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-left: 8px;
+          ">Dismiss</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    document.getElementById('brandalyze-refresh-btn').addEventListener('click', () => {
+      globalThis.location.reload();
+    });
+
+    document.getElementById('brandalyze-dismiss-btn').addEventListener('click', () => {
+      notification.remove();
+    });
+
+    // Auto-dismiss after 30 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+        contextInvalidatedNotificationShown = false;
+      }
+    }, 30000);
+  },
+
+  // Safe wrapper for chrome.runtime.sendMessage
+  sendMessage: async function(message) {
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (error) {
+      if (this.isContextInvalidated(error)) {
+        debug.warn('Extension context invalidated, showing refresh notification');
+        this.showRefreshNotification();
+        return { success: false, error: 'Extension updated. Please refresh the page.' };
+      }
+      throw error;
+    }
+  },
+
   // Check if user has required subscription for extension features
   checkSubscriptionAccess: async function() {
     try {
-      const response = await chrome.runtime.sendMessage({
+      const response = await this.sendMessage({
         action: 'getAuthState'
       });
       
@@ -49,6 +155,10 @@ globalThis.BrandalyzeUtils = {
       
       return false;
     } catch (error) {
+      if (this.isContextInvalidated(error)) {
+        this.showRefreshNotification();
+        return false;
+      }
       debug.log('Error checking auth:', error);
       return false;
     }

@@ -380,7 +380,11 @@ async function performProfileAnalysisRequest(handle, button, extractedBio, selec
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
+            const error = new Error(chrome.runtime.lastError.message);
+            if (globalThis.BrandalyzeUtils && globalThis.BrandalyzeUtils.isContextInvalidated(error)) {
+              globalThis.BrandalyzeUtils.showRefreshNotification();
+            }
+            reject(error);
           } else {
             resolve(response);
           }
@@ -413,7 +417,12 @@ async function performProfileAnalysisRequest(handle, button, extractedBio, selec
     if (globalThis.BrandalyzeProfilePanel) {
       globalThis.BrandalyzeProfilePanel.close();
     }
-    alert("Profile analysis failed: " + error.message);
+    // Check for context invalidation before showing alert
+    if (globalThis.BrandalyzeUtils && globalThis.BrandalyzeUtils.isContextInvalidated(error)) {
+      globalThis.BrandalyzeUtils.showRefreshNotification();
+    } else {
+      alert("Profile analysis failed: " + error.message);
+    }
   }
 }
 

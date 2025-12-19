@@ -827,10 +827,15 @@
         }
       } catch (error) {
         debug.error("Analysis error:", error);
-        showNotification(
-          "Network error. Please check your connection and try again.",
-          "error"
-        );
+        // Check for context invalidation
+        if (globalThis.BrandalyzeUtils && globalThis.BrandalyzeUtils.isContextInvalidated(error)) {
+          globalThis.BrandalyzeUtils.showRefreshNotification();
+        } else {
+          showNotification(
+            "Network error. Please check your connection and try again.",
+            "error"
+          );
+        }
       } finally {
         // Reset button state
         buttonText.textContent = originalText;

@@ -7,6 +7,38 @@ const debug = globalThis.BrandalyzeDebug || { log: () => {}, warn: () => {}, err
 let currentUser = null;
 let currentPlatform = null;
 
+// Check if error is due to extension context being invalidated
+function isContextInvalidated(error) {
+  if (!error) return false;
+  const message = error.message || error.toString();
+  return message.includes('Extension context invalidated') ||
+         message.includes('context invalidated') ||
+         message.includes('Receiving end does not exist');
+}
+
+// Show context invalidated error in popup
+function showContextInvalidatedError() {
+  document.body.innerHTML = `
+    <div style="padding: 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="font-size: 32px; margin-bottom: 12px;">🔄</div>
+      <h3 style="margin: 0 0 8px; color: #1f2937;">Extension Updated</h3>
+      <p style="color: #6b7280; font-size: 13px; margin: 0 0 16px;">
+        The extension was recently updated. Please close and reopen this popup.
+      </p>
+      <button onclick="window.close()" style="
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+      ">Close</button>
+    </div>
+  `;
+}
+
 // Open Brandalyze app for sign in
 async function openBrandalyzeApp() {
   try {
@@ -15,6 +47,10 @@ async function openBrandalyzeApp() {
     });
     globalThis.close();
   } catch (error) {
+    if (isContextInvalidated(error)) {
+      showContextInvalidatedError();
+      return;
+    }
     debug.error("Failed to open Brandalyze app:", error);
     alert("Please manually navigate to Brandalyze and sign in.");
   }
@@ -182,6 +218,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateAuthUI({ isAuthenticated: false });
       }
     } catch (error) {
+      if (isContextInvalidated(error)) {
+        showContextInvalidatedError();
+        return;
+      }
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
       debug.error("Auth check error:", error);
@@ -234,6 +274,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         debug.error('Force refresh failed:', response.error);
       }
     } catch (error) {
+      if (isContextInvalidated(error)) {
+        showContextInvalidatedError();
+        return;
+      }
       hideLoading();
       updateAuthUI({ isAuthenticated: false });
       debug.error("Force refresh error:", error);
