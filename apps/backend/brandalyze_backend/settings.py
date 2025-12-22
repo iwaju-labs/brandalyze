@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'extensions',
     'payments',
     'audits',
+    'onboarding'
 ]
 
 MIDDLEWARE = [

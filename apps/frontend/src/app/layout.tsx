@@ -5,6 +5,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navigation/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
 
 import { Toaster } from "react-hot-toast";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -196,9 +197,11 @@ export default function RootLayout({
           suppressHydrationWarning={true}
         >
           <ThemeProvider defaultTheme="light">
-            <Navbar />
-            {children}
-            <Footer />
+            <OnboardingWrapper>
+              <Navbar />
+              {children}
+              <Footer />
+            </OnboardingWrapper>
             <Toaster
               position="top-right"
               toastOptions={{

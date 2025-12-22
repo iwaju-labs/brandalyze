@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "../../../lib/api";
+import { trackPageVisit } from "@/lib/onboarding-api";
 import toast from "react-hot-toast";
 import { ProGateModal } from "@/components/pro-gate-modal";
 import {
@@ -168,7 +169,12 @@ export default function HistoryPage() {
     }
     fetchSubscription();
     fetchData();
-  }, [isSignedIn, router, fetchData, fetchSubscription]);
+    
+    // Track page visit for onboarding mission
+    trackPageVisit("audit_history", getToken).catch(() => {
+      // Silently ignore tracking errors
+    });
+  }, [isSignedIn, router, fetchData, fetchSubscription, getToken]);
 
   // Client-side search filtering for audits
   useEffect(() => {

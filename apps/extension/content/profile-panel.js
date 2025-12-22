@@ -587,7 +587,7 @@ debug.log("Profile analysis panel loaded");
       </div>
       <div class="brandalyze-selection-count">
         <span>Selected</span>
-        <span><span class="count" id="brandalyze-selected-count">0</span> / Available Posts (10 max)</span>
+        <span><span class="count" id="brandalyze-selected-count">0</span> / Available Posts</span>
       </div>
       <div class="brandalyze-post-list" id="brandalyze-post-list">
         ${posts.map((post, idx) => `
