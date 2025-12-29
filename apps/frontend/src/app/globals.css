@@ -39,4 +39,21 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Override for modal containers */
+[role="dialog"],
+[aria-modal="true"],
+.clerk-modal,
+[data-portal],
+.clerk-component {
+  -webkit-backface-visibility: visible !important;
+  backface-visibility: visible !important;
+  -webkit-transform: none !important;
+  transform: none !important;
+  z-index: 9999;
 }
