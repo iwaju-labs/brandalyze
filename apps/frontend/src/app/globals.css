@@ -39,13 +39,18 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* GPU acceleration for main content only */
+main,
+section {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
 
-/* Override for modal containers */
+/* Override for modal containers and floating elements */
 [role="dialog"],
 [aria-modal="true"],
 .clerk-modal,
