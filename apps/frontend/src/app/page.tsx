@@ -15,6 +15,7 @@ import MotionFadeUp from "@/components/framer/motion-fade-up";
 import ParticleLink from "@/components/framer/particle-link";
 import NativeVideoFacade from "@/components/ui/video-facade/native-vide-facade";
 import TestimonialSection from "@/components/ui/testimonial/testimonal";
+import GrammarlySwap from "@/components/ui/grammarly-swap";
 
 export const metadata: Metadata = {
   title: "Brandalyze - Best Social Media Brand Analysis Tool",
@@ -87,73 +88,55 @@ export default async function HomePage() {
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white transition-colors">
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 sm:pt-12 lg:pt-16 pb-8 sm:pb-12 lg:pb-16 min-h-screen flex items-start">
         <div className="w-full">
-          {/* Grammarly comparison ink stamp */}
+          {/* Grammarly comparison badge */}
           <MotionFadeUp delay={0.5} duration={1}>
-            <div className="grammarly-comp flex items-center justify-center -mt-8">
-              <Image
-                src="/assets/landing/inkstamp.png"
-                alt="Like Grammarly but for brands!"
-                width={300}
-                height={300}
-                priority
-                className="flex items-center justify-center pointer-events-none -rotate-12 dark:invert md:block lg:block"
-              />
+            <div className="flex items-center justify-center mb-8">
+              <div className="badge-brutalist -rotate-6 px-6 py-3 bg-white dark:bg-black rounded-lg">
+                <span className="text-lg sm:text-xl font-bold font-mono text-black dark:text-white select-none uppercase">
+                  Like <GrammarlySwap />, But For Brands
+                </span>
+              </div>
             </div>
-            {/* Two Column Hero Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-12 lg:mb-16">
-              {/* Left Column - Title and Subtext */}
-              <div className="text-center lg:text-left space-y-6">
-                <div className="relative">
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight select-none relative z-10">
-                    <span className="text-gray-900 dark:text-white">
-                      brandalyze
-                    </span>
-                    <span className="text-purple-600 dark:text-purple-400">
-                      .
-                    </span>
-                  </h1>
-                </div>
-
-                <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-mono select-none">
-                  <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
-                </p>
-
-                {/* Get started button call to action */}
-                <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto lg:mx-0">
-                  <ParticleLink
-                    className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-6 py-3 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium hover:bg-purple-300 dark:hover:bg-purple-600/80 transition-colors w-full sm:flex-1"
-                    href={"/analyze"}
-                    images={["/icon.png"]}
-                    particleCount={12}
-                    particleSizeRange={[12, 24]}
-                  >
-                    Check Brand Alignment For Free
-                    <ArrowSquareRight className="ml-2 h-5 w-5" />
-                  </ParticleLink>
-                </div>
-
-                {/* Chrome Extension plug */}
-                <div className="flex justify-center lg:justify-start">
-                  <Link
-                    className="inline-flex items-center text-sm text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                    href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
-                  >
-                    <Award03 size={18} className="mr-2" />
-                    Featured on Chrome Webstore
-                  </Link>
-                </div>
+            {/* Hero Section */}
+            <div className="text-center space-y-8 mb-16 lg:mb-24">
+              <div className="relative">
+                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight select-none relative z-10">
+                  <span className="text-gray-900 dark:text-white">
+                    brandalyze
+                  </span>
+                  <span className="text-purple-600 dark:text-purple-400">
+                    .
+                  </span>
+                </h1>
               </div>
 
+              <p className="text-xl sm:text-2xl md:text-3xl text-gray-600 dark:text-gray-300 font-mono select-none max-w-2xl mx-auto">
+                <Typewriter words={words} pauseTime={1500} deleteSpeed={10} />
+              </p>
 
-              {/* Right Column - Description and Image Space */}
-              <div className="text-center lg:text-left space-y-6">
-                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                  Upload brand samples, analyze social profiles, and audit
-                  content before posting. Get AI-powered brand alignment scores
-                  with actionable feedback. Pro users unlock the browser
-                  extension for real-time profile analysis and pre-publish
-                  auditing across Twitter/X and LinkedIn.
-                </p>
+              {/* Get started button call to action */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <ParticleLink
+                  className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-8 py-4 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium shadow-brutalist"
+                  href={"/analyze"}
+                  images={["/icon.png"]}
+                  particleCount={12}
+                  particleSizeRange={[12, 24]}
+                >
+                  Check Brand Alignment For Free
+                  <ArrowSquareRight className="ml-2 h-5 w-5" />
+                </ParticleLink>
+              </div>
+
+              {/* Chrome Extension plug */}
+              <div className="flex justify-center">
+                <Link
+                  className="inline-flex items-center text-sm text-purple-700 dark:text-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  href="https://chromewebstore.google.com/detail/brandalyze-social-media-b/chnffppbmnlchenodfkbldobgmfgpbph"
+                >
+                  <Award03 size={18} className="mr-2" />
+                  Featured on Chrome Webstore
+                </Link>
               </div>
             </div>
           </MotionFadeUp>
@@ -271,7 +254,7 @@ export default async function HomePage() {
                 return (
                   <div
                     key={feature.title}
-                    className="text-center p-6 bg-[#f8f8ff] dark:bg-black rounded-xl border border-gray-900 dark:border-white transition-colors hover:shadow-md w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)]"
+                    className="text-center p-6 bg-[#f8f8ff] dark:bg-black rounded-xl card-brutalist w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)]"
                   >
                     <div className="flex justify-center mb-4">
                       <Icon className="h-8 w-8 text-purple-600 dark:text-purple-400" />

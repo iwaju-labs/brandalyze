@@ -31,7 +31,7 @@ export default function NativeVideoFacade({
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-lg"
+      className="relative w-full overflow-hidden rounded-lg video-brutalist"
       style={{ aspectRatio }}
     >
       {!isLoaded ? (
