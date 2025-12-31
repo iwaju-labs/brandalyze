@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/navigation/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
+import CookieBanner from "@/components/security/CookieBanner";
+import UmamiScript from "@/components/analytics/UmamiScript";
 
 import { Toaster } from "react-hot-toast";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -202,6 +203,7 @@ export default function RootLayout({
               {children}
               <Footer />
             </OnboardingWrapper>
+            <CookieBanner />
             <Toaster
               position="top-right"
               toastOptions={{
@@ -213,11 +215,7 @@ export default function RootLayout({
               }}
             />
           </ThemeProvider>
-          <Script
-            src="https://cloud.umami.is/script.js"
-            data-website-id="93f69958-ca6f-4bee-974d-7b8da4f6e8ee"
-            strategy="afterInteractive"
-          />
+          <UmamiScript />
         </body>
       </html>
     </ClerkProvider>
