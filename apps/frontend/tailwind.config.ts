@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import typography from '@tailwindcss/typography';
 
 export default {
   content: [
@@ -25,6 +26,13 @@ export default {
           foreground: "var(--accent-foreground)",
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none'
+          },
+        },
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -32,5 +40,7 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    typography
+  ],
 } satisfies Config;
