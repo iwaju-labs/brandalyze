@@ -1363,6 +1363,24 @@ def calculate_analysis_confidence(
             score += 0.05
         if posts_count >= 10:
             score += 0.05
+
+    elif analysis_type == "brand_samples":
+        score = 0.60
+
+        sample_ratio = posts_count / max(requested_posts, 1)
+        score += min(sample_ratio * 0.20, 0.20)
+
+        if content_length > 3000:
+            score += 0.10
+        elif content_length > 1500:
+            score += 0.07
+        elif content_length > 500:
+            score += 0.04
+
+        if posts_count >= 3:
+            score += 0.05
+        if posts_count >= 5:
+            score += 0.05
         
     if ai_response_parsed_successfully:
         score += 0.05

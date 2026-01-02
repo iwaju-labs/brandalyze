@@ -536,7 +536,7 @@ export default function BrandAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
+    <main className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <div className="mx-auto max-w-4xl px-4 py-8">
         {" "}
         <div className="mb-8">
@@ -1064,6 +1064,6 @@ export default function BrandAnalysis() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

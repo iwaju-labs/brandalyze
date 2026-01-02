@@ -496,34 +496,25 @@ def analyze_brand_voice(request):
             
             analyzer = BrandAnalyzer(api_key)
             
-            # Build AI prompt for voice analysis
-            indicators_json_structure = ",\n".join([f'"{ind}": 0.0' for ind in emotional_indicators])
-            
-            prompt = f"""
-            Analyze the brand voice and communication style based on these {len(filtered_samples)} brand samples:
+            # Build AI prompt for voice analysis (emotional indicators calculated separately)
+            prompt = f"""Analyze the brand voice based on these {len(filtered_samples)} samples:
 
-            {combined_text}
+{combined_text}
 
-            You must respond with ONLY a valid JSON object in this exact format:
-            {{
-                "tone": "A concise description of the overall communication tone",
-                "style": "The communication style",
-                "personality_traits": ["Trait 1", "Trait 2", "Trait 3", "Trait 4"],
-                "communication_patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
-                "content_themes": ["Theme 1", "Theme 2", "Theme 3"],
-                "brand_recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"],
-                "emotional_indicators": {{
-                    {indicators_json_structure}
-                }}
-            }}
-            
-            Score each emotional indicator from 0.0 to 10.0 based on how strongly it appears in the samples.
-            """
+Respond with ONLY valid JSON:
+{{
+    "tone": "Brief tone description",
+    "style": "Communication style description",
+    "personality_traits": ["Trait1", "Trait2", "Trait3", "Trait4"],
+    "communication_patterns": ["Pattern1", "Pattern2", "Pattern3"],
+    "content_themes": ["Theme1", "Theme2", "Theme3"],
+    "brand_recommendations": ["Recommendation1", "Recommendation2", "Recommendation3"]
+}}"""
             
             response = analyzer.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=800,
+                max_tokens=600,
                 temperature=0.3,
             )
             
@@ -539,8 +530,6 @@ def analyze_brand_voice(request):
                 else:
                     raise ValueError("No JSON found in response")
             except (json.JSONDecodeError, ValueError):
-                # Fallback to calculated indicators
-                fallback_indicators = calculate_emotional_indicators(combined_text, emotional_indicators)
                 voice_analysis = {
                     "tone": "Professional and engaging",
                     "style": "Clear and direct communication",
@@ -552,8 +541,11 @@ def analyze_brand_voice(request):
                         "Focus on your unique value proposition",
                         "Engage authentically with your audience"
                     ],
-                    "emotional_indicators": fallback_indicators
                 }
+            
+            # Calculate emotional indicators using heuristic analysis (same as profile analysis)
+            calculated_indicators = calculate_emotional_indicators(combined_text, emotional_indicators)
+            voice_analysis["emotional_indicators"] = calculated_indicators
             
             # Calculate confidence score
             confidence_score = calculate_analysis_confidence(
