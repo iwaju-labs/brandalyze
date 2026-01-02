@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { authenticatedFetch } from "../../../lib/api";
+import { authenticatedFetch, listBrandVoiceAnalyses, deleteBrandVoiceAnalysis, type BrandVoiceAnalysisListItem } from "../../../lib/api";
 import toast from "react-hot-toast";
 import { ProGateModal } from "@/components/pro-gate-modal";
 import {
@@ -13,6 +13,8 @@ import {
   Target04,
   Calendar,
   ChevronDown,
+  Microphone01,
+  Trash01,
 } from "@untitledui/icons";
 
 interface AnalyticsData {
@@ -61,6 +63,9 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
+  const [brandVoiceAnalyses, setBrandVoiceAnalyses] = useState<BrandVoiceAnalysisListItem[]>([]);
+  const [isLoadingVoiceAnalyses, setIsLoadingVoiceAnalyses] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchSubscription = useCallback(async () => {
     try {
@@ -88,6 +93,40 @@ export default function AnalyticsPage() {
     }
   }, [getToken, days]);
 
+  const fetchBrandVoiceAnalyses = useCallback(async () => {
+    try {
+      setIsLoadingVoiceAnalyses(true);
+      const response = await listBrandVoiceAnalyses(getToken);
+      if (response.success && response.data) {
+        setBrandVoiceAnalyses(response.data.analyses);
+      }
+    } catch (error) {
+      console.error("Failed to fetch brand voice analyses:", error);
+    } finally {
+      setIsLoadingVoiceAnalyses(false);
+    }
+  }, [getToken]);
+
+  const handleDeleteVoiceAnalysis = async (analysisId: number) => {
+    if (!confirm("Are you sure you want to delete this brand voice analysis?")) {
+      return;
+    }
+    
+    setDeletingId(analysisId);
+    try {
+      const response = await deleteBrandVoiceAnalysis(analysisId, getToken);
+      if (response.success) {
+        setBrandVoiceAnalyses(brandVoiceAnalyses.filter(a => a.id !== analysisId));
+        toast.success("Brand voice analysis deleted");
+      }
+    } catch (error) {
+      console.error("Failed to delete voice analysis:", error);
+      toast.error("Failed to delete brand voice analysis");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   useEffect(() => {
     if (!isSignedIn) {
       router.push("/sign-in");
@@ -95,7 +134,8 @@ export default function AnalyticsPage() {
     }
     fetchSubscription();
     fetchAnalytics();
-  }, [isSignedIn, router, fetchAnalytics, fetchSubscription]);
+    fetchBrandVoiceAnalyses();
+  }, [isSignedIn, router, fetchAnalytics, fetchSubscription, fetchBrandVoiceAnalyses]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600 dark:text-green-400";
@@ -447,6 +487,119 @@ export default function AnalyticsPage() {
                 ) : (
                   <div className="text-center text-gray-500 py-8">
                     No brand data available
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Brand Voice Analyses Section */}
+            <div className="mt-8">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Microphone01 className="w-5 h-5 text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Saved Brand Voice Analyses
+                  </h3>
+                </div>
+                {isLoadingVoiceAnalyses ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                  </div>
+                ) : brandVoiceAnalyses.length > 0 ? (
+                  <div className="space-y-4">
+                    {brandVoiceAnalyses.map((analysis) => (
+                      <div
+                        key={analysis.id}
+                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              {analysis.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Created {new Date(analysis.created_at).toLocaleDateString()}
+                              {analysis.use_for_audits && (
+                                <span className="ml-2 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs">
+                                  Used for audits
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <div className="text-sm text-gray-500">Confidence</div>
+                              <div className="font-semibold text-purple-600">
+                                {Math.round(analysis.confidence_score * 100)}%
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteVoiceAnalysis(analysis.id)}
+                              disabled={deletingId === analysis.id}
+                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                              title="Delete analysis"
+                            >
+                              {deletingId === analysis.id ? (
+                                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash01 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                          <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                            <div className="text-xs text-gray-500">Tone</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {analysis.voice_analysis?.tone || "N/A"}
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                            <div className="text-xs text-gray-500">Style</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {analysis.voice_analysis?.style || "N/A"}
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                            <div className="text-xs text-gray-500">Samples</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {analysis.samples_analyzed}
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                            <div className="text-xs text-gray-500">Characters</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {analysis.total_text_length.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Emotional Indicators */}
+                        {analysis.emotional_indicators && Object.keys(analysis.emotional_indicators).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(analysis.emotional_indicators).map(([key, value]) => (
+                              <span
+                                key={key}
+                                className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded text-xs"
+                              >
+                                {key}: {typeof value === 'number' ? value.toFixed(1) : value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Microphone01 className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No saved brand voice analyses yet
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                      Create one from the Analyze page
+                    </p>
                   </div>
                 )}
               </div>

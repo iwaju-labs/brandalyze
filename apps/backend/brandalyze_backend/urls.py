@@ -24,6 +24,10 @@ from brands.views import (
     upload_file,
     analyze_text,
     analyze_brand_alignment,
+    analyze_brand_voice,
+    save_brand_voice_analysis,
+    list_brand_voice_analyses,
+    delete_brand_voice_analysis,
     get_user_usage,
 )
 from .health import HealthCheckView
@@ -42,6 +46,26 @@ urlpatterns = [
         "api/analyze/brand-alignment",
         analyze_brand_alignment,
         name="analyze_brand_alignment",
+    ),
+    path(
+        "api/analyze/brand-voice",
+        analyze_brand_voice,
+        name="analyze_brand_voice",
+    ),
+    path(
+        "api/analyze/brand-voice/save",
+        save_brand_voice_analysis,
+        name="save_brand_voice_analysis",
+    ),
+    path(
+        "api/analyze/brand-voice/list",
+        list_brand_voice_analyses,
+        name="list_brand_voice_analyses",
+    ),
+    path(
+        "api/analyze/brand-voice/<int:analysis_id>/delete",
+        delete_brand_voice_analysis,
+        name="delete_brand_voice_analysis",
     ),
     path("api/user/usage", get_user_usage, name="get_user_usage"),
     path("api/payments/", include("payments.urls")),

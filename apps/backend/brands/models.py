@@ -159,3 +159,68 @@ class BrandSample(models.Model):
                 samples.append(sample)
         
         return samples
+
+
+class BrandVoiceAnalysis(models.Model):
+    """Store brand voice analysis results from manual brand samples"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='brand_voice_analyses')
+    name = models.CharField(max_length=100, help_text="User-provided name for this voice analysis")
+    brand = models.ForeignKey(
+        Brand, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='voice_analyses',
+        help_text="Associated brand if saved"
+    )
+    
+    confidence_score = models.FloatField(
+        default=0.7,
+        help_text="Analysis confidence (0-1)"
+    )
+    
+    voice_analysis = models.JSONField(
+        default=dict,
+        help_text="Tone, style, personality traits, communication patterns, content themes"
+    )
+    
+    emotional_indicators = models.JSONField(
+        default=dict,
+        help_text="Scores for selected emotional indicators"
+    )
+    
+    brand_recommendations = models.JSONField(
+        default=list,
+        help_text="AI-generated brand recommendations"
+    )
+    
+    samples_analyzed = models.IntegerField(
+        default=0,
+        help_text="Number of brand samples used in analysis"
+    )
+    
+    total_text_length = models.IntegerField(
+        default=0,
+        help_text="Total character count of all samples"
+    )
+    
+    # Allow users to opt-in to use this for post audits
+    use_for_audits = models.BooleanField(
+        default=False,
+        help_text="Use this voice analysis for post audits instead of profile analysis"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'brand_voice_analyses'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['use_for_audits']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.user.username} ({self.created_at.date()})"

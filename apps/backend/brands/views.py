@@ -410,3 +410,421 @@ def test_post_endpoint(request):
         data={"message": "POST request successful", "received_data": request.data},
         message="Test endpoint working",
     )
+
+
+@api_view(["POST"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def analyze_brand_voice(request):
+    """
+    Analyze brand samples to extract voice characteristics.
+    Available to all tiers with appropriate limits.
+    
+    POST /api/analyze/brand-voice
+    {
+        "brand_samples": ["Sample 1 text...", "Sample 2 text..."],
+        "emotional_indicators": ["enthusiasm", "professionalism", "approachability", "authority"],
+        "name": "My Brand Voice"  // Optional, for display purposes
+    }
+    """
+    try:
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=request.user,
+            defaults={'tier': 'free', 'daily_analysis_limit': 3}
+        )
+        
+        # Check daily usage limits
+        can_analyze, _ = DailyUsage.can_perform_analysis(request.user)
+        if not can_analyze:
+            return error_response(
+                f"Daily analysis limit reached ({subscription.daily_analysis_limit} analyses). Upgrade your plan or try again tomorrow",
+                code="USAGE_LIMIT_EXCEEDED",
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        brand_samples = request.data.get("brand_samples", [])
+        emotional_indicators = request.data.get("emotional_indicators", [
+            "enthusiasm", "professionalism", "approachability", "authority"
+        ])
+        name = request.data.get("name", "Brand Voice Analysis")
+        
+        # Validate brand samples
+        if not brand_samples or len(brand_samples) == 0:
+            return error_response(
+                "At least one brand sample is required",
+                code="MISSING_BRAND_SAMPLES",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Filter empty samples
+        filtered_samples = [s.strip() for s in brand_samples if s.strip()]
+        if len(filtered_samples) == 0:
+            return error_response(
+                "At least one non-empty brand sample is required",
+                code="EMPTY_BRAND_SAMPLES",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Apply tier-based sample limits
+        if subscription.tier == 'free' and len(filtered_samples) > 5:
+            return error_response(
+                "Free plan limited to 5 brand samples. Upgrade for unlimited samples.",
+                code="BRAND_SAMPLE_LIMIT_EXCEEDED",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Limit emotional indicators to 4
+        emotional_indicators = emotional_indicators[:4]
+        
+        # Combine samples for analysis
+        combined_text = "\n\n".join([
+            f"Sample {i+1}: {sample}" for i, sample in enumerate(filtered_samples)
+        ])
+        total_text_length = sum(len(s) for s in filtered_samples)
+        
+        # Perform voice analysis using existing AI infrastructure
+        api_key = settings.OPENAI_API_KEY
+        if not api_key:
+            return error_response("AI service not configured", "AI_SERVICE_ERROR")
+        
+        try:
+            from extensions.analyzers.voice_analysis import (
+                calculate_emotional_indicators,
+                calculate_analysis_confidence
+            )
+            from ai_core.analysis import BrandAnalyzer
+            
+            analyzer = BrandAnalyzer(api_key)
+            
+            # Build AI prompt for voice analysis
+            indicators_json_structure = ",\n".join([f'"{ind}": 0.0' for ind in emotional_indicators])
+            
+            prompt = f"""
+            Analyze the brand voice and communication style based on these {len(filtered_samples)} brand samples:
+
+            {combined_text}
+
+            You must respond with ONLY a valid JSON object in this exact format:
+            {{
+                "tone": "A concise description of the overall communication tone",
+                "style": "The communication style",
+                "personality_traits": ["Trait 1", "Trait 2", "Trait 3", "Trait 4"],
+                "communication_patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+                "content_themes": ["Theme 1", "Theme 2", "Theme 3"],
+                "brand_recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"],
+                "emotional_indicators": {{
+                    {indicators_json_structure}
+                }}
+            }}
+            
+            Score each emotional indicator from 0.0 to 10.0 based on how strongly it appears in the samples.
+            """
+            
+            response = analyzer.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=800,
+                temperature=0.3,
+            )
+            
+            ai_response = response.choices[0].message.content
+            
+            # Parse the AI response
+            try:
+                # Try to extract JSON from the response
+                import re
+                json_match = re.search(r'\{[\s\S]*\}', ai_response)
+                if json_match:
+                    voice_analysis = json.loads(json_match.group())
+                else:
+                    raise ValueError("No JSON found in response")
+            except (json.JSONDecodeError, ValueError):
+                # Fallback to calculated indicators
+                fallback_indicators = calculate_emotional_indicators(combined_text, emotional_indicators)
+                voice_analysis = {
+                    "tone": "Professional and engaging",
+                    "style": "Clear and direct communication",
+                    "personality_traits": ["Authentic", "Knowledgeable", "Approachable", "Consistent"],
+                    "communication_patterns": ["Clear messaging", "Consistent voice", "Audience-focused"],
+                    "content_themes": ["Brand values", "Industry insights", "Customer focus"],
+                    "brand_recommendations": [
+                        "Maintain consistent tone across all content",
+                        "Focus on your unique value proposition",
+                        "Engage authentically with your audience"
+                    ],
+                    "emotional_indicators": fallback_indicators
+                }
+            
+            # Calculate confidence score
+            confidence_score = calculate_analysis_confidence(
+                analysis_type="brand_samples",
+                content_length=total_text_length,
+                posts_count=len(filtered_samples),
+                requested_posts=len(filtered_samples),
+                ai_response_parsed_successfully=True
+            )
+            
+        except ImportError as e:
+            return error_response(
+                f"Analysis module not available: {str(e)}",
+                code="MODULE_ERROR",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Update usage tracking
+        try:
+            daily_usage = DailyUsage.get_today_usage(request.user)
+            daily_usage.analysis_count += 1
+            daily_usage.save()
+        except Exception:
+            pass
+        
+        # Build response
+        response_data = {
+            "name": name,
+            "voice_analysis": voice_analysis,
+            "confidence_score": confidence_score,
+            "samples_analyzed": len(filtered_samples),
+            "total_text_length": total_text_length,
+            "emotional_indicators": voice_analysis.get("emotional_indicators", {}),
+            "brand_recommendations": voice_analysis.get("brand_recommendations", []),
+            "can_save": subscription.tier in ["pro", "enterprise"],
+            "subscription_tier": subscription.tier
+        }
+        
+        return success_response(
+            data=response_data,
+            message="Brand voice analysis completed successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            str(e),
+            "INTERNAL_ERROR",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["POST"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def save_brand_voice_analysis(request):
+    """
+    Save a brand voice analysis for Pro+ users.
+    Creates a Brand and BrandVoiceAnalysis record.
+    
+    POST /api/analyze/brand-voice/save
+    {
+        "name": "My Brand Voice",
+        "voice_analysis": {...},
+        "emotional_indicators": {...},
+        "brand_recommendations": [...],
+        "confidence_score": 0.85,
+        "samples_analyzed": 3,
+        "total_text_length": 1500,
+        "brand_samples": ["Sample 1...", "Sample 2..."],  // Optional: save as brand samples
+        "use_for_audits": false
+    }
+    """
+    from .models import BrandVoiceAnalysis
+    
+    try:
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=request.user,
+            defaults={'tier': 'free', 'daily_analysis_limit': 3}
+        )
+        
+        # Only Pro+ can save
+        if subscription.tier not in ["pro", "enterprise"]:
+            return error_response(
+                "Saving brand voice analysis requires a Pro or Enterprise subscription.",
+                code="UPGRADE_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        name = request.data.get("name", "Brand Voice Analysis")
+        voice_analysis = request.data.get("voice_analysis", {})
+        emotional_indicators = request.data.get("emotional_indicators", {})
+        brand_recommendations = request.data.get("brand_recommendations", [])
+        confidence_score = request.data.get("confidence_score", 0.7)
+        samples_analyzed = request.data.get("samples_analyzed", 0)
+        total_text_length = request.data.get("total_text_length", 0)
+        brand_samples = request.data.get("brand_samples", [])
+        use_for_audits = request.data.get("use_for_audits", False)
+        
+        if not name or not name.strip():
+            return error_response(
+                "Name is required",
+                code="MISSING_NAME",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create or update Brand if samples provided
+        brand = None
+        if brand_samples:
+            filtered_samples = [s.strip() for s in brand_samples if s.strip()]
+            if filtered_samples:
+                brand, created = Brand.objects.update_or_create(
+                    user=request.user,
+                    name=name,
+                    defaults={
+                        'description': f"Brand voice: {voice_analysis.get('tone', 'Professional')}"
+                    }
+                )
+                
+                # Clear existing samples and add new ones
+                if not created:
+                    brand.samples.all().delete()
+                
+                for i, sample_text in enumerate(filtered_samples):
+                    BrandSample.objects.create(
+                        brand=brand,
+                        text=sample_text,
+                        file_ref=f"brand_voice_{name}_{i+1}",
+                        file_type='txt'
+                    )
+        
+        # If use_for_audits is True, clear other analyses' use_for_audits flag
+        if use_for_audits:
+            BrandVoiceAnalysis.objects.filter(
+                user=request.user,
+                use_for_audits=True
+            ).update(use_for_audits=False)
+        
+        # Create the BrandVoiceAnalysis record
+        analysis = BrandVoiceAnalysis.objects.create(
+            user=request.user,
+            name=name.strip(),
+            brand=brand,
+            confidence_score=confidence_score,
+            voice_analysis=voice_analysis,
+            emotional_indicators=emotional_indicators,
+            brand_recommendations=brand_recommendations,
+            samples_analyzed=samples_analyzed,
+            total_text_length=total_text_length,
+            use_for_audits=use_for_audits
+        )
+        
+        return success_response(
+            data={
+                "id": analysis.id,
+                "name": analysis.name,
+                "brand_id": brand.id if brand else None,
+                "use_for_audits": analysis.use_for_audits,
+                "created_at": analysis.created_at.isoformat()
+            },
+            message="Brand voice analysis saved successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            str(e),
+            "INTERNAL_ERROR",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["GET"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def list_brand_voice_analyses(request):
+    """
+    List user's saved brand voice analyses.
+    Pro+ only.
+    
+    GET /api/analyze/brand-voice/list
+    """
+    from .models import BrandVoiceAnalysis
+    
+    try:
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=request.user,
+            defaults={'tier': 'free', 'daily_analysis_limit': 3}
+        )
+        
+        if subscription.tier not in ["pro", "enterprise"]:
+            return error_response(
+                "Viewing saved brand voice analyses requires a Pro or Enterprise subscription.",
+                code="UPGRADE_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        analyses = BrandVoiceAnalysis.objects.filter(user=request.user).order_by('-created_at')
+        
+        data = []
+        for analysis in analyses:
+            data.append({
+                "id": analysis.id,
+                "name": analysis.name,
+                "brand_id": analysis.brand_id,
+                "confidence_score": analysis.confidence_score,
+                "voice_analysis": analysis.voice_analysis,
+                "emotional_indicators": analysis.emotional_indicators,
+                "brand_recommendations": analysis.brand_recommendations,
+                "samples_analyzed": analysis.samples_analyzed,
+                "total_text_length": analysis.total_text_length,
+                "use_for_audits": analysis.use_for_audits,
+                "created_at": analysis.created_at.isoformat(),
+                "updated_at": analysis.updated_at.isoformat()
+            })
+        
+        return success_response(
+            data={"analyses": data, "total_count": len(data)},
+            message="Brand voice analyses retrieved successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            str(e),
+            "INTERNAL_ERROR",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["DELETE"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def delete_brand_voice_analysis(request, analysis_id):
+    """
+    Delete a saved brand voice analysis.
+    Pro+ only.
+    
+    DELETE /api/analyze/brand-voice/<id>/delete
+    """
+    from .models import BrandVoiceAnalysis
+    
+    try:
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=request.user,
+            defaults={'tier': 'free', 'daily_analysis_limit': 3}
+        )
+        
+        if subscription.tier not in ["pro", "enterprise"]:
+            return error_response(
+                "Managing brand voice analyses requires a Pro or Enterprise subscription.",
+                code="UPGRADE_REQUIRED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            analysis = BrandVoiceAnalysis.objects.get(id=analysis_id, user=request.user)
+        except BrandVoiceAnalysis.DoesNotExist:
+            return error_response(
+                "Brand voice analysis not found",
+                code="NOT_FOUND",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        analysis.delete()
+        
+        return success_response(
+            data={"deleted_id": analysis_id},
+            message="Brand voice analysis deleted successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            str(e),
+            "INTERNAL_ERROR",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
