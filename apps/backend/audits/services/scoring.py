@@ -65,21 +65,29 @@ class BrandVoiceScorer:
         """detect if post is a shitpost or a standard post"""
         lower_content = content.lower()
 
-        humor_count = sum(1 for word in self.humor_indicators if word in lower_content)
-
-        strong_signals = [
+        # Strong shitpost-specific slang (not common in professional content)
+        shitpost_slang = [
             'ratio', 'based', 'unhinged', 'chaotic', 'cursed', 'blessed',
-            'delulu', 'no cap', 'bussin', 'periodt', 'chronically online'
+            'delulu', 'no cap', 'bussin', 'periodt', 'chronically online',
+            'touch grass', 'down bad', 'down horrendous', 'caught in 4k',
+            'main character', 'npc', 'side quest', 'rent free', 'goated',
+            'ate and left no crumbs', 'understood the assignment', 'it\'s giving',
+            'slay', 'dead', 'screaming', 'crying', 'sobbing', 'deceased',
+            'emotional damage', 'woke up and chose violence'
         ]
-        strong_signal_count = sum(1 for signal in strong_signals if signal in lower_content)
+        slang_count = sum(1 for slang in shitpost_slang if slang in lower_content)
 
-        if re.search(r'pov:|nobody:|me:|when you|that moment when|mfw|tfw', lower_content, re.IGNORECASE):
+        # Meme format patterns (high confidence shitpost indicators)
+        meme_patterns = r'^(pov:|nobody:|me:|mfw|tfw|when you|that moment when)'
+        if re.search(meme_patterns, lower_content.strip(), re.IGNORECASE):
             return 'shitpost'
         
-        if strong_signal_count >= 1 and humor_count >= 3:
+        # Multiple shitpost slang terms is a strong signal
+        if slang_count >= 2:
             return 'shitpost'
         
-        if humor_count >= 4:
+        # Single slang term with absurdist/meme structure
+        if slang_count >= 1 and re.search(r'(lmao|lol|bruh|💀|😭|🤣)', lower_content):
             return 'shitpost'
         
         return 'standard'
