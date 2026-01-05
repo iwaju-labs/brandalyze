@@ -72,7 +72,7 @@ def system_health(request):
     try:
         from audits.models import APIMetric, PostAudit
         from django.contrib.auth import get_user_model
-        from analysis.models import UserSubscription
+        from analysis.models import UserSubscription, AnalysisLog
         
         user_model = get_user_model()
         now = timezone.now()
@@ -162,10 +162,15 @@ def system_health(request):
             tier__in=['pro', 'enterprise']
         ).count()
         
-        # Audits today
+        # Audits today (content alignment checks from extension)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         audits_today = PostAudit.objects.filter(created_at__gte=today_start).count()
         audits_week = PostAudit.objects.filter(created_at__gte=last_7d).count()
+        
+        # Analysis logs (brand voice analyses from /analyze page)
+        analyses_today = AnalysisLog.objects.filter(created_at__gte=today_start).count()
+        analyses_week = AnalysisLog.objects.filter(created_at__gte=last_7d).count()
+        analyses_success_today = AnalysisLog.objects.filter(created_at__gte=today_start, success=True).count()
         
         # Check external services (optional, can be slow)
         check_externals = request.GET.get('check_externals', 'false').lower() == 'true'
@@ -246,6 +251,9 @@ def system_health(request):
                     'active_subscriptions': active_subscriptions,
                     'audits_today': audits_today,
                     'audits_this_week': audits_week,
+                    'analyses_today': analyses_today,
+                    'analyses_this_week': analyses_week,
+                    'analyses_success_today': analyses_success_today,
                 },
                 'external_services': external_services,
             },

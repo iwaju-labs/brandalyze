@@ -533,13 +533,21 @@ def get_user_usage(request, user_id):
                 'next_billing_date': None,
             }
         
-        # Audit statistics
+        # Audit statistics (content alignment checks from extension)
         audits = PostAudit.objects.filter(user=user)
         total_audits = audits.count()
         avg_score = audits.aggregate(avg=Avg('score'))['avg'] or 0
         audits_today = audits.filter(created_at__date=today).count()
         audits_week = audits.filter(created_at__date__gte=week_ago).count()
         audits_month = audits.filter(created_at__date__gte=month_ago).count()
+        
+        # Analysis statistics (brand voice analyses from /analyze page)
+        analyses = AnalysisLog.objects.filter(user=user)
+        total_analyses = analyses.count()
+        analyses_today = analyses.filter(created_at__date=today).count()
+        analyses_week = analyses.filter(created_at__date__gte=week_ago).count()
+        analyses_month = analyses.filter(created_at__date__gte=month_ago).count()
+        analyses_success = analyses.filter(success=True).count()
         
         # Platform breakdown
         platform_stats = list(audits.values('platform').annotate(
@@ -632,6 +640,11 @@ def get_user_usage(request, user_id):
                     'audits_today': audits_today,
                     'audits_this_week': audits_week,
                     'audits_this_month': audits_month,
+                    'total_analyses': total_analyses,
+                    'analyses_today': analyses_today,
+                    'analyses_this_week': analyses_week,
+                    'analyses_this_month': analyses_month,
+                    'analyses_success_rate': round((analyses_success / total_analyses * 100) if total_analyses > 0 else 0, 1),
                     'brands_count': brands_count,
                     'total_samples': total_samples,
                     'last_activity': last_activity,

@@ -87,6 +87,11 @@ interface UserUsageData {
     audits_today: number;
     audits_this_week: number;
     audits_this_month: number;
+    total_analyses: number;
+    analyses_today: number;
+    analyses_this_week: number;
+    analyses_this_month: number;
+    analyses_success_rate: number;
     brands_count: number;
     total_samples: number;
     last_activity: string | null;
@@ -172,6 +177,9 @@ interface SystemHealthData {
     active_subscriptions: number;
     audits_today: number;
     audits_this_week: number;
+    analyses_today: number;
+    analyses_this_week: number;
+    analyses_success_today: number;
   };
   external_services: Record<string, {
     status: "up" | "down";
@@ -724,13 +732,23 @@ export default function AdminDashboard() {
                         <span className="text-gray-600 dark:text-gray-400">Active Subscriptions</span>
                         <span className="text-gray-900 dark:text-white">{healthData.platform_stats.active_subscriptions}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                         <span className="text-gray-600 dark:text-gray-400">Audits Today</span>
                         <span className="text-gray-900 dark:text-white">{healthData.platform_stats.audits_today}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Audits This Week</span>
                         <span className="text-gray-900 dark:text-white">{healthData.platform_stats.audits_this_week}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                        <span className="text-gray-600 dark:text-gray-400">Analyses Today</span>
+                        <span className="text-gray-900 dark:text-white">
+                          {healthData.platform_stats.analyses_success_today}/{healthData.platform_stats.analyses_today}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Analyses This Week</span>
+                        <span className="text-gray-900 dark:text-white">{healthData.platform_stats.analyses_this_week}</span>
                       </div>
                     </div>
                   </div>
@@ -1079,9 +1097,9 @@ export default function AdminDashboard() {
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
                           <Target04 className="h-4 w-4" />
-                          <span className="text-xs font-medium">Avg Score</span>
+                          <span className="text-xs font-medium">Total Analyses</span>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{viewingUsage.usage.avg_score}</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{viewingUsage.usage.total_analyses}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
@@ -1093,9 +1111,29 @@ export default function AdminDashboard() {
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
                           <TrendUp01 className="h-4 w-4" />
-                          <span className="text-xs font-medium">This Month</span>
+                          <span className="text-xs font-medium">Avg Score</span>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{viewingUsage.usage.audits_this_month}</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{viewingUsage.usage.avg_score}</p>
+                      </div>
+                    </div>
+
+                    {/* Usage This Period */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{viewingUsage.usage.audits_today}</p>
+                        <p className="text-xs text-purple-600 dark:text-purple-400">Audits Today</p>
+                      </div>
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{viewingUsage.usage.audits_this_month}</p>
+                        <p className="text-xs text-purple-600 dark:text-purple-400">Audits This Month</p>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{viewingUsage.usage.analyses_today}</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">Analyses Today</p>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{viewingUsage.usage.analyses_this_month}</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">Analyses This Month</p>
                       </div>
                     </div>
 
