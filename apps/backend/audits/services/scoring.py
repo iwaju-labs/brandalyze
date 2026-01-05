@@ -382,18 +382,21 @@ class BrandVoiceScorer:
     def _calculate_style_score(self, content: str, brand_samples) -> float:
         """
         Analyze writing style consistency
-        Checks: sentence length, punctuation, formatting
+        Checks: sentence length, punctuation patterns, formatting
+        Uses weighted metrics with tolerance thresholds for fairness
         """
         def analyze_style(text: str) -> Dict:
             sentences = [s.strip() for s in re.split(r'[.!?]+', text) if s.strip()]
             words = re.findall(r'\b\w+\b', text)
+            word_count = len(words)
+            char_count = len(text) if text else 1
             
             return {
-                'avg_sentence_length': len(words) / len(sentences) if sentences else 0,
-                'exclamation_ratio': text.count('!') / len(text) if text else 0,
-                'question_ratio': text.count('?') / len(text) if text else 0,
-                'comma_ratio': text.count(',') / len(text) if text else 0,
-                'uppercase_ratio': sum(1 for c in text if c.isupper()) / len(text) if text else 0
+                'avg_sentence_length': word_count / len(sentences) if sentences else 0,
+                'exclamation_freq': text.count('!') / max(word_count, 1),  # Per word, not per char
+                'question_freq': text.count('?') / max(word_count, 1),
+                'uses_short_sentences': 1.0 if sentences and (word_count / len(sentences)) < 12 else 0.0,
+                'sentence_count': len(sentences)
             }
         
         content_style = analyze_style(content)
@@ -405,19 +408,61 @@ class BrandVoiceScorer:
             values = [s[key] for s in brand_styles]
             avg_brand_style[key] = sum(values) / len(values) if values else 0
         
-        # Calculate similarity for each metric
-        similarities = []
-        for key in content_style.keys():
-            if avg_brand_style[key] == 0 and content_style[key] == 0:
-                similarities.append(1.0)
-            elif avg_brand_style[key] == 0:
-                similarities.append(0.5)
-            else:
-                diff = abs(content_style[key] - avg_brand_style[key]) / max(avg_brand_style[key], content_style[key])
-                similarity = 1 - min(diff, 1.0)
-                similarities.append(similarity)
+        # Metric weights - sentence structure matters most
+        weights = {
+            'avg_sentence_length': 0.40,  # Most important
+            'exclamation_freq': 0.15,
+            'question_freq': 0.15,
+            'uses_short_sentences': 0.20,  # Punchy vs flowing style
+            'sentence_count': 0.10  # Similar verbosity
+        }
         
-        score = (sum(similarities) / len(similarities)) * 100 if similarities else 50
+        # Tolerance thresholds - differences within tolerance get full score
+        tolerances = {
+            'avg_sentence_length': 5.0,  # +/- 5 words is acceptable
+            'exclamation_freq': 0.05,    # Small punctuation differences ok
+            'question_freq': 0.05,
+            'uses_short_sentences': 0.5,  # Binary-ish, but some tolerance
+            'sentence_count': 3.0         # +/- 3 sentences is fine
+        }
+        
+        weighted_score = 0.0
+        total_weight = 0.0
+        
+        for key, weight in weights.items():
+            content_val = content_style[key]
+            brand_val = avg_brand_style[key]
+            tolerance = tolerances[key]
+            
+            # Calculate difference with tolerance
+            diff = abs(content_val - brand_val)
+            
+            if diff <= tolerance:
+                # Within tolerance = full score
+                similarity = 1.0
+            else:
+                # Beyond tolerance, gradual penalty
+                excess_diff = diff - tolerance
+                max_reasonable_diff = max(brand_val, content_val, tolerance * 2)
+                similarity = max(0, 1 - (excess_diff / max_reasonable_diff))
+            
+            weighted_score += similarity * weight
+            total_weight += weight
+        
+        # Length-based fairness adjustments
+        word_count = len(content.split())
+        
+        if word_count < 30:
+            # Short content boost - less data to judge fairly
+            short_content_boost = 0.08 * (1 - word_count / 30)
+            weighted_score = min(1.0, weighted_score + short_content_boost)
+        elif word_count > 80:
+            # Long content boost - more opportunity to deviate from limited brand samples
+            # Caps at 100 words for max boost of 5%
+            long_content_boost = min(0.05, 0.05 * ((word_count - 80) / 20))
+            weighted_score = min(1.0, weighted_score + long_content_boost)
+        
+        score = (weighted_score / total_weight) * 100 if total_weight > 0 else 50
         return min(100, max(0, score))
     
     def _generate_metric_tips(self, breakdown: Dict) -> Dict[str, str]:
