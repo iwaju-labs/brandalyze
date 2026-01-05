@@ -16,7 +16,8 @@ class AuditMetricsSerializer(serializers.ModelSerializer):
             'deviations',
             'x_optimization',
             'ai_feedback',
-            'metric_tips'
+            'metric_tips',
+            'improvement_suggestions'
         ]
 
 

@@ -97,6 +97,12 @@ class AuditMetrics(models.Model):
         help_text="Improvement tips for each metric"
     )
 
+    improvement_suggestions = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Detailed improvement suggestions with actionable steps for each metric"
+    )
+
     class Meta:
         db_table = 'audit_metrics'
         verbose_name = 'Audit Metrics'

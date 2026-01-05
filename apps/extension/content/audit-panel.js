@@ -249,6 +249,74 @@ debug.log("Audit panel loaded");
         opacity: 1;
       }
 
+      /* Metric Improvement Expand */
+      .brandalyze-metric-expand {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: rgb(29, 155, 240);
+        cursor: pointer;
+        margin-top: 8px;
+        padding: 4px 0;
+        transition: color 0.2s;
+      }
+
+      .brandalyze-metric-expand:hover {
+        color: rgb(26, 140, 216);
+      }
+
+      .brandalyze-metric-expand svg {
+        transition: transform 0.2s;
+      }
+
+      .brandalyze-metric-expand.expanded svg {
+        transform: rotate(180deg);
+      }
+
+      .brandalyze-metric-improvements {
+        margin-top: 8px;
+        padding: 12px;
+        background: rgba(29, 155, 240, 0.08);
+        border-radius: 8px;
+        border-left: 3px solid rgb(29, 155, 240);
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-improvements {
+        background: rgba(29, 155, 240, 0.15);
+      }
+
+      .brandalyze-improvements-summary {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgb(29, 155, 240);
+        margin-bottom: 8px;
+      }
+
+      .brandalyze-improvements-list {
+        margin: 0;
+        padding-left: 16px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: rgb(83, 100, 113);
+      }
+
+      .brandalyze-panel.dark .brandalyze-improvements-list {
+        color: rgb(139, 152, 165);
+      }
+
+      .brandalyze-improvements-list li {
+        margin-bottom: 4px;
+      }
+
+      .brandalyze-improvements-list li:last-child {
+        margin-bottom: 0;
+      }
+
+      .brandalyze-metric-card.has-improvements {
+        cursor: default;
+      }
+
       /* Section Headers */
       .brandalyze-section {
         margin-bottom: 24px;
@@ -636,6 +704,7 @@ debug.log("Audit panel loaded");
     const xOptimization = metrics.x_optimization || {};
     const tips = xOptimization.optimization_tips || xOptimization.tips || [];
     const aiFeedback = metrics.ai_feedback || null;
+    const improvementSuggestions = metrics.improvement_suggestions || {};
     const dark = isDarkMode();
     const contentType = metrics.content_type || 'standard';
     
@@ -690,25 +759,29 @@ debug.log("Audit panel loaded");
             metricLabels.tone,
             metrics.tone_match,
             getScoreColor(metrics.tone_match),
-            metrics.metric_tips?.tone_tip
+            metrics.metric_tips?.tone_tip,
+            improvementSuggestions?.tone
           )}
           ${createMetricCard(
             metricLabels.vocabulary,
             metrics.vocabulary_consistency,
             getScoreColor(metrics.vocabulary_consistency),
-            metrics.metric_tips?.vocabulary_tip
+            metrics.metric_tips?.vocabulary_tip,
+            improvementSuggestions?.vocabulary
           )}
           ${createMetricCard(
             metricLabels.emotion,
             metrics.emotional_alignment,
             getScoreColor(metrics.emotional_alignment),
-            metrics.metric_tips?.emotion_tip
+            metrics.metric_tips?.emotion_tip,
+            improvementSuggestions?.emotion
           )}
           ${createMetricCard(
             metricLabels.style,
             100 - (metrics.style_deviation || 0),
             getScoreColor(100 - (metrics.style_deviation || 0)),
-            metrics.metric_tips?.style_tip
+            metrics.metric_tips?.style_tip,
+            improvementSuggestions?.style
           )}
         </div>
 
@@ -846,6 +919,19 @@ debug.log("Audit panel loaded");
       .querySelector("#brandalyze-copy-results")
       .addEventListener("click", () => copyResults(data));
 
+    // Add expand/collapse listeners for improvement sections
+    panel.querySelectorAll('.brandalyze-metric-expand').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        const metricKey = trigger.dataset.metric;
+        const improvements = document.getElementById(`improvements-${metricKey}`);
+        if (improvements) {
+          const isExpanded = improvements.style.display !== 'none';
+          improvements.style.display = isExpanded ? 'none' : 'block';
+          trigger.classList.toggle('expanded', !isExpanded);
+        }
+      });
+    });
+
     // Store references
     panelElement = { overlay, panel };
 
@@ -855,8 +941,11 @@ debug.log("Audit panel loaded");
   /**
    * Create a metric card HTML
    */
-  function createMetricCard(label, value, color, tip = null) {
+  function createMetricCard(label, value, color, tip = null, suggestion = null) {
     const displayValue = Math.round(value || 0);
+    const metricKey = label.toLowerCase().replace(/\s+/g, '_');
+    const hasImprovements = suggestion && suggestion.improvements && suggestion.improvements.length > 0 && displayValue < 85;
+    
     const tooltipHtml = tip
       ? `
       <div class="brandalyze-metric-tooltip-trigger" title="${escapeHtml(tip)}">
@@ -869,8 +958,26 @@ debug.log("Audit panel loaded");
       </div>
     `
       : "";
+    
+    const improvementsHtml = hasImprovements
+      ? `
+      <div class="brandalyze-metric-expand" data-metric="${metricKey}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+        How to improve
+      </div>
+      <div class="brandalyze-metric-improvements" id="improvements-${metricKey}" style="display: none;">
+        <div class="brandalyze-improvements-summary">${escapeHtml(suggestion.summary || '')}</div>
+        <ul class="brandalyze-improvements-list">
+          ${suggestion.improvements.map(imp => `<li>${escapeHtml(imp)}</li>`).join('')}
+        </ul>
+      </div>
+    `
+      : "";
+    
     return `
-      <div class="brandalyze-metric-card">
+      <div class="brandalyze-metric-card ${hasImprovements ? 'has-improvements' : ''}">
         <div class="brandalyze-metric-header">
           <div class="brandalyze-metric-label">${label}</div>
           ${tooltipHtml}
@@ -879,6 +986,7 @@ debug.log("Audit panel loaded");
         <div class="brandalyze-metric-bar">
           <div class="brandalyze-metric-bar-fill" style="width: ${displayValue}%; background: ${color}"></div>
         </div>
+        ${improvementsHtml}
       </div>
     `;
   }

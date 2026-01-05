@@ -470,6 +470,204 @@ class BrandVoiceScorer:
         
         return tips
     
+    def generate_improvement_suggestions(self, breakdown: Dict, content: str, voice_analysis: Optional[Dict] = None) -> Dict[str, Dict]:
+        """
+        Generate detailed, actionable improvement suggestions for each metric.
+        Uses voice analysis data to provide specific, personalized guidance.
+        """
+        suggestions = {}
+        
+        # Extract voice characteristics if available
+        voice = voice_analysis or {}
+        tone = voice.get('tone', 'professional')
+        style = voice.get('style', 'conversational')
+        personality = voice.get('personality_traits', [])
+        patterns = voice.get('communication_patterns', [])
+        themes = voice.get('content_themes', [])
+        
+        # Tone Match Suggestions
+        tone_score = breakdown['tone_match']
+        suggestions['tone'] = {
+            'score': round(tone_score, 1),
+            'status': 'excellent' if tone_score >= 85 else 'good' if tone_score >= 70 else 'needs_work' if tone_score >= 50 else 'poor',
+            'summary': self._get_tone_summary(tone_score),
+            'improvements': self._get_tone_improvements(tone_score, tone, personality, content)
+        }
+        
+        # Vocabulary Suggestions
+        vocab_score = breakdown['vocabulary_consistency']
+        suggestions['vocabulary'] = {
+            'score': round(vocab_score, 1),
+            'status': 'excellent' if vocab_score >= 85 else 'good' if vocab_score >= 70 else 'needs_work' if vocab_score >= 50 else 'poor',
+            'summary': self._get_vocab_summary(vocab_score),
+            'improvements': self._get_vocab_improvements(vocab_score, themes, patterns, content)
+        }
+        
+        # Emotional Alignment Suggestions
+        emotion_score = breakdown['emotional_alignment']
+        suggestions['emotion'] = {
+            'score': round(emotion_score, 1),
+            'status': 'excellent' if emotion_score >= 85 else 'good' if emotion_score >= 70 else 'needs_work' if emotion_score >= 50 else 'poor',
+            'summary': self._get_emotion_summary(emotion_score),
+            'improvements': self._get_emotion_improvements(emotion_score, personality, content)
+        }
+        
+        # Style Suggestions
+        style_score = 100 - breakdown['style_deviation']
+        suggestions['style'] = {
+            'score': round(style_score, 1),
+            'status': 'excellent' if style_score >= 85 else 'good' if style_score >= 70 else 'needs_work' if style_score >= 50 else 'poor',
+            'summary': self._get_style_summary(style_score),
+            'improvements': self._get_style_improvements(style_score, style, patterns, content)
+        }
+        
+        return suggestions
+    
+    def _get_tone_summary(self, score: float) -> str:
+        if score >= 85:
+            return "Your tone perfectly matches your brand voice."
+        elif score >= 70:
+            return "Your tone is close but could be more consistent."
+        elif score >= 50:
+            return "Your tone partially matches - some adjustments needed."
+        return "Your tone differs significantly from your brand voice."
+    
+    def _get_tone_improvements(self, score: float, brand_tone: str, personality: List[str], content: str) -> List[str]:
+        improvements = []
+        if score >= 85:
+            improvements.append("Maintain this approach for consistent brand voice.")
+            return improvements
+        
+        # Analyze content characteristics
+        has_exclamation = '!' in content
+        is_formal = not any(word in content.lower() for word in ['hey', 'gonna', 'wanna', 'kinda', 'yeah'])
+        is_short = len(content.split()) < 30
+        
+        if brand_tone:
+            improvements.append(f"Aim for a more '{brand_tone}' tone in your writing.")
+        
+        if personality:
+            traits_str = ', '.join(personality[:3])
+            improvements.append(f"Incorporate traits like: {traits_str}")
+        
+        if score < 70:
+            if is_formal and brand_tone in ['casual', 'friendly', 'playful']:
+                improvements.append("Loosen up the language - use contractions and conversational phrases.")
+            elif not is_formal and brand_tone in ['professional', 'authoritative', 'formal']:
+                improvements.append("Use more polished, professional language.")
+        
+        if score < 50:
+            improvements.append("Review your brand samples and note the overall energy and attitude.")
+            improvements.append("Try rewriting with your brand's voice in mind from the start.")
+        
+        return improvements[:4]  # Limit to 4 suggestions
+    
+    def _get_vocab_summary(self, score: float) -> str:
+        if score >= 85:
+            return "Excellent use of brand-consistent vocabulary."
+        elif score >= 70:
+            return "Good word choices with room for improvement."
+        elif score >= 50:
+            return "Some brand vocabulary present, but inconsistent."
+        return "Word choices don't reflect your brand vocabulary."
+    
+    def _get_vocab_improvements(self, score: float, themes: List[str], patterns: List[str], content: str) -> List[str]:
+        improvements = []
+        if score >= 85:
+            improvements.append("Your vocabulary aligns well with your brand.")
+            return improvements
+        
+        if themes:
+            themes_str = ', '.join(themes[:3])
+            improvements.append(f"Incorporate topic-relevant terms around: {themes_str}")
+        
+        if patterns:
+            improvements.append(f"Use phrases similar to: '{patterns[0][:50]}...'") if len(patterns[0]) > 50 else improvements.append(f"Use phrases like: '{patterns[0]}'")
+        
+        if score < 70:
+            improvements.append("Review your brand samples for commonly used words and phrases.")
+            improvements.append("Replace generic terms with brand-specific alternatives.")
+        
+        if score < 50:
+            improvements.append("Build a vocabulary list from your brand samples to reference while writing.")
+        
+        return improvements[:4]
+    
+    def _get_emotion_summary(self, score: float) -> str:
+        if score >= 85:
+            return "The emotional tone perfectly matches your brand."
+        elif score >= 70:
+            return "Emotional tone is mostly aligned with your brand."
+        elif score >= 50:
+            return "Emotional intensity needs adjustment."
+        return "The emotional tone feels off-brand."
+    
+    def _get_emotion_improvements(self, score: float, personality: List[str], content: str) -> List[str]:
+        improvements = []
+        if score >= 85:
+            improvements.append("Your emotional expression is on point.")
+            return improvements
+        
+        # Analyze emotional markers in content
+        has_enthusiasm = '!' in content or any(word in content.lower() for word in ['love', 'amazing', 'excited', 'great'])
+        has_urgency = any(word in content.lower() for word in ['now', 'today', 'immediately', 'urgent'])
+        
+        if personality:
+            if 'enthusiastic' in personality or 'energetic' in personality:
+                if not has_enthusiasm:
+                    improvements.append("Add more enthusiasm - your brand voice is energetic.")
+            if 'calm' in personality or 'measured' in personality:
+                if has_enthusiasm:
+                    improvements.append("Tone down the excitement - your brand voice is more measured.")
+        
+        if score < 70:
+            improvements.append("Match the emotional intensity of your brand samples.")
+            improvements.append("Consider whether your brand uses excitement, urgency, or calm confidence.")
+        
+        if score < 50:
+            improvements.append("Read your brand samples aloud to feel the emotional energy, then match it.")
+        
+        return improvements[:4]
+    
+    def _get_style_summary(self, score: float) -> str:
+        if score >= 85:
+            return "Writing style matches your brand perfectly."
+        elif score >= 70:
+            return "Style is mostly consistent with your brand."
+        elif score >= 50:
+            return "Some style elements need adjustment."
+        return "Writing style differs significantly from your brand."
+    
+    def _get_style_improvements(self, score: float, brand_style: str, patterns: List[str], content: str) -> List[str]:
+        improvements = []
+        if score >= 85:
+            improvements.append("Your writing style is well-aligned.")
+            return improvements
+        
+        # Analyze style characteristics
+        sentences = [s.strip() for s in re.split(r'[.!?]+', content) if s.strip()]
+        avg_sentence_len = sum(len(s.split()) for s in sentences) / max(len(sentences), 1)
+        uses_questions = '?' in content
+        uses_lists = any(marker in content for marker in ['\n-', '\n•', '\n1.', '\n*'])
+        
+        if brand_style:
+            improvements.append(f"Aim for a '{brand_style}' writing style.")
+        
+        if score < 70:
+            if avg_sentence_len > 20:
+                improvements.append("Try shorter, punchier sentences for better readability.")
+            elif avg_sentence_len < 8:
+                improvements.append("Vary sentence length - some can be longer for flow.")
+            
+            if not uses_questions:
+                improvements.append("Consider adding a question to engage readers.")
+        
+        if score < 50:
+            improvements.append("Study the sentence structure and formatting in your brand samples.")
+            improvements.append("Note how your brand uses punctuation, line breaks, and emphasis.")
+        
+        return improvements[:4]
+
     def find_deviations(self, content: str) -> List[Dict]:
         """
         Identify specific out-of-brand phrases and patterns
@@ -542,7 +740,7 @@ class BrandVoiceScorer:
                     }
                 ],
                 max_tokens=400,
-                temperature=0.7
+                temperature=0
             )
             
             return response.choices[0].message.content.strip()

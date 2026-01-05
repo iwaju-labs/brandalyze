@@ -6,8 +6,9 @@ from django.db import transaction
 
 from brands.authentication import ClerkAuthentication
 from brands.permissions import ClerkAuthenticated
-from brands.models import Brand
+from brands.models import Brand, BrandVoiceAnalysis
 from extensions.views import ExtensionTokenAuthentication
+from extensions.models import ProfileAnalysis
 from analysis.models import UserSubscription
 from .models import PostAudit, AuditMetrics, DriftAlert, AuditUsage
 from .serializers import (
@@ -105,6 +106,29 @@ def analyze_post(request):
             has_media = context_data.get('has_media', False)
             ai_feedback = scorer.generate_ai_feedback(content, platform, has_media)
         
+        # Get voice analysis for improvement suggestions
+        voice_analysis = None
+        # First check for brand voice analysis
+        brand_voice = BrandVoiceAnalysis.objects.filter(
+            user=request.user, 
+            brand=brand,
+            use_for_audits=True
+        ).first()
+        if brand_voice and brand_voice.voice_analysis:
+            voice_analysis = brand_voice.voice_analysis
+        else:
+            # Fall back to most recent profile analysis
+            profile = ProfileAnalysis.objects.filter(user=request.user).order_by('-created_at').first()
+            if profile and profile.voice_analysis:
+                voice_analysis = profile.voice_analysis
+        
+        # Generate detailed improvement suggestions
+        improvement_suggestions = scorer.generate_improvement_suggestions(
+            score_result['breakdown'], 
+            content, 
+            voice_analysis
+        )
+        
         # Save audit in a transaction
         with transaction.atomic():
             # Create audit record
@@ -128,7 +152,8 @@ def analyze_post(request):
                 deviations=deviations,
                 x_optimization=x_optimization,
                 ai_feedback=ai_feedback,
-                metric_tips=score_result.get('metric_tips', {})
+                metric_tips=score_result.get('metric_tips', {}),
+                improvement_suggestions=improvement_suggestions
             )
             
             # Increment usage count
