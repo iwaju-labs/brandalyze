@@ -191,7 +191,12 @@ debug.log("Audit panel loaded");
       .brandalyze-metric-card {
         background: rgb(247, 249, 249);
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
+        transition: all 0.2s ease;
+      }
+
+      .brandalyze-metric-card.expanded {
+        grid-column: 1 / -1;
       }
 
       .brandalyze-panel.dark .brandalyze-metric-card {
@@ -251,23 +256,35 @@ debug.log("Audit panel loaded");
 
       /* Metric Improvement Expand */
       .brandalyze-metric-expand {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 4px;
         font-size: 11px;
         color: rgb(29, 155, 240);
         cursor: pointer;
-        margin-top: 8px;
-        padding: 4px 0;
-        transition: color 0.2s;
+        margin-top: 10px;
+        padding: 6px 10px;
+        background: rgba(29, 155, 240, 0.08);
+        border-radius: 6px;
+        transition: background 0.2s, color 0.2s;
       }
 
       .brandalyze-metric-expand:hover {
+        background: rgba(29, 155, 240, 0.15);
         color: rgb(26, 140, 216);
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-expand {
+        background: rgba(29, 155, 240, 0.15);
+      }
+
+      .brandalyze-panel.dark .brandalyze-metric-expand:hover {
+        background: rgba(29, 155, 240, 0.25);
       }
 
       .brandalyze-metric-expand svg {
         transition: transform 0.2s;
+        flex-shrink: 0;
       }
 
       .brandalyze-metric-expand.expanded svg {
@@ -275,42 +292,50 @@ debug.log("Audit panel loaded");
       }
 
       .brandalyze-metric-improvements {
-        margin-top: 8px;
-        padding: 12px;
-        background: rgba(29, 155, 240, 0.08);
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: rgba(29, 155, 240, 0.05);
         border-radius: 8px;
         border-left: 3px solid rgb(29, 155, 240);
+        max-height: 150px;
+        overflow-y: auto;
       }
 
       .brandalyze-panel.dark .brandalyze-metric-improvements {
-        background: rgba(29, 155, 240, 0.15);
+        background: rgba(29, 155, 240, 0.12);
       }
 
       .brandalyze-improvements-summary {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
         color: rgb(29, 155, 240);
-        margin-bottom: 8px;
+        margin-bottom: 6px;
+        line-height: 1.3;
       }
 
       .brandalyze-improvements-list {
         margin: 0;
-        padding-left: 16px;
-        font-size: 12px;
-        line-height: 1.5;
+        padding-left: 14px;
+        font-size: 11px;
+        line-height: 1.4;
         color: rgb(83, 100, 113);
       }
 
       .brandalyze-panel.dark .brandalyze-improvements-list {
-        color: rgb(139, 152, 165);
+        color: rgb(170, 184, 194);
       }
 
       .brandalyze-improvements-list li {
-        margin-bottom: 4px;
+        margin-bottom: 5px;
+        padding-left: 2px;
       }
 
       .brandalyze-improvements-list li:last-child {
         margin-bottom: 0;
+      }
+
+      .brandalyze-improvements-list li::marker {
+        color: rgb(29, 155, 240);
       }
 
       .brandalyze-metric-card.has-improvements {
@@ -924,10 +949,14 @@ debug.log("Audit panel loaded");
       trigger.addEventListener('click', (e) => {
         const metricKey = trigger.dataset.metric;
         const improvements = document.getElementById(`improvements-${metricKey}`);
+        const card = trigger.closest('.brandalyze-metric-card');
         if (improvements) {
           const isExpanded = improvements.style.display !== 'none';
           improvements.style.display = isExpanded ? 'none' : 'block';
           trigger.classList.toggle('expanded', !isExpanded);
+          if (card) {
+            card.classList.toggle('expanded', !isExpanded);
+          }
         }
       });
     });
