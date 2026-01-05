@@ -48,3 +48,11 @@ Clear takeaways people want to share
 Cliffhangers or teasers for threads
 
 Not every post needs a formulaic closer - some land better ending abruptly.
+
+Format your response as:
+HOOK: [score]/10 - [brief feedback]
+BODY: [score]/10 - [brief feedback]
+MEDIA: [score]/10 - [brief feedback]
+CLOSER: [score]/10 - [brief feedback]
+
+SUGGESTION: [One specific actionable improvement based on the content type]
