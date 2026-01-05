@@ -554,15 +554,15 @@ def get_user_usage(request, user_id):
         # Brand details
         brand_details = []
         for brand in brands.annotate(
-            sample_count=Count('samples'),
-            audit_count=Count('audits'),
+            samples_count=Count('samples'),
+            audits_count=Count('audits'),
             avg_audit_score=Avg('audits__score')
         )[:10]:
             brand_details.append({
                 'id': brand.id,
                 'name': brand.name,
-                'sample_count': brand.sample_count,
-                'audit_count': brand.audit_count,
+                'sample_count': brand.samples_count,
+                'audit_count': brand.audits_count,
                 'avg_score': round(brand.avg_audit_score or 0, 1),
                 'created_at': brand.created_at.isoformat(),
             })
