@@ -581,28 +581,34 @@ def get_user_usage(request, user_id):
         
         # Daily usage trend (last 30 days)
         daily_usage_trend = []
-        audit_usage_qs = AuditUsage.objects.filter(
-            user=user,
-            date__gte=month_ago
-        ).order_by('date')
-        
-        for usage in audit_usage_qs:
-            daily_usage_trend.append({
-                'date': usage.date.isoformat(),
-                'audit_count': usage.audit_count,
-            })
+        try:
+            audit_usage_qs = AuditUsage.objects.filter(
+                user=user,
+                date__gte=month_ago
+            ).order_by('date')
+            
+            for usage in audit_usage_qs:
+                daily_usage_trend.append({
+                    'date': usage.date.isoformat(),
+                    'audit_count': usage.audit_count,
+                })
+        except Exception:
+            pass  # Daily usage is optional
         
         # Analysis logs (last 10)
         analysis_logs = []
-        for log in AnalysisLog.objects.filter(user=user).order_by('-created_at')[:10]:
-            analysis_logs.append({
-                'id': log.id,
-                'success': log.success,
-                'text_length': log.text_length,
-                'alignment_score': log.alignment_score,
-                'created_at': log.created_at.isoformat(),
-                'error_message': log.error_message,
-            })
+        try:
+            for log in AnalysisLog.objects.filter(user=user).order_by('-created_at')[:10]:
+                analysis_logs.append({
+                    'id': log.id,
+                    'success': log.success,
+                    'text_length': log.text_length,
+                    'alignment_score': log.alignment_score,
+                    'created_at': log.created_at.isoformat(),
+                    'error_message': log.error_message or '',
+                })
+        except Exception:
+            pass  # Analysis logs are optional
         
         # Last activity
         last_audit = audits.order_by('-created_at').first()
@@ -640,7 +646,10 @@ def get_user_usage(request, user_id):
         )
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return error_response(
             f"Failed to fetch user usage: {str(e)}",
-            code="USER_USAGE_ERROR"
+            code="USER_USAGE_ERROR",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
