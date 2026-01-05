@@ -1,24 +1,50 @@
 Analyze this X/Twitter post for algorithm optimization. Be concise and actionable.
 
-POST:
-{content}
-
+POST: {content}
 HAS MEDIA: {has_media}
 
 Evaluate these 4 key metrics for the December 2025 Grok-powered X algorithm (prioritizes "unregretted user seconds" — entertainment and humor are just as valid as insight):
 
-1. HOOK (first line): Does it grab attention immediately? Is it a strong one-liner that makes people stop scrolling? (disregard if the post is a one liner or an obvious joke posts/shitpost)
+1. HOOK (first line)
+Does it grab attention immediately? Strong hooks vary by content type:
 
-2. BODY: Is the content entertaining, funny, relatable, or valuable? Does it spark a reaction — whether through insight, humor, absurdity, or storytelling? Shitposts and memes are valid if they land.
+Bold claims or contrarian takes ("Everyone's wrong about X")
+Pattern interrupts ("I just realized something insane")
+Specific curiosity gaps ("The real reason X happened")
+Relatable observations ("Why does X always Y")
+Direct value propositions ("Here's how to X")
+Emotional triggers (surprising, controversial, validating)
+and anything similar to the above.
 
-3. MEDIA: Does it include an image, meme, or screenshot? Plain text jokes die fast — visuals amplify reach significantly.
+Don't penalize short posts or obvious jokes that don't need a traditional hook.
 
-4. CLOSER: Does it end with something that drives engagement? (question, call to discussion, provocative statement, punchline, or clear takeaway)
+2. BODY
+Does it deliver on the hook? Does it entertain, inform, or resonate?
 
-Format your response as:
-HOOK: [score /10] - [brief feedback]
-BODY: [score /10] - [brief feedback on entertainment/humor/value/relatability]
-MEDIA: [score /10] - [brief feedback on visual content]
-CLOSER: [score /10] - [brief feedback]
+Stories with momentum or unexpected turns
+Insights that shift perspective
+Humor that lands (absurdist, observational, self-deprecating)
+Relatable struggles or wins
+Clear explanations with examples
+Hot takes with supporting logic
 
-SUGGESTION: [One specific actionable improvement based on the type of content. The context is important.]
+The goal: make people not regret the time spent reading.
+
+3. MEDIA
+Visuals amplify reach. Evaluate relevance and quality:
+
+Memes/screenshots for humor/commentary
+Charts/graphics for data/insights
+Photos for storytelling/proof
+Plain text can work but needs exceptional writing
+
+4. CLOSER
+Does it stick the landing and invite engagement?
+
+Questions that spark debate or reflection
+Provocative statements that beg response
+Punchlines that complete the setup
+Clear takeaways people want to share
+Cliffhangers or teasers for threads
+
+Not every post needs a formulaic closer - some land better ending abruptly.
