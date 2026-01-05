@@ -5,11 +5,15 @@ from rest_framework.decorators import (
 )
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Count, Avg, Sum
+from django.utils import timezone
+from datetime import timedelta
 from brands.utils.responses import success_response, error_response
 from brands.permissions import ClerkAuthenticated
 from brands.authentication import ClerkAuthentication
-from analysis.models import UserSubscription
+from analysis.models import UserSubscription, DailyUsage, AnalysisLog
+from audits.models import PostAudit, AuditUsage
+from brands.models import Brand
 from payments.stripe_service import StripeService
 import json
 
@@ -478,4 +482,165 @@ def public_stats(request):
         return error_response(
             f"Failed to fetch public stats: {str(e)}",
             code="PUBLIC_STATS_ERROR"
+        )
+
+
+@api_view(['GET'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def get_user_usage(request, user_id):
+    """Get detailed usage statistics for a specific user"""
+    if not is_admin_user(request.user):
+        return error_response(
+            ADMIN_ACCESS_DENIED_MESSAGE,
+            code=ADMIN_ACCESS_DENIED_CODE,
+            status_code=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return error_response(
+            "User not found",
+            code="USER_NOT_FOUND",
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+    
+    try:
+        now = timezone.now()
+        today = now.date()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        # Subscription info
+        try:
+            subscription = UserSubscription.objects.get(user=user)
+            subscription_data = {
+                'tier': subscription.tier,
+                'is_active': subscription.is_active,
+                'payment_status': subscription.payment_status,
+                'is_trial_active': subscription.is_trial_active,
+                'trial_end': subscription.trial_end.isoformat() if subscription.trial_end else None,
+                'next_billing_date': subscription.next_billing_date.isoformat() if subscription.next_billing_date else None,
+            }
+        except UserSubscription.DoesNotExist:
+            subscription_data = {
+                'tier': 'free',
+                'is_active': True,
+                'payment_status': 'N/A',
+                'is_trial_active': False,
+                'trial_end': None,
+                'next_billing_date': None,
+            }
+        
+        # Audit statistics
+        audits = PostAudit.objects.filter(user=user)
+        total_audits = audits.count()
+        avg_score = audits.aggregate(avg=Avg('score'))['avg'] or 0
+        audits_today = audits.filter(created_at__date=today).count()
+        audits_week = audits.filter(created_at__date__gte=week_ago).count()
+        audits_month = audits.filter(created_at__date__gte=month_ago).count()
+        
+        # Platform breakdown
+        platform_stats = list(audits.values('platform').annotate(
+            count=Count('id')
+        ).order_by('-count'))
+        
+        # Brand statistics
+        brands = Brand.objects.filter(user=user)
+        brands_count = brands.count()
+        total_samples = brands.aggregate(total=Count('samples'))['total'] or 0
+        
+        # Brand details
+        brand_details = []
+        for brand in brands.annotate(
+            sample_count=Count('samples'),
+            audit_count=Count('audits'),
+            avg_audit_score=Avg('audits__score')
+        )[:10]:
+            brand_details.append({
+                'id': brand.id,
+                'name': brand.name,
+                'sample_count': brand.sample_count,
+                'audit_count': brand.audit_count,
+                'avg_score': round(brand.avg_audit_score or 0, 1),
+                'created_at': brand.created_at.isoformat(),
+            })
+        
+        # Recent audits
+        recent_audits = []
+        for audit in audits.select_related('brand').order_by('-created_at')[:10]:
+            recent_audits.append({
+                'id': audit.id,
+                'brand_name': audit.brand.name,
+                'platform': audit.platform,
+                'score': audit.score,
+                'content_preview': audit.content[:100] + '...' if len(audit.content) > 100 else audit.content,
+                'created_at': audit.created_at.isoformat(),
+            })
+        
+        # Daily usage trend (last 30 days)
+        daily_usage_trend = []
+        audit_usage_qs = AuditUsage.objects.filter(
+            user=user,
+            date__gte=month_ago
+        ).order_by('date')
+        
+        for usage in audit_usage_qs:
+            daily_usage_trend.append({
+                'date': usage.date.isoformat(),
+                'audit_count': usage.audit_count,
+            })
+        
+        # Analysis logs (last 10)
+        analysis_logs = []
+        for log in AnalysisLog.objects.filter(user=user).order_by('-created_at')[:10]:
+            analysis_logs.append({
+                'id': log.id,
+                'success': log.success,
+                'text_length': log.text_length,
+                'alignment_score': log.alignment_score,
+                'created_at': log.created_at.isoformat(),
+                'error_message': log.error_message,
+            })
+        
+        # Last activity
+        last_audit = audits.order_by('-created_at').first()
+        last_activity = last_audit.created_at.isoformat() if last_audit else None
+        
+        return success_response(
+            data={
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'date_joined': user.date_joined.isoformat(),
+                    'last_login': user.last_login.isoformat() if user.last_login else None,
+                },
+                'subscription': subscription_data,
+                'usage': {
+                    'total_audits': total_audits,
+                    'avg_score': round(avg_score, 1),
+                    'audits_today': audits_today,
+                    'audits_this_week': audits_week,
+                    'audits_this_month': audits_month,
+                    'brands_count': brands_count,
+                    'total_samples': total_samples,
+                    'last_activity': last_activity,
+                },
+                'platform_breakdown': platform_stats,
+                'brands': brand_details,
+                'recent_audits': recent_audits,
+                'daily_usage_trend': daily_usage_trend,
+                'analysis_logs': analysis_logs,
+            },
+            message="User usage data fetched successfully"
+        )
+        
+    except Exception as e:
+        return error_response(
+            f"Failed to fetch user usage: {str(e)}",
+            code="USER_USAGE_ERROR"
         )

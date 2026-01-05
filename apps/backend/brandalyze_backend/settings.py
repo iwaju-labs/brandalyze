@@ -89,6 +89,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'brandalyze_backend.security_middleware.SecurityHeadersMiddleware',
+    'brandalyze_backend.metrics_middleware.APIMetricsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'brandalyze_backend.csrf_middleware.ApiCsrfExemptMiddleware',

@@ -189,3 +189,36 @@ class AuditUsage(models.Model):
         usage.audit_count += 1
         usage.save()
         return usage
+
+
+class APIMetric(models.Model):
+    """Tracks API request metrics for system health monitoring"""
+    endpoint = models.CharField(max_length=255, db_index=True)
+    method = models.CharField(max_length=10)
+    status_code = models.IntegerField(db_index=True)
+    response_time_ms = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='api_metrics'
+    )
+    error_message = models.TextField(blank=True, default="")
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['endpoint', 'timestamp']),
+            models.Index(fields=['status_code', 'timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.method} {self.endpoint} - {self.status_code} ({self.response_time_ms}ms)"
+    
+    @classmethod
+    def cleanup_old_metrics(cls, days=7):
+        """Remove metrics older than specified days"""
+        cutoff = timezone.now() - timezone.timedelta(days=days)
+        return cls.objects.filter(timestamp__lt=cutoff).delete()

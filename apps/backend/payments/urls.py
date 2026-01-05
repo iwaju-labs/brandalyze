@@ -15,8 +15,10 @@ from .admin_views import (
     update_user_subscription,
     sync_stripe_subscription,
     admin_stats,
-    public_stats
+    public_stats,
+    get_user_usage
 )
+from brandalyze_backend.health_views import system_health, cleanup_old_metrics
 
 urlpatterns = [
     # API endpoints
@@ -33,9 +35,12 @@ urlpatterns = [
     # Admin endpoints
     path('admin/check-status/', check_admin_status, name='check_admin_status'),
     path('admin/users/', list_users, name='admin_list_users'),
+    path('admin/users/<int:user_id>/usage/', get_user_usage, name='admin_user_usage'),
     path('admin/update-subscription/', update_user_subscription, name='admin_update_subscription'),
     path('admin/sync-stripe/', sync_stripe_subscription, name='admin_sync_stripe'),
     path('admin/stats/', admin_stats, name='admin_stats'),
+    path('admin/system-health/', system_health, name='admin_system_health'),
+    path('admin/cleanup-metrics/', cleanup_old_metrics, name='admin_cleanup_metrics'),
 
     # Webhook endpoint
     path('webhook/', stripe_webhook, name='stripe_webhook'),
