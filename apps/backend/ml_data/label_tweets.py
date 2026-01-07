@@ -26,6 +26,19 @@ def label_tweet(tweet):
     print(f"Tweet ID: {tweet['id']}")
     print(f"Author: @{tweet['author']['userName']} ({tweet['likeCount']:,} likes)")
     print(f"Virality: {tweet['viralityTier']}")
+    
+    # Check for media
+    has_media = bool(tweet.get('extendedEntities', {}).get('media', []))
+    media_types = []
+    if has_media:
+        media_types = [m.get('type', 'unknown') for m in tweet['extendedEntities']['media']]
+    media_str = f" | Media: {', '.join(media_types)}" if has_media else " | No media"
+    print(f"Info:{media_str}")
+    
+    # Tweet URL
+    tweet_url = tweet.get('url', f"https://x.com/{tweet['author']['userName']}/status/{tweet['id']}")
+    print(f"URL: {tweet_url}")
+    
     print("-"*80)
     print(tweet['text'])
     print("-"*80)
