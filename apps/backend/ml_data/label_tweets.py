@@ -27,13 +27,23 @@ def label_tweet(tweet):
     print(f"Author: @{tweet['author']['userName']} ({tweet['likeCount']:,} likes)")
     print(f"Virality: {tweet['viralityTier']}")
     
+    # Determine tweet type
+    tweet_type = "Tweet"
+    if tweet.get('isRetweet'):
+        tweet_type = "Retweet"
+    elif tweet.get('isQuote'):
+        tweet_type = "Quote Tweet"
+    elif tweet.get('isReply'):
+        tweet_type = "Reply"
+    
     # Check for media
     has_media = bool(tweet.get('extendedEntities', {}).get('media', []))
     media_types = []
     if has_media:
         media_types = [m.get('type', 'unknown') for m in tweet['extendedEntities']['media']]
     media_str = f" | Media: {', '.join(media_types)}" if has_media else " | No media"
-    print(f"Info:{media_str}")
+    
+    print(f"Type: {tweet_type}{media_str}")
     
     # Tweet URL
     tweet_url = tweet.get('url', f"https://x.com/{tweet['author']['userName']}/status/{tweet['id']}")
