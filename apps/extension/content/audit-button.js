@@ -5,8 +5,10 @@ debug.log("Audit button loaded");
   "use strict";
 
   let auditButton = null;
+  let viewResultsButton = null;
   let currentComposeField = null;
   let isAnalyzing = false;
+  let lastAuditData = null;
 
   // Button states
   const BUTTON_STATES = {
@@ -38,6 +40,24 @@ debug.log("Audit button loaded");
       </svg>`,
       class: "brandalyze-audit-error",
     },
+  };
+
+  const VIEW_RESULTS_CONFIG = {
+    text: "View Results",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+    </svg>`,
+    class: "brandalyze-audit-success",
+  };
+
+  const RUN_ANOTHER_CONFIG = {
+    text: "Run Another",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <path d="M3 3v5h5"/>
+    </svg>`,
+    class: "brandalyze-audit-idle",
   };
 
   /**
@@ -91,6 +111,44 @@ debug.log("Audit button loaded");
         border: none;
         min-width: 100px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        position: relative;
+      }
+
+      /* Icon-only variant */
+      .brandalyze-audit-btn-icon-only {
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+      }
+
+      .brandalyze-audit-btn-icon-only span {
+        display: none;
+      }
+
+      /* Tooltip */
+      .brandalyze-audit-btn-icon-only::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 10001;
+      }
+
+      .brandalyze-audit-btn-icon-only:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-4px);
       }
 
       /* Light mode (default) */
@@ -187,6 +245,44 @@ debug.log("Audit button loaded");
       "brandalyze-audit-btn brandalyze-audit-idle brandalyze-audit-btn-enter";
     
     updateButtonState(button, "idle");
+
+    button.addEventListener("click", handleAuditClick);
+
+    return button;
+  }
+
+  /**
+   * Create the view results button element
+   */
+  function createViewResultsButton() {
+    injectStyles();
+
+    const button = document.createElement("button");
+    button.id = "brandalyze-view-results-btn";
+    button.className =
+      "brandalyze-audit-btn brandalyze-audit-btn-icon-only brandalyze-audit-success brandalyze-audit-btn-enter";
+    button.dataset.tooltip = VIEW_RESULTS_CONFIG.text;
+    
+    button.innerHTML = `${VIEW_RESULTS_CONFIG.icon}<span>${VIEW_RESULTS_CONFIG.text}</span>`;
+
+    button.addEventListener("click", handleViewResultsClick);
+
+    return button;
+  }
+
+  /**
+   * Create the run another audit button element
+   */
+  function createRunAnotherButton() {
+    injectStyles();
+
+    const button = document.createElement("button");
+    button.id = "brandalyze-run-another-btn";
+    button.className =
+      "brandalyze-audit-btn brandalyze-audit-btn-icon-only brandalyze-audit-idle brandalyze-audit-btn-enter";
+    button.dataset.tooltip = RUN_ANOTHER_CONFIG.text;
+    
+    button.innerHTML = `${RUN_ANOTHER_CONFIG.icon}<span>${RUN_ANOTHER_CONFIG.text}</span>`;
 
     button.addEventListener("click", handleAuditClick);
 
@@ -472,6 +568,93 @@ debug.log("Audit button loaded");
   dialogObserver.observe(document.body, { childList: true, subtree: true });
 
   /**
+   * Show success buttons (View Results and Run Another)
+   */
+  function showSuccessButtons() {
+    if (!currentComposeField) return;
+
+    const element = currentComposeField.element;
+
+    // Find the compose container/dialog
+    const dialog = element.closest('[role="dialog"]');
+    const container =
+      dialog ||
+      element.closest('[data-testid="primaryColumn"]') ||
+      element.closest("form") ||
+      element.parentElement;
+
+    // Find X/Twitter's Post button
+    const postButton = container?.querySelector(
+      '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+    );
+
+    // Find the toolbar row
+    let toolbar = postButton?.closest('[role="group"]') || postButton?.parentElement;
+    
+    if (!toolbar) {
+      toolbar = container?.querySelector('[role="group"][id]') ||
+                container?.querySelector('[data-testid="toolBar"]') ||
+                container?.querySelector('[role="toolbar"]');
+    }
+
+    if (toolbar) {
+      // Remove the analyzing button
+      if (auditButton) {
+        auditButton.remove();
+      }
+
+      // Create both buttons
+      viewResultsButton = createViewResultsButton();
+      const runAnotherButton = createRunAnotherButton();
+      
+      // Apply margins
+      viewResultsButton.style.marginLeft = "6px";
+      viewResultsButton.style.marginRight = "6px";
+      runAnotherButton.style.marginLeft = "6px";
+      runAnotherButton.style.marginRight = "12px";
+
+      // Insert both buttons before the Post button
+      if (postButton && postButton.parentElement) {
+        postButton.parentElement.insertBefore(runAnotherButton, postButton);
+        postButton.parentElement.insertBefore(viewResultsButton, runAnotherButton);
+      } else {
+        toolbar.appendChild(viewResultsButton);
+        toolbar.appendChild(runAnotherButton);
+      }
+
+      // Apply dark mode
+      const darkMode = isDarkMode();
+      if (darkMode) {
+        viewResultsButton.classList.add("brandalyze-dark");
+        runAnotherButton.classList.add("brandalyze-dark");
+      }
+
+      // Animate in
+      requestAnimationFrame(() => {
+        viewResultsButton.classList.remove("brandalyze-audit-btn-enter");
+        viewResultsButton.classList.add("brandalyze-audit-btn-visible");
+        runAnotherButton.classList.remove("brandalyze-audit-btn-enter");
+        runAnotherButton.classList.add("brandalyze-audit-btn-visible");
+      });
+
+      // Store reference to run another button
+      auditButton = runAnotherButton;
+    }
+  }
+
+  /**
+   * Handle view results button click
+   */
+  function handleViewResultsClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (lastAuditData) {
+      showAuditResults(lastAuditData);
+    }
+  }
+
+  /**
    * Handle audit button click
    */
   async function handleAuditClick(event) {
@@ -516,7 +699,8 @@ debug.log("Audit button loaded");
       });
 
       if (response && response.success) {
-        updateButtonState(auditButton, "success");
+        lastAuditData = response.data;
+        showSuccessButtons();
         showAuditResults(response.data);
       } else {
         const errorMsg =
