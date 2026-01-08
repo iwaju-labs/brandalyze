@@ -53,25 +53,41 @@ def label_tweet(tweet):
     print(tweet['text'])
     print("-"*80)
     
-    # Post Format
+    # Post Format with validation
     print("\nPost Format:")
     print("1. Informative  2. Educational  3. Entertaining")
     print("4. Shitpost     5. Inspirational  6. Story/Thread")
     print("7. Opinion      8. News          9. Question")
-    format_label = input("Select format (1-9): ").strip()
+    while True:
+        format_label = input("Select format (1-9): ").strip()
+        if format_label in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            break
+        print("❌ Invalid input. Please enter a number between 1-9.")
     
-    # Hook Quality
+    # Hook Quality with validation
     print("\nHook Quality:")
     print("1. Strong  2. Medium  3. Weak  4. No Hook")
-    hook_label = input("Select hook quality (1-4): ").strip()
+    while True:
+        hook_label = input("Select hook quality (1-4): ").strip()
+        if hook_label in ['1', '2', '3', '4']:
+            break
+        print("❌ Invalid input. Please enter a number between 1-4.")
     
-    # Closer Type
+    # Closer Type with validation
     print("\nCloser Type:")
     print("1. CTA  2. Question  3. Statement  4. Cliffhanger  5. None")
-    closer_label = input("Select closer type (1-5): ").strip()
+    while True:
+        closer_label = input("Select closer type (1-5): ").strip()
+        if closer_label in ['1', '2', '3', '4', '5']:
+            break
+        print("❌ Invalid input. Please enter a number between 1-5.")
     
-    # Skip option
-    skip = input("\nSkip this tweet? (y/n): ").strip().lower()
+    # Skip option with validation
+    while True:
+        skip = input("\nSkip this tweet? (y/n): ").strip().lower()
+        if skip in ['y', 'n']:
+            break
+        print("❌ Invalid input. Please enter 'y' or 'n'.")
     
     if skip == 'y':
         return None
@@ -85,9 +101,9 @@ def label_tweet(tweet):
     closer_map = {'1': 'cta', '2': 'question', '3': 'statement', '4': 'cliffhanger', '5': 'none'}
     
     tweet['labels'] = {
-        'format': format_map.get(format_label, 'unknown'),
-        'hookQuality': hook_map.get(hook_label, 'unknown'),
-        'closerType': closer_map.get(closer_label, 'unknown')
+        'format': format_map[format_label],
+        'hookQuality': hook_map[hook_label],
+        'closerType': closer_map[closer_label]
     }
     
     return tweet
