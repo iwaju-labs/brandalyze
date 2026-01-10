@@ -125,7 +125,8 @@ def main():
             data[i] = labeled
             labeled_count += 1
             save_labeled_data(data)
-            (print(f"\n✅ saved ({labeled_count}/{len(data)})"))
+            percentage = (labeled_count / len(data)) * 100
+            print(f"\n✓ Saved ({labeled_count}/{len(data)}) - {percentage:.1f}% complete")
 
         cont = input("\nContinue? (Enter to continue, 'q' to quit): ").strip()
         if cont.lower() == 'q':
