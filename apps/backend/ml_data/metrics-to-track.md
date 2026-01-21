@@ -10,3 +10,4 @@ these are the metrics I want to track in the analysis portion (putting them here
 - the niche
 - reasons behind outliers (outside factors, e.g. news headlines, drama, celebrities, major events)
 - is media present in the viral posts that have weak/no hook and no closer
+- how many of the viral tweets were quote tweets
