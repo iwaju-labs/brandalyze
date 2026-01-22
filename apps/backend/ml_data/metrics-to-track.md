@@ -5,6 +5,9 @@ these are the metrics I want to track in the analysis portion (putting them here
 - combinations to see if patterns exist (e.g. strong hooks w/ closers vs other combinations)
 - checking the follower counts to see if that plays any factor too
 - the impact of media in the posts
+  - i.e. the ratio of posts with media to the ones without
+  - when posts had no hook or closer, was there media?
+  - if a post had less than ~50 characters was there media?
 - shitposts not needing a hook,body,closer
 - the date
 - the niche
