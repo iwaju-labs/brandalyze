@@ -48,7 +48,7 @@ When brand voice is clear:
 
 If working in a team, consistency shouldn't rely on an individual. It should be intermeshed with how the team thinks and communicates.
 
-### 3. Your Tone Changes, but Your Voice Doesn't
+#### 3. Your Tone Changes, but Your Voice Doesn't
 Tone adapts. Voice should stay stable.
 
 For example:
@@ -59,3 +59,52 @@ For example:
 Different tones, but the underlying personality should be the same
 
 If you sound like a different company depending on the page &mdash; then your brand voice isn't focused.
+
+#### 4. Your Audience Responds with the Same Voice
+This is one of the strongest signals.
+
+When customers/followers/consumers:
+- Use your phrases/slogans
+- Mirror your wording
+- Describe your product the way you do
+
+...it means your brand voice is settling.
+
+At that point you're no longer just broadcasting. You're shaping how people think and talk about your brand.
+
+#### 5. You Can Explain Your Voice In Plain English
+If someone asks, "How should we sound?" and the answer is:
+> "Friendly but professional, modern but trustworthy..."
+
+That's not enough.\
+Clear brand voice sounds more like:
+- "We explain things simply without dumbing them down."
+- "We're confident but never arrogant."
+- "We sound like a best friend, not a corporate drone."
+If you can't explain it clearly, it can't be replicated consistently
+
+### Common Mistakes That Quietly Kill Brand Voice
+Even good companies fall into these traps:
+- Over-polishing copy until it inevitably loses personality
+- Chasing trends instead of owning your voice
+- Writing for everyone, which leads to resonating with no one
+- Documenting voice once and never revisiting them
+
+### Where Most Brands Get Stuck
+Most teams *think* they have a brand voice, but they've never tested it.
+
+They dont have any framework to measure:
+- if their voice is consistent across channels
+- where their voice breaks down
+- whether it's actually unique to them
+
+This is where **Brandalyze** comes in. To help individuals and teams to analyze, measure and refine brand voice across real content, not just guidelines.
+
+Because brand voice isn't about intentions alone. It's also about execution.
+
+### Finally
+If your brand voice feels clear, consistent, and unmistakbly like you, then you're doing it right.
+
+If it feels forced, vague, or weak, then that's not failure. It'ts a sign that your voice needs the structure, clarity and iteration that Brandalyze aims to give you!
+
+The good news? You can start right now!
