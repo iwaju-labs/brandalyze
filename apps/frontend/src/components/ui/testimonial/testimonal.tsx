@@ -147,7 +147,7 @@ export default function TestimonialSection() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Trusted by{" "}
           <span className="font-medium text-gray-900 dark:text-white">
-            {totalUsers > 10 ? Math.floor(totalUsers / 10) * 10 : totalUsers}+ users
+            {totalUsers > 5 ? Math.floor(totalUsers / 5) * 5 : totalUsers}+ users
           </span>
         </p>
       )}
