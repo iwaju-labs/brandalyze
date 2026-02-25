@@ -173,6 +173,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     lastAuditTime: getElement("lastAuditTime"),
     lastProfileLabel: getElement("lastProfileLabel"),
     lastProfileTime: getElement("lastProfileTime"),
+    // Tweet audit section
+    tweetTextInput: getElement("tweetTextInput"),
+    tweetCharCount: getElement("tweetCharCount"),
+    auditTweetBtn: getElement("auditTweetBtn"),
   };
 
   // Utility functions
@@ -479,6 +483,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     elements.goToTwitterBtn.addEventListener("click", navigateToTwitter);
   if (elements.goToLinkedInBtn)
     elements.goToLinkedInBtn.addEventListener("click", navigateToLinkedIn);
+
+  // Tweet audit event listeners
+  if (elements.tweetTextInput) {
+    elements.tweetTextInput.addEventListener("input", () => {
+      const text = elements.tweetTextInput.value;
+      const length = text.length;
+      if (elements.tweetCharCount) {
+        elements.tweetCharCount.textContent = `${length}/500`;
+      }
+      if (elements.auditTweetBtn) {
+        elements.auditTweetBtn.disabled = length === 0;
+      }
+    });
+  }
+
+  if (elements.auditTweetBtn) {
+    elements.auditTweetBtn.addEventListener("click", () => {
+      const text = elements.tweetTextInput?.value?.trim();
+      if (!text) return;
+      
+      // Encode the tweet text and open the analyze page with the tweet tab
+      const encodedText = encodeURIComponent(text);
+      const url = `https://brandalyze.io/analyze?tab=tweet&text=${encodedText}`;
+      chrome.tabs.create({ url });
+      globalThis.close();
+    });
+  }
 
   // Recent results button handlers
   if (elements.viewLastAuditBtn) {

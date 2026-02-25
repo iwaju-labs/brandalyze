@@ -17,7 +17,7 @@ from .serializers import (
     DriftAlertSerializer,
     AuditUsageSerializer
 )
-from .services import BrandVoiceScorer, XAlgorithmChecker
+from .services import BrandVoiceScorer, XAlgorithmChecker, get_tweet_analyzer
 
 
 @api_view(['POST'])
@@ -568,3 +568,111 @@ def _check_for_drift(user, brand, score):
             
             # Link recent audits
             alert.related_audits.set(recent_audits)
+
+
+@api_view(['POST'])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([ClerkAuthenticated])
+def analyze_tweet_ml(request):
+    """
+    Analyze a tweet using ML models for format, hook quality, and closer type,
+    plus brand voice alignment scoring.
+    
+    POST /api/audits/analyze-tweet/
+    {
+        "content": "Tweet text...",
+        "brand_id": 1,  // Optional - uses default brand if not provided
+        "context": {"has_media": false}  // Optional
+    }
+    """
+    content = request.data.get('content', '').strip()
+    
+    if not content:
+        return Response(
+            {'error': 'Content is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if len(content) > 500:
+        return Response(
+            {'error': 'Content exceeds maximum length of 500 characters'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Get brand (optional - for brand voice analysis)
+    brand_id = request.data.get('brand_id')
+    brand = None
+    brand_voice_result = None
+    
+    if brand_id:
+        brand = Brand.objects.filter(id=brand_id, user=request.user).first()
+    else:
+        brand = Brand.objects.filter(user=request.user).order_by('-created_at').first()
+    
+    try:
+        # ML Analysis
+        analyzer = get_tweet_analyzer()
+        ml_result = analyzer.analyze(content)
+        
+        # Brand voice analysis (if brand exists with samples)
+        if brand and brand.samples.exists():
+            scorer = BrandVoiceScorer(brand)
+            score_result = scorer.calculate_score(content)
+            
+            if 'error' not in score_result:
+                deviations = scorer.find_deviations(content)
+                
+                # X algorithm check
+                context_data = request.data.get('context', {})
+                x_checker = XAlgorithmChecker()
+                x_optimization = x_checker.analyze(content, context_data)
+                
+                # AI feedback
+                has_media = context_data.get('has_media', False)
+                ai_feedback = scorer.generate_ai_feedback(content, 'twitter', has_media)
+                
+                # Get voice analysis for improvement suggestions
+                voice_analysis = None
+                brand_voice = BrandVoiceAnalysis.objects.filter(
+                    user=request.user, 
+                    brand=brand,
+                    use_for_audits=True
+                ).first()
+                if brand_voice and brand_voice.voice_analysis:
+                    voice_analysis = brand_voice.voice_analysis
+                else:
+                    profile = ProfileAnalysis.objects.filter(user=request.user).order_by('-created_at').first()
+                    if profile and profile.voice_analysis:
+                        voice_analysis = profile.voice_analysis
+                
+                # Generate improvement suggestions
+                improvement_suggestions = scorer.generate_improvement_suggestions(
+                    score_result['breakdown'], 
+                    content, 
+                    voice_analysis
+                )
+                
+                brand_voice_result = {
+                    'score': score_result['total'],
+                    'breakdown': score_result['breakdown'],
+                    'metric_tips': score_result.get('metric_tips', {}),
+                    'deviations': deviations,
+                    'x_optimization': x_optimization,
+                    'ai_feedback': ai_feedback,
+                    'improvement_suggestions': improvement_suggestions,
+                    'brand_name': brand.name
+                }
+        
+        return Response({
+            'success': True,
+            'ml_analysis': ml_result,
+            'brand_voice_analysis': brand_voice_result,
+            'content_length': len(content),
+            'has_brand': brand is not None
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Analysis failed: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

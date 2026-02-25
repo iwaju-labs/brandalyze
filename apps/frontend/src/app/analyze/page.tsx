@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authenticatedFetch, authenticatedFetchStream, analyzeBrandVoice, saveBrandVoiceAnalysis, type BrandVoiceAnalysisResponse } from "../../../lib/api";
 import toast from "react-hot-toast";
 import {
@@ -13,6 +13,7 @@ import {
   Plus,
   Save01,
   Microphone01,
+  MessageTextSquare01,
 } from "@untitledui/icons";
 import { Link } from "react-aria-components";
 import UsageDashboard from "@/components/dashboard/usage-dashboard";
@@ -117,6 +118,7 @@ export default function BrandAnalysis() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [brandSamples, setBrandSamples] = useState<string[]>([""]);
   const [newTextForComparison, setNewTextForComparison] = useState("");
@@ -125,7 +127,7 @@ export default function BrandAnalysis() {
   const [streamingFeedback, setStreamingFeedback] = useState<string>("");
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
-  const [activeTab, setActiveTab] = useState<"voice" | "alignment">("voice");
+  const [activeTab, setActiveTab] = useState<"voice" | "alignment" | "tweet">("voice");
   
   // Voice assessment state
   const [voiceAnalysisName, setVoiceAnalysisName] = useState("");
@@ -136,6 +138,37 @@ export default function BrandAnalysis() {
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([
     "enthusiasm", "professionalism", "approachability", "authority"
   ]);
+
+  // Tweet audit state
+  const [tweetContent, setTweetContent] = useState("");
+  const [isAnalyzingTweet, setIsAnalyzingTweet] = useState(false);
+  const [tweetAnalysisResult, setTweetAnalysisResult] = useState<{
+    ml_analysis: {
+      format: { label: string; confidence: number };
+      hookQuality: { label: string; confidence: number };
+      closerType: { label: string; confidence: number };
+    };
+    brand_voice_analysis: {
+      score: number;
+      breakdown: {
+        tone_match: number;
+        vocabulary_consistency: number;
+        emotional_alignment: number;
+        style_deviation: number;
+      };
+      metric_tips: Record<string, string>;
+      deviations: string[];
+      x_optimization: {
+        score: number;
+        suggestions: string[];
+        factors: Record<string, unknown>;
+      } | null;
+      ai_feedback: string | null;
+      improvement_suggestions: string[];
+      brand_name: string;
+    } | null;
+    has_brand: boolean;
+  } | null>(null);
 
   const fetchUsageInfo = useCallback(async () => {
     try {
@@ -157,6 +190,19 @@ export default function BrandAnalysis() {
       fetchUsageInfo();
     }
   }, [isLoaded, isSignedIn, router, user, fetchUsageInfo]);
+
+  // Handle URL parameters from extension
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const text = searchParams.get("text");
+    
+    if (tab === "tweet") {
+      setActiveTab("tweet");
+      if (text) {
+        setTweetContent(decodeURIComponent(text));
+      }
+    }
+  }, [searchParams]);
 
   if (!isLoaded) {
     return <FullPageLoader />;
@@ -535,6 +581,48 @@ export default function BrandAnalysis() {
     }
   };
 
+  const handleTweetAnalysis = async () => {
+    if (!tweetContent.trim()) {
+      toast.error("Please enter tweet content to analyze", {
+        icon: <Edit01 />,
+        style: {
+          background: "#fef3c7",
+          color: "#92400e",
+          border: "1px solid #fed7aa",
+        },
+      });
+      return;
+    }
+
+    setIsAnalyzingTweet(true);
+    setTweetAnalysisResult(null);
+
+    try {
+      const response = await authenticatedFetch("/audits/analyze-tweet/", getToken, {
+        method: "POST",
+        body: JSON.stringify({ content: tweetContent }),
+      });
+
+      if (response.success && response.ml_analysis) {
+        setTweetAnalysisResult({
+          ml_analysis: response.ml_analysis,
+          brand_voice_analysis: response.brand_voice_analysis,
+          has_brand: response.has_brand
+        });
+        toast.success("Tweet analysis complete!", {
+          icon: <CheckCircle />,
+        });
+      } else {
+        throw new Error(response.error || "Analysis failed");
+      }
+    } catch (error) {
+      console.error("Tweet analysis failed:", error);
+      toast.error("Failed to analyze tweet");
+    } finally {
+      setIsAnalyzingTweet(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
       <div className="mx-auto max-w-4xl px-4 py-8">
@@ -588,10 +676,22 @@ export default function BrandAnalysis() {
                 <AlignLeft className="w-4 h-4" />
                 Content Alignment
               </button>
+              <button
+                onClick={() => setActiveTab("tweet")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === "tweet"
+                    ? "border-purple-500 text-purple-600 dark:text-purple-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                <MessageTextSquare01 className="w-4 h-4" />
+                Tweet Audit
+              </button>
             </nav>
           </div>
 
-          {/* Brand Samples Section - Shared between tabs */}
+          {/* Brand Samples Section - Shared between voice and alignment tabs */}
+          {activeTab !== "tweet" && (
           <div>
             <div className="block text-lg font-medium text-foreground mb-2">
               Brand Samples
@@ -655,6 +755,7 @@ export default function BrandAnalysis() {
               );
             })()}
           </div>
+          )}
 
           {/* Voice Assessment Tab Content */}
           {activeTab === "voice" && (
@@ -1058,6 +1159,281 @@ export default function BrandAnalysis() {
                       </ReactMarkdown>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tweet Audit Tab Content */}
+          {activeTab === "tweet" && (
+            <div className="space-y-6">
+              <div>
+                <label
+                  htmlFor="tweet-content"
+                  className="block text-lg font-medium text-foreground mb-2"
+                >
+                  Tweet Content
+                </label>
+                <p className="text-sm text-gray-500 mb-4">
+                  Paste your tweet to analyze its format, hook quality, and closer type
+                </p>
+                <textarea
+                  id="tweet-content"
+                  value={tweetContent}
+                  onChange={(e) => setTweetContent(e.target.value)}
+                  placeholder="Paste your tweet here..."
+                  className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-neutral-50 dark:bg-neutral-500"
+                  maxLength={500}
+                />
+                <div className="text-xs text-gray-400 mt-1">
+                  {tweetContent.length}/500 characters
+                </div>
+              </div>
+
+              <button
+                onClick={handleTweetAnalysis}
+                disabled={isAnalyzingTweet || !tweetContent.trim()}
+                className="w-full py-3 px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isAnalyzingTweet ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <MessageTextSquare01 className="w-5 h-5" />
+                    Analyze Tweet
+                  </>
+                )}
+              </button>
+
+              {/* Tweet Analysis Results */}
+              {tweetAnalysisResult && (
+                <div className="mt-8 space-y-6">
+                  {/* ML Analysis Section */}
+                  <div className="bg-white dark:bg-inherit border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                      Content Structure Analysis
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Format */}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          Post Format
+                        </div>
+                        <div className="text-xl font-bold text-purple-600 dark:text-purple-400 capitalize">
+                          {tweetAnalysisResult.ml_analysis.format.label}
+                        </div>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Confidence</span>
+                            <span>{(tweetAnalysisResult.ml_analysis.format.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-purple-600 h-2 rounded-full"
+                              style={{ width: `${tweetAnalysisResult.ml_analysis.format.confidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hook Quality */}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          Hook Quality
+                        </div>
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400 capitalize">
+                          {tweetAnalysisResult.ml_analysis.hookQuality.label}
+                        </div>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Confidence</span>
+                            <span>{(tweetAnalysisResult.ml_analysis.hookQuality.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full"
+                              style={{ width: `${tweetAnalysisResult.ml_analysis.hookQuality.confidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Closer Type */}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          Closer Type
+                        </div>
+                        <div className="text-xl font-bold text-green-600 dark:text-green-400 capitalize">
+                          {tweetAnalysisResult.ml_analysis.closerType.label}
+                        </div>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Confidence</span>
+                            <span>{(tweetAnalysisResult.ml_analysis.closerType.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full"
+                              style={{ width: `${tweetAnalysisResult.ml_analysis.closerType.confidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Brand Voice Analysis Section */}
+                  {tweetAnalysisResult.brand_voice_analysis ? (
+                    <div className="bg-white dark:bg-inherit border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                          Brand Voice Analysis
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                          {(() => {
+                            const score = tweetAnalysisResult.brand_voice_analysis.score;
+                            let scoreColorClasses = "";
+                            if (score >= 70) {
+                              scoreColorClasses = "bg-green-100 text-green-800";
+                            } else if (score >= 50) {
+                              scoreColorClasses = "bg-yellow-100 text-yellow-800";
+                            } else {
+                              scoreColorClasses = "bg-red-100 text-red-800";
+                            }
+                            return (
+                              <div
+                                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${scoreColorClasses}`}
+                              >
+                                {score}
+                              </div>
+                            );
+                          })()}
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500 dark:text-gray-300">
+                              Voice Score
+                            </div>
+                            <div className="text-lg font-semibold text-gray-900 dark:text-gray-300">
+                              out of 100
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Score Breakdown */}
+                      {tweetAnalysisResult.brand_voice_analysis.breakdown && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-purple-600">
+                              {tweetAnalysisResult.brand_voice_analysis.breakdown.tone_match}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Tone Match</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {tweetAnalysisResult.brand_voice_analysis.breakdown.vocabulary_consistency}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Vocabulary</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-green-600">
+                              {tweetAnalysisResult.brand_voice_analysis.breakdown.emotional_alignment}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Emotional</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-orange-600">
+                              {tweetAnalysisResult.brand_voice_analysis.breakdown.style_deviation}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Style</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Deviations */}
+                      {tweetAnalysisResult.brand_voice_analysis.deviations && tweetAnalysisResult.brand_voice_analysis.deviations.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                            Voice Deviations
+                          </h4>
+                          <ul className="space-y-2">
+                            {tweetAnalysisResult.brand_voice_analysis.deviations.map((deviation, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-yellow-500 mt-0.5">!</span>
+                                {deviation}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* X Optimization */}
+                      {tweetAnalysisResult.brand_voice_analysis.x_optimization && tweetAnalysisResult.brand_voice_analysis.x_optimization.suggestions.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                            X Algorithm Optimization
+                          </h4>
+                          <ul className="space-y-2">
+                            {tweetAnalysisResult.brand_voice_analysis.x_optimization.suggestions.map((tip, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-blue-500 mt-0.5">*</span>
+                                {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* AI Feedback */}
+                      {tweetAnalysisResult.brand_voice_analysis.ai_feedback && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                            AI Feedback
+                          </h4>
+                          <div className="bg-gray-50 dark:bg-black text-black dark:text-white p-4 rounded-md prose prose-gray max-w-none">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                            >
+                              {tweetAnalysisResult.brand_voice_analysis.ai_feedback}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Improvement Suggestions */}
+                      {tweetAnalysisResult.brand_voice_analysis.improvement_suggestions && tweetAnalysisResult.brand_voice_analysis.improvement_suggestions.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-300 mb-3">
+                            Improvement Suggestions
+                          </h4>
+                          <ul className="space-y-2">
+                            {tweetAnalysisResult.brand_voice_analysis.improvement_suggestions.map((suggestion, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-green-500 mt-0.5">+</span>
+                                {suggestion}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ) : !tweetAnalysisResult.has_brand && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <strong>No brand voice configured.</strong> Create a brand with voice samples to get detailed voice alignment analysis.
+                      </p>
+                      <Link
+                        href="/brands"
+                        className="inline-block mt-2 text-yellow-700 hover:text-yellow-800 underline text-sm"
+                      >
+                        Create a brand
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

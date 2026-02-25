@@ -24,11 +24,7 @@
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": [
         "content/shared.js",
-        "content/compose-detector.js",
-        "content/audit-button.js",
-        "content/audit-panel.js",
         "content/profile-panel.js",
-        "content/compose-observer.js",
         "content/twitter.js"
       ],
       "css": [],

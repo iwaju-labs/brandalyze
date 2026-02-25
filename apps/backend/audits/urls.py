@@ -6,6 +6,7 @@ app_name = 'audits'
 urlpatterns = [
     # Main audit endpoint
     path('analyze/', views.analyze_post, name='analyze'),
+    path('analyze-tweet/', views.analyze_tweet_ml, name='analyze-tweet'),
     
     # Audit history and details
     path('history/', views.audit_history, name='history'),

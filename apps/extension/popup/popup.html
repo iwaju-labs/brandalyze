@@ -140,6 +140,35 @@
           </div>
         </div>
 
+        <!-- Tweet Audit Section -->
+        <div
+          id="tweetAuditSection"
+          class="bg-gray-50 border border-gray-200 rounded p-3"
+        >
+          <h3 class="text-sm font-medium text-gray-800 mb-2">
+            Tweet Audit
+          </h3>
+          <p class="text-xs text-gray-600 mb-3">
+            Paste tweet text to analyze format, hook quality, and closer type
+          </p>
+          <textarea
+            id="tweetTextInput"
+            class="w-full h-20 p-2 text-xs border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Paste your tweet text here..."
+            maxlength="500"
+          ></textarea>
+          <div class="flex items-center justify-between mt-2">
+            <span class="text-xs text-gray-400" id="tweetCharCount">0/500</span>
+            <button
+              class="bg-purple-600 hover:bg-purple-700 text-white border-0 px-3 py-1.5 rounded cursor-pointer text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              id="auditTweetBtn"
+              disabled
+            >
+              Audit Tweet
+            </button>
+          </div>
+        </div>
+
         <!-- Recent Results Section -->
         <div
           id="recentResultsSection"
