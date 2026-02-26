@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authenticatedFetch, authenticatedFetchStream, analyzeBrandVoice, saveBrandVoiceAnalysis, type BrandVoiceAnalysisResponse } from "../../../lib/api";
@@ -114,7 +114,15 @@ interface UsageInfo {
   };
 }
 
-export default function BrandAnalysis() {
+export default function BrandAnalysisPage() {
+  return (
+    <Suspense fallback={<FullPageLoader />}>
+      <BrandAnalysis />
+    </Suspense>
+  );
+}
+
+function BrandAnalysis() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
