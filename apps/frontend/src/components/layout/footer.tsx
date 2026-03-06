@@ -12,7 +12,7 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
       className={`bg-white dark:bg-black relative z-30 border-t border-gray-200 dark:border-gray-800 transition-colors ${className}`}
     >
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
           {/* Brand Section */}
           <div className="col-span-1">
             <Link href="/" className="inline-block mb-4">
@@ -59,6 +59,39 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
                   Chrome Extension
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Free Tools Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+              Free Tools
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link
+                  href="/brand-voice-checker"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                >
+                  Brand Voice Checker
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/content-alignment-checker"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                >
+                  Content Alignment Checker
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/tweet-audit"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                >
+                  Tweet Audit Tool
                 </Link>
               </li>
             </ul>
