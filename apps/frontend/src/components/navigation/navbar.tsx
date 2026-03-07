@@ -69,12 +69,6 @@ export const Navbar = () => {
             )}
           </div>
           <Link
-            href="/brand-voice-checker"
-            className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-          >
-            analyze
-          </Link>
-          <Link
             href="/history"
             className="text-neutral-500 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
