@@ -167,7 +167,7 @@ function SuccessPageContent() {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => router.push("/analyze")}
+              onClick={() => router.push("/brand-voice-checker")}
               className="flex items-center justify-center px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
             >
               Start Analyzing

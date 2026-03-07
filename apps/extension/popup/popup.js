@@ -505,7 +505,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       
       // Encode the tweet text and open the analyze page with the tweet tab
       const encodedText = encodeURIComponent(text);
-      const url = `https://brandalyze.io/analyze?tab=tweet&text=${encodedText}`;
+      const url = `https://brandalyze.io/tweet-audit?text=${encodedText}`;
       chrome.tabs.create({ url });
       globalThis.close();
     });

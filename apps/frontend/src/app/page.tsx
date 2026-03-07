@@ -118,7 +118,7 @@ export default async function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <ParticleLink
                   className="flex items-center justify-center border border-black dark:border-[#f8f8ff] rounded-lg px-8 py-4 text-black dark:text-[#f8f8ff] text-lg sm:text-xl font-medium shadow-brutalist"
-                  href={"/analyze"}
+                  href={"/brand-voice-checker"}
                   images={["/icon.png"]}
                   particleCount={12}
                   particleSizeRange={[12, 24]}

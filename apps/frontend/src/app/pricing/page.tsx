@@ -115,7 +115,7 @@ export default function PricingPage() {
     }
 
     if (tier.name === "Free") {
-      router.push("/analyze");
+      router.push("/brand-voice-checker");
       return;
     }
 
@@ -191,7 +191,7 @@ export default function PricingPage() {
         window.location.href = response.data.checkout_url;
       } else {
         toast.success("🎉 Free trial started! Enjoy Pro features for 7 days.");
-        router.push("/analyze");
+        router.push("/brand-voice-checker");
       }
     } catch (error) {
       console.error("Trial error:", error);

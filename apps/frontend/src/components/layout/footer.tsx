@@ -37,7 +37,7 @@ export function Footer({ className = "" }: Readonly<FooterProps>) {
             <ul className="space-y-3">
               <li>
                 <Link
-                  href="/analyze"
+                  href="/brand-voice-checker"
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
                   Features
