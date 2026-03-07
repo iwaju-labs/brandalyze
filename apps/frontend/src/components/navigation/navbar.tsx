@@ -108,6 +108,7 @@ export const Navbar = () => {
             </SignInButton>
           </SignedOut>
           <SignedIn>
+            <div suppressHydrationWarning>
             <UserButton
               appearance={{
                 elements: {
@@ -121,6 +122,7 @@ export const Navbar = () => {
               }}
               userProfileMode="navigation"
               userProfileUrl="/user-profile"            />
+            </div>
                 <AdminLink />
                 <Link
                   href="/settings"
