@@ -112,7 +112,8 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
                         prose-code:bg-purple-50 dark:prose-code:bg-purple-900/20
                         prose-code:px-1 prose-code:py-0.5 prose-code:rounded
                         prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950
-                        prose-img:rounded-xl prose-img:shadow-lg">
+                        prose-img:rounded-xl prose-img:shadow-lg
+                        [&_.not-prose_img]:inline-block [&_.not-prose_img]:w-auto [&_.not-prose_img]:max-w-[48%]">
           <MDXRemote source={post.content} />
         </div>
 

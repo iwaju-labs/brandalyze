@@ -170,6 +170,8 @@ function ContentAlignmentCheckerTool() {
       const decoder = new TextDecoder();
       let buffer = "";
       let latestFeedback = "";
+      let latestScore = 0;
+      let latestSamplesAnalyzed = filtered.length;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -177,6 +179,7 @@ function ContentAlignmentCheckerTool() {
         buffer += decoder.decode(value, { stream: true });
 
         const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed) continue;
@@ -184,10 +187,12 @@ function ContentAlignmentCheckerTool() {
             const data = JSON.parse(trimmed);
             if (data.error) { toast.error(`Analysis failed: ${data.error}`); continue; }
             if (data.ai_feedback) { latestFeedback = data.ai_feedback; setStreamingFeedback(data.ai_feedback); }
+            if (data.alignment_score !== undefined) { latestScore = data.alignment_score; }
+            if (data.brand_samples_analyzed !== undefined) { latestSamplesAnalyzed = data.brand_samples_analyzed; }
             if (data.ai_feedback && data.alignment_score !== undefined) {
               setResult({
                 brand_analysis: {
-                  alignment_score: data.alignment_score || 0,
+                  alignment_score: data.alignment_score,
                   feedback: data.ai_feedback,
                   brand_samples_analyzed: data.brand_samples_analyzed || filtered.length,
                   analysis_successful: true,
@@ -205,39 +210,32 @@ function ContentAlignmentCheckerTool() {
         }
       }
 
+      // Process any remaining buffer content
       if (buffer.trim()) {
         try {
-          const finalData = JSON.parse(buffer.trim());
-          setResult({
-            brand_analysis: {
-              alignment_score: finalData.alignment_score || 0,
-              feedback: finalData.ai_feedback || latestFeedback,
-              brand_samples_analyzed: finalData.brand_samples_analyzed || filtered.length,
-              analysis_successful: true,
-            },
-            input_info: {
-              new_text_length: newText.length,
-              brand_samples_count: filtered.length,
-              analysis_type: "brand_alignment",
-            },
-          });
+          const data = JSON.parse(buffer.trim());
+          if (data.ai_feedback) { latestFeedback = data.ai_feedback; }
+          if (data.alignment_score !== undefined) { latestScore = data.alignment_score; }
+          if (data.brand_samples_analyzed !== undefined) { latestSamplesAnalyzed = data.brand_samples_analyzed; }
         } catch {
-          if (latestFeedback) {
-            setResult({
-              brand_analysis: {
-                alignment_score: 0,
-                feedback: latestFeedback,
-                brand_samples_analyzed: filtered.length,
-                analysis_successful: true,
-              },
-              input_info: {
-                new_text_length: newText.length,
-                brand_samples_count: filtered.length,
-                analysis_type: "brand_alignment",
-              },
-            });
-          }
+          // ignore
         }
+      }
+
+      if (latestFeedback) {
+        setResult({
+          brand_analysis: {
+            alignment_score: latestScore,
+            feedback: latestFeedback,
+            brand_samples_analyzed: latestSamplesAnalyzed,
+            analysis_successful: true,
+          },
+          input_info: {
+            new_text_length: newText.length,
+            brand_samples_count: filtered.length,
+            analysis_type: "brand_alignment",
+          },
+        });
       }
 
       await fetchUsage();
