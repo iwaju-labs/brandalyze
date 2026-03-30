@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { apiFetch } from "../../../../lib/api";
 
 interface Testimonal {
   id: number;
@@ -66,20 +65,7 @@ Brandalyze helps me do just that. I would recommend anyone trying grow personal 
 
 export default function TestimonialSection() {
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [totalUsers, setTotalUsers] = useState<number>(800);
-
-  useEffect(() => {
-    const fetchUserCount = async () => {
-      try {
-        const response = await apiFetch("/payments/stats/");
-        setTotalUsers(response.data?.total_users || 800);
-      } catch (error) {
-        console.error("Could not fetch user count", error);
-        // Keep fallback value
-      }
-    };
-    fetchUserCount();
-  }, []);
+  const totalUsers = 800;
 
   return (
     <div className="flex items-center justify-center gap-4 sm:gap-5 py-8">
