@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: transparent;
+  --foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --accent: #f3f4f6;
+  --accent-foreground: #374151;
+  --purple-50: #faf5ff;
+  --purple-100: #f3e8ff;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+}
+
+.dark {
+  --background: transparent;
+  --foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --accent: #1f2937;
+  --accent-foreground: #f9fafb;
+  --purple-50: #1a1625;
+  --purple-100: #2d1b3d;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+}
+
+body {
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* GPU acceleration for main content only */
+main,
+section {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Override for modal containers and floating elements */
+[role="dialog"],
+[aria-modal="true"],
+.clerk-modal,
+[data-portal],
+.clerk-component {
+  -webkit-backface-visibility: visible !important;
+  backface-visibility: visible !important;
+  -webkit-transform: none !important;
+  transform: none !important;
+  z-index: 9999;
+}
+
+.shadow-brutalist {
+  box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent, 12px 12px 0 0 #9333EA;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shadow-brutalist:hover {
+  background-color: #9333EA;
+  color: #ffffff;
+  border-color: #9333EA;
+  box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent, 12px 12px 0 0 #0a0a0a;
+  transform: translate(4px, 4px);
+}
+
+.dark .shadow-brutalist {
+  box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent, 12px 12px 0 0 #a855f7;
+}
+
+.dark .shadow-brutalist:hover {
+  background-color: #a855f7;
+  color: #0a0a0a;
+  border-color: #a855f7;
+  box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent, 12px 12px 0 0 #f8f8ff;
+}
+
+/* Brutalist card style */
+.card-brutalist {
+  border: 2px solid #0a0a0a;
+  box-shadow: 8px 8px 0 0 #9333EA;
+  transition: all 0.2s ease;
+}
+
+.card-brutalist:hover {
+  box-shadow: 4px 4px 0 0 #9333EA;
+  transform: translate(4px, 4px);
+}
+
+.dark .card-brutalist {
+  border-color: #f8f8ff;
+  box-shadow: 8px 8px 0 0 #a855f7;
+}
+
+.dark .card-brutalist:hover {
+  box-shadow: 4px 4px 0 0 #a855f7;
+}
+
+/* Brutalist video container */
+.video-brutalist {
+  border: 2px solid #0a0a0a;
+  box-shadow: 8px 8px 0 0 #9333EA;
+}
+
+.dark .video-brutalist {
+  border-color: #f8f8ff;
+  box-shadow: 8px 8px 0 0 #a855f7;
+}
+
+/* Brutalist badge style with invert on hover */
+.badge-brutalist {
+  border: 2px solid #0a0a0a;
+  box-shadow: 6px 6px 0 0 #9333EA;
+  transition: all 0.2s ease;
+}
+
+.dark .badge-brutalist {
+  border-color: #f8f8ff;
+  box-shadow: 6px 6px 0 0 #a855f7;
+}

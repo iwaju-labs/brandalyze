@@ -1,0 +1,21 @@
+{
+  "name": "Brandalyze - AI Brand Voice Analysis",
+  "short_name": "Brandalyze",
+  "description": "AI-powered brand voice analysis tool that ensures consistent brand messaging across all your content.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["business", "productivity", "marketing"],
+  "lang": "en",
+  "dir": "ltr"
+}
