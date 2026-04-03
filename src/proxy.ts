@@ -1,17 +1,13 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-const isProtectedRoute = createRouteMatcher([
-  "/brand-voice-checker",
-  "/content-alignment-checker",
-  "/tweet-audit",
-  "/subscription/success(.*)",
-  "/settings(.*)",
-  "/admin(.*)",
-]);
+const allowedPaths = ["/", "/sign-in", "/sign-up", "/privacy", "/terms"];
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
+  const path = req.nextUrl.pathname;
+
+  if (!allowedPaths.some((p) => path === p || path.startsWith(p + "/"))) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 });
 
