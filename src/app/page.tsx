@@ -30,7 +30,7 @@ export default function HomePage() {
         </p>
 
         <p className="text-gray-500 dark:text-gray-400 mb-12 max-w-md mx-auto">
-          We&apos;re rebuilding Brandalyze from the ground up. If you&apos;re an existing user, your account is safe.
+          I&apos;m rebuilding Brandalyze from the ground up. If you&apos;re an existing user, your account is safe.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
